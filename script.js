@@ -24,13 +24,13 @@ var moodGenres = {
   biography:   ["биография"],
   kids:        ["детский"],
   adventure:   ["приключения"],
-  comedy_dark: ["чёрная комедия"],
-  mystic:      ["мистика"],
+  comedy_dark: ["комедия", "криминал"],
+  mystic:      ["мистика", "триллер"],
   musical:     ["мюзикл"],
   family:      ["семейный"],
   heist:       ["криминал"],
-  survival:    ["выживание"],
-  space:       ["космос"]
+  survival:    ["приключения", "триллер"],
+  space:       ["фантастика", "приключения"]
 };
 
 var currentMood = null;
