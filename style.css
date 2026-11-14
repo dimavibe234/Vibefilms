@@ -1,0 +1,103 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #14181c;
+  color: #e8eaed;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+header h1 {
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+
+header p {
+  color: #9aa4b2;
+}
+
+.moods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+.moods button {
+  background: #1f262e;
+  color: #e8eaed;
+  border: 1px solid #2f3a44;
+  border-radius: 30px;
+  padding: 12px 22px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.moods button:hover {
+  background: #2c3742;
+  border-color: #4a5a68;
+  transform: translateY(-2px);
+}
+
+.moods button.active {
+  background: #3a7bd5;
+  border-color: #3a7bd5;
+}
+
+.results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 20px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.card {
+  background: #1f262e;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+}
+
+.card img {
+  width: 100%;
+  display: block;
+}
+
+.card .info {
+  padding: 10px;
+}
+
+.card .title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.card .meta {
+  font-size: 0.8rem;
+  color: #9aa4b2;
+}
+
+.placeholder {
+  text-align: center;
+  color: #9aa4b2;
+  grid-column: 1 / -1;
+  padding: 40px;
+}

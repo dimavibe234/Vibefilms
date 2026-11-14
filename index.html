@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Подбор фильмов по настроению</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>🎬 Какое у тебя настроение?</h1>
+    <p>Выбери настроение — мы подберём фильм</p>
+  </header>
+
+  <main>
+    <div class="moods" id="moods">
+      <button data-mood="happy">😄 Весело</button>
+      <button data-mood="sad">😢 Грустно</button>
+      <button data-mood="action">🔥 Хочу адреналина</button>
+      <button data-mood="cozy">🛋️ Уютно</button>
+      <button data-mood="scary">👻 Хочу испугаться</button>
+    </div>
+
+    <div id="results" class="results"></div>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
