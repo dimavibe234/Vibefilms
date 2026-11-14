@@ -81,10 +81,99 @@ function loadMovies(mood) {
     });
 }
 
+// === Нейросеть через Puter.js ===
+
+var moodMap = {
+  "комедия": "happy",
+  "смешное": "happy",
+  "веселое": "happy",
+  "драма": "sad",
+  "грустное": "sad",
+  "боевик": "action",
+  "экшен": "action",
+  "адреналин": "action",
+  "семейное": "cozy",
+  "уютное": "cozy",
+  "анимация": "cozy",
+  "ужасы": "scary",
+  "страшное": "scary",
+  "мелодрама": "romance",
+  "романтика": "romance",
+  "любовь": "romance",
+  "приключения": "nostalgia",
+  "фантастика": "scifi",
+  "фантастическое": "scifi",
+  "музыка": "music",
+  "детектив": "mystery",
+  "загадка": "mystery"
+};
+
+function initAI() {
+  var aiInput = document.getElementById("ai-input");
+  var aiButton = document.getElementById("ai-button");
+  var aiStatus = document.getElementById("ai-status");
+
+  if (!aiButton) { return; }
+
+  aiButton.addEventListener("click", function () {
+    var text = aiInput.value.trim();
+    if (!text) {
+      aiStatus.textContent = "Напиши хоть что-нибудь 🙂";
+      return;
+    }
+
+    aiButton.disabled = true;
+    aiStatus.textContent = "Думаем...";
+
+    var prompt = 'Пользователь не знает, что посмотреть. Он описал настроение: "' + text + '". ' +
+      'Определи, к какому из жанров это ближе всего. Ответь ОДНИМ словом из списка: ' +
+      'комедия, драма, боевик, семейное, ужасы, мелодрама, приключения, фантастика, музыка, детектив. ' +
+      'Только одно слово, без пояснений.';
+
+    puter.ai.chat(prompt).then(function (response) {
+      var answer = "";
+      if (typeof response === "string") {
+        answer = response;
+      } else if (response && response.message && response.message.content) {
+        answer = response.message.content;
+      } else if (response && response.text) {
+        answer = response.text;
+      }
+
+      var clean = answer.toLowerCase().trim();
+      var moodKey = null;
+
+      for (var key in moodMap) {
+        if (clean.indexOf(key) !== -1) {
+          moodKey = moodMap[key];
+          break;
+        }
+      }
+
+      if (moodKey) {
+        aiStatus.textContent = "Похоже, тебе подойдёт: " + moodKey;
+        var targetBtn = document.querySelector('#moods button[data-mood="' + moodKey + '"]');
+        if (targetBtn) {
+          targetBtn.click();
+        } else {
+          loadMovies(moodKey);
+        }
+      } else {
+        aiStatus.textContent = "Не смогли определить жанр. Попробуй описать иначе.";
+      }
+    }).catch(function (err) {
+      aiStatus.textContent = "Ошибка нейросети: " + (err.message || err);
+    }).finally(function () {
+      aiButton.disabled = false;
+    });
+  });
+}
+
 function init() {
   var buttons = document.querySelectorAll("#moods button");
   var results = document.getElementById("results");
   results.innerHTML = '<p class="placeholder">Выбери настроение выше</p>';
+
   for (var i = 0; i < buttons.length; i++) {
     buttons[i].addEventListener("click", function () {
       var all = document.querySelectorAll("#moods button");
@@ -95,6 +184,8 @@ function init() {
       loadMovies(this.getAttribute("data-mood"));
     });
   }
+
+  initAI();
 }
 
 if (document.readyState === "loading") {

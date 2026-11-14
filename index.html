@@ -13,6 +13,16 @@
   </header>
 
   <main>
+    <div class="ai-block">
+      <h3>Не знаешь, чего хочешь?</h3>
+      <p>Опиши своё настроение словами, и мы подберём жанр</p>
+      <div class="ai-input-row">
+        <input type="text" id="ai-input" placeholder="например: хочу что-то тёплое и смешное">
+        <button id="ai-button">Подобрать</button>
+      </div>
+      <p id="ai-status" class="ai-status"></p>
+    </div>
+
     <div class="moods" id="moods">
       <button data-mood="happy">Весело</button>
       <button data-mood="sad">Грустно</button>
@@ -31,6 +41,7 @@
     <div id="results" class="results"></div>
   </main>
 
+  <script src="https://js.puter.com/v2/"></script>
   <script src="script.js"></script>
 </body>
 </html>
