@@ -60,7 +60,14 @@ function loadMovies(mood, type) {
   for (var i = 0; i < genres.length; i++) {
     params.push("genres.name=" + encodeURIComponent(genres[i]));
   }
-  params.push("type=" + type);
+
+  // ВАЖНО: для сериалов API ждёт tv-series, а не series
+  if (type === "series") {
+    params.push("type=tv-series");
+  } else {
+    params.push("type=movie");
+  }
+
   params.push("sortField=rating.kp");
   params.push("sortType=-1");
   params.push("limit=20");
