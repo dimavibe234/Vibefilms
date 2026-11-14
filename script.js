@@ -17,7 +17,7 @@ var moodGenres = {
   fantasy:     ["фэнтези"],
   crime:       ["криминал"],
   thriller:    ["триллер"],
-  documentary: ["документальный"],
+  documentary: ["документальное"],
   sport:       ["спорт"],
   war:         ["военный"],
   western:     ["вестерн"],
@@ -148,7 +148,6 @@ function renderPlaylists() {
   });
 }
 
-/* ===== Модальное окно плейлиста ===== */
 function openPlaylistModal(movie) {
   pendingMovie = movie;
   var titleEl = document.getElementById("modal-movie-title");
@@ -159,7 +158,6 @@ function openPlaylistModal(movie) {
   var container = document.getElementById("modal-playlists");
   var playlists = getPlaylists();
   var names = Object.keys(playlists);
-
   if (!container) return;
 
   if (names.length === 0) {
@@ -195,7 +193,6 @@ function closePlaylistModal() {
   if (inp) inp.value = "";
 }
 
-/* ===== Рендер карточек ===== */
 function render(movies) {
   var results = document.getElementById("results");
   if (!results) return;
@@ -245,7 +242,6 @@ function render(movies) {
   });
 }
 
-/* ===== Загрузка по настроению ===== */
 function loadMovies(mood, type) {
   var results = document.getElementById("results");
   if (!results) return;
@@ -286,7 +282,6 @@ function loadMovies(mood, type) {
     });
 }
 
-/* ===== Поиск по названию ===== */
 function searchMovies(query, type) {
   var results = document.getElementById("results");
   if (!results) return;
@@ -321,7 +316,6 @@ function searchMovies(query, type) {
     });
 }
 
-/* ===== Нейросеть ===== */
 function initAI() {
   var aiInput = document.getElementById("ai-input");
   var aiButton = document.getElementById("ai-button");
@@ -397,7 +391,6 @@ function initAI() {
   });
 }
 
-/* ===== Переключатель типов ===== */
 function initTypeSwitch() {
   var typeSwitch = document.getElementById("type-switch");
   if (!typeSwitch) return;
@@ -415,7 +408,6 @@ function initTypeSwitch() {
   }
 }
 
-/* ===== Настройки внешнего вида ===== */
 function initSettings() {
   var settingsPanel = document.getElementById("settings-panel");
   var settingsToggle = document.getElementById("settings-toggle");
@@ -432,7 +424,6 @@ function initSettings() {
     });
   }
 
-  // Акцентный цвет
   document.querySelectorAll(".color-dot").forEach(function (dot) {
     dot.addEventListener("click", function () {
       var accent = this.getAttribute("data-accent");
@@ -443,22 +434,17 @@ function initSettings() {
     });
   });
 
-  // Тема
   document.querySelectorAll(".theme-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
       var theme = this.getAttribute("data-theme");
-      if (theme === "light") {
-        document.body.classList.add("light");
-      } else {
-        document.body.classList.remove("light");
-      }
+      if (theme === "light") document.body.classList.add("light");
+      else document.body.classList.remove("light");
       localStorage.setItem("mood_theme", theme);
       document.querySelectorAll(".theme-btn").forEach(function (b) { b.classList.remove("active"); });
       this.classList.add("active");
     });
   });
 
-  // Размер карточек
   document.querySelectorAll(".size-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
       var size = this.getAttribute("data-size");
@@ -469,7 +455,6 @@ function initSettings() {
     });
   });
 
-  // Скругление
   document.querySelectorAll(".radius-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
       var r = this.getAttribute("data-radius");
@@ -480,7 +465,6 @@ function initSettings() {
     });
   });
 
-  // Сброс
   var resetBtn = document.getElementById("settings-reset");
   if (resetBtn) {
     resetBtn.addEventListener("click", function () {
@@ -496,29 +480,22 @@ function initSettings() {
     });
   }
 
-  // Применяем сохранённые настройки
   var savedAccent = localStorage.getItem("mood_accent");
   if (savedAccent) document.body.setAttribute("data-accent", savedAccent);
-
   var savedTheme = localStorage.getItem("mood_theme");
   if (savedTheme === "light") document.body.classList.add("light");
-
   var savedSize = localStorage.getItem("mood_size");
   if (savedSize) document.body.setAttribute("data-size", savedSize);
-
   var savedRadius = localStorage.getItem("mood_radius");
   if (savedRadius) document.body.setAttribute("data-radius", savedRadius);
 }
 
-/* ===== Основной запуск ===== */
 function init() {
   var buttons = document.querySelectorAll("#moods button");
   var results = document.getElementById("results");
   var typeSwitch = document.getElementById("type-switch");
 
-  if (results) {
-    results.innerHTML = '<p class="placeholder">Выбери настроение выше</p>';
-  }
+  if (results) results.innerHTML = '<p class="placeholder">Выбери настроение выше</p>';
 
   for (var i = 0; i < buttons.length; i++) {
     buttons[i].addEventListener("click", function () {
@@ -535,7 +512,6 @@ function init() {
   initAI();
   initSettings();
 
-  // Панель плейлистов
   var panel = document.getElementById("playlists-panel");
   var pToggle = document.getElementById("playlists-toggle");
   var pClose = document.getElementById("playlists-close");
