@@ -8,9 +8,27 @@
 </head>
 <body>
   <header>
-    <h1>Какое у тебя настроение?</h1>
+    <div class="header-top">
+      <h1>Какое у тебя настроение?</h1>
+      <button id="playlists-toggle" class="playlists-toggle">📚 Мои плейлисты</button>
+    </div>
     <p>Выбери настроение — подберём фильм, сериал или мультик</p>
   </header>
+
+  <!-- Панель плейлистов -->
+  <aside id="playlists-panel" class="playlists-panel">
+    <div class="playlists-header">
+      <h2>Мои плейлисты</h2>
+      <button id="playlists-close" class="playlists-close">✕</button>
+    </div>
+
+    <div class="playlist-create">
+      <input type="text" id="playlist-name-input" placeholder="Название плейлиста">
+      <button id="playlist-create-btn">Создать</button>
+    </div>
+
+    <div id="playlists-list" class="playlists-list"></div>
+  </aside>
 
   <main>
     <div class="ai-block">
@@ -47,6 +65,20 @@
 
     <div id="results" class="results"></div>
   </main>
+
+  <!-- Модальное окно выбора плейлиста -->
+  <div id="playlist-modal" class="playlist-modal">
+    <div class="playlist-modal-content">
+      <h3>Добавить в плейлист</h3>
+      <p id="modal-movie-title"></p>
+      <div id="modal-playlists"></div>
+      <div class="playlist-create">
+        <input type="text" id="modal-new-playlist" placeholder="Новый плейлист...">
+        <button id="modal-create-btn">Создать и добавить</button>
+      </div>
+      <button id="modal-close" class="modal-close-btn">Отмена</button>
+    </div>
+  </div>
 
   <script src="https://js.puter.com/v2/"></script>
   <script src="script.js"></script>
