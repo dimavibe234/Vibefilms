@@ -12,7 +12,8 @@ var moodGenres = {
   mystery:   ["детектив", "триллер"],
   scifi:     ["фантастика"],
   music:     ["музыка"],
-  think:     ["драма", "детектив"]
+  think:     ["драма", "детектив"],
+  anime:     ["аниме"]
 };
 
 var currentMood = null;
@@ -39,9 +40,9 @@ function render(movies) {
       else if (m.rating.imdb) { rating = m.rating.imdb.toFixed(1); }
     }
 
-    html += '<div class="card">';
+    html += '<div class="card" style="animation-delay:' + (i * 0.03) + 's">';
     if (poster) {
-      html += '<img src="' + poster + '" alt="' + title + '">';
+      html += '<img src="' + poster + '" alt="' + title + '" loading="lazy">';
     }
     html += '<div class="info">';
     html += '<div class="title">' + title + '</div>';
@@ -53,7 +54,8 @@ function render(movies) {
 
 function loadMovies(mood, type) {
   var results = document.getElementById("results");
-  results.innerHTML = '<p class="placeholder">Загружаем ' + (type === "series" ? "сериалы" : "фильмы") + '...</p>';
+  var label = type === "series" ? "сериалы" : (type === "cartoon" ? "мультики" : "фильмы");
+  results.innerHTML = '<p class="placeholder">Загружаем ' + label + '...</p>';
 
   var genres = moodGenres[mood] || [];
   var params = [];
@@ -61,16 +63,17 @@ function loadMovies(mood, type) {
     params.push("genres.name=" + encodeURIComponent(genres[i]));
   }
 
-  // ВАЖНО: для сериалов API ждёт tv-series, а не series
   if (type === "series") {
-    params.push("type=tv-series");
+    params.push("typeNumber=2");
+  } else if (type === "cartoon") {
+    params.push("typeNumber=3");
   } else {
-    params.push("type=movie");
+    params.push("typeNumber=1");
   }
 
   params.push("sortField=rating.kp");
   params.push("sortType=-1");
-  params.push("limit=20");
+  params.push("limit=24");
   params.push("selectFields=name");
   params.push("selectFields=alternativeName");
   params.push("selectFields=year");
@@ -92,7 +95,6 @@ function loadMovies(mood, type) {
     });
 }
 
-// === Нейросеть через Puter.js ===
 var moodMap = {
   "комедия": "happy", "смешное": "happy", "веселое": "happy",
   "драма": "sad", "грустное": "sad",
@@ -103,7 +105,8 @@ var moodMap = {
   "приключения": "nostalgia",
   "фантастика": "scifi", "фантастическое": "scifi",
   "музыка": "music",
-  "детектив": "mystery", "загадка": "mystery"
+  "детектив": "mystery", "загадка": "mystery",
+  "аниме": "anime", "анимационное": "anime"
 };
 
 function initAI() {
@@ -123,7 +126,7 @@ function initAI() {
 
     var prompt = 'Пользователь не знает, что посмотреть. Он описал настроение: "' + text + '". ' +
       'Определи, к какому из жанров это ближе всего. Ответь ОДНИМ словом из списка: ' +
-      'комедия, драма, боевик, семейное, ужасы, мелодрама, приключения, фантастика, музыка, детектив. ' +
+      'комедия, драма, боевик, семейное, ужасы, мелодрама, приключения, фантастика, музыка, детектив, аниме. ' +
       'Только одно слово, без пояснений.';
 
     puter.ai.chat(prompt).then(function (response) {
