@@ -1,5 +1,5 @@
 var API_KEY = "YEBSKKN-5FNM15Q-M6N5E27-BF9VZ5J_poiskkino";
-var BASE = "https://api.poiskkino.dev";
+var BASE = "workers-playground-weathered-moon-2ad3.dimarybin0603.workers.dev;
 
 // Настроение -> жанры (русские названия, как в базе Кинопоиска)
 var moodGenres = {
