@@ -95,7 +95,7 @@ function loadMovies(mood, type) {
     });
 }
 
-// Поиск по названию (фаззи-поиск через /v1.4/movie/search)
+// Поиск по названию (фаззи-поиск)
 function searchMovies(query, type) {
   var results = document.getElementById("results");
   results.innerHTML = '<p class="placeholder">Ищем «' + query + '»...</p>';
@@ -133,7 +133,7 @@ function searchMovies(query, type) {
     });
 }
 
-// === Нейросеть через Puter.js с Function Calling ===
+// === Нейросеть: определяет параметры и сразу выдаёт фильмы ===
 var moodMap = {
   "комедия": "happy", "смешное": "happy", "веселое": "happy",
   "драма": "sad", "грустное": "sad",
@@ -167,7 +167,7 @@ function initAI() {
       type: "function",
       function: {
         name: "get_movies",
-        description: "Ищет фильмы, сериалы или мультики по описанию настроения или по названию",
+        description: "Ищет фильмы, сериалы или мультики по названию или по настроению",
         parameters: {
           type: "object",
           properties: {
@@ -182,7 +182,7 @@ function initAI() {
 
     var prompt = 'Пользователь хочет посмотреть что-то и описал это так: "' + text + '". ' +
       'Твоя задача — подобрать фильмы. ' +
-      'Если пользователь явно называет фильм или ключевые слова для поиска (например, "Интерстеллар", "Гарри Поттер"), используй поле query для поиска по названию. ' +
+      'Если пользователь явно называет фильм (например, "Интерстеллар", "Гарри Поттер"), используй поле query. ' +
       'Если он описывает настроение (например, "хочу посмеяться" или "грустно"), определи жанр и используй поле mood. ' +
       'Значения mood: happy (весело), sad (грустно), action (боевик), cozy (уютно), scary (страшно), romance (романтика), nostalgia (ностальгия), inspire (вдохновение), mystery (детектив), scifi (фантастика), music (музыка), think (подумать), anime (аниме). ' +
       'Также определи тип: movie (фильм), series (сериал) или cartoon (мультик), если это очевидно из запроса. ' +
@@ -214,7 +214,7 @@ function initAI() {
           loadMovies(mood, type);
           aiStatus.textContent = "Подбираем фильмы по настроению: " + mood;
         } else {
-          // Если нейросеть не дала ни query, ни mood — пробуем угадать по ключевым словам
+          // Запасной вариант — угадываем настроение по ключевым словам
           var clean = text.toLowerCase();
           var fallbackMood = null;
           for (var key in moodMap) {
@@ -231,18 +231,9 @@ function initAI() {
           }
         }
       } else {
-        var answer = "";
-        if (typeof response === "string") { answer = response; }
-        else if (message.content) { answer = message.content; }
-        else if (response.text) { answer = response.text; }
-
-        if (answer) {
-          aiStatus.textContent = answer;
-        } else {
-          // Если нейросеть не вызвала функцию и не дала ответа — ищем по тексту
-          searchMovies(text, currentType);
-          aiStatus.textContent = "Ищем: " + text;
-        }
+        // Если нейросеть не вызвала функцию, пробуем поискать по тексту напрямую
+        searchMovies(text, currentType);
+        aiStatus.textContent = "Ищем: " + text;
       }
     }).catch(function (err) {
       aiStatus.textContent = "Ошибка нейросети: " + (err.message || err);
