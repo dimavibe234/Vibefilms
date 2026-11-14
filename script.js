@@ -49,7 +49,9 @@ function createPlaylist(name) {
 function addToPlaylist(name, movie) {
   var playlists = getPlaylists();
   if (!playlists[name]) { playlists[name] = []; }
-  var exists = playlists[name].some(function (x) { return x.title === movie.title && x.year === movie.year; });
+  var exists = playlists[name].some(function (x) {
+    return x.title === movie.title && x.year === movie.year;
+  });
   if (!exists) {
     playlists[name].push(movie);
     savePlaylists(playlists);
@@ -108,7 +110,6 @@ function renderPlaylists() {
   });
   listEl.innerHTML = html;
 
-  // Удаление плейлиста
   listEl.querySelectorAll(".playlist-delete").forEach(function (btn) {
     btn.addEventListener("click", function () {
       var name = this.getAttribute("data-name");
@@ -119,13 +120,13 @@ function renderPlaylists() {
     });
   });
 
-  // Удаление фильма из плейлиста
   listEl.querySelectorAll(".remove").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      var name = this.getAttribute("data-name");
-      var title = this.getAttribute("data-title");
-      var year = this.getAttribute("data-year");
-      removeFromPlaylist(name, title, year);
+      removeFromPlaylist(
+        this.getAttribute("data-name"),
+        this.getAttribute("data-title"),
+        this.getAttribute("data-year")
+      );
       renderPlaylists();
     });
   });
@@ -134,7 +135,9 @@ function renderPlaylists() {
 // ===== Модальное окно выбора плейлиста =====
 function openPlaylistModal(movie) {
   pendingMovie = movie;
-  document.getElementById("modal-movie-title").textContent = movie.title + (movie.year ? " (" + movie.year + ")" : "");
+  document.getElementById("modal-movie-title").textContent =
+    movie.title + (movie.year ? " (" + movie.year + ")" : "");
+
   var container = document.getElementById("modal-playlists");
   var playlists = getPlaylists();
   var names = Object.keys(playlists);
@@ -204,16 +207,14 @@ function render(movies) {
   }
   results.innerHTML = html;
 
-  // Обработчик добавления
   results.querySelectorAll(".card-add").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      var movie = {
+      openPlaylistModal({
         title: this.getAttribute("data-title"),
         year: this.getAttribute("data-year"),
         rating: this.getAttribute("data-rating"),
         poster: this.getAttribute("data-poster")
-      };
-      openPlaylistModal(movie);
+      });
     });
   });
 }
@@ -282,4 +283,186 @@ function searchMovies(query, type) {
   var url = BASE + "/v1.4/movie/search?" + params.join("&");
 
   fetch(url)
-    .then(function (r
+    .then(function (r) {
+      if (!r.ok) { throw new Error("HTTP " + r.status); }
+      return r.json();
+    })
+    .then(function (data) { render(data.docs || []); })
+    .catch(function (err) {
+      results.innerHTML = '<p class="placeholder">Ошибка поиска: ' + err.message + '</p>';
+    });
+}
+
+// ===== Нейросеть =====
+var moodMap = {
+  "комедия": "happy", "смешное": "happy", "веселое": "happy",
+  "драма": "sad", "грустное": "sad",
+  "боевик": "action", "экшен": "action", "адреналин": "action",
+  "семейное": "cozy", "уютное": "cozy", "анимация": "cozy",
+  "ужасы": "scary", "страшное": "scary",
+  "мелодрама": "romance", "романтика": "romance", "любовь": "romance",
+  "приключения": "nostalgia",
+  "фантастика": "scifi", "фантастическое": "scifi",
+  "музыка": "music",
+  "детектив": "mystery", "загадка": "mystery",
+  "аниме": "anime", "анимационное": "anime"
+};
+
+function initAI() {
+  var aiInput = document.getElementById("ai-input");
+  var aiButton = document.getElementById("ai-button");
+  var aiStatus = document.getElementById("ai-status");
+  if (!aiButton) { return; }
+
+  aiButton.addEventListener("click", function () {
+    var text = aiInput.value.trim();
+    if (!text) {
+      aiStatus.textContent = "Напиши хоть что-нибудь 🙂";
+      return;
+    }
+    aiButton.disabled = true;
+    aiStatus.textContent = "Думаем...";
+
+    var tools = [{
+      type: "function",
+      function: {
+        name: "get_movies",
+        description: "Ищет фильмы, сериалы или мультики. Если пользователь описывает сюжет, сначала определи наиболее вероятное НАЗВАНИЕ фильма и передай его в query.",
+        parameters: {
+          type: "object",
+          properties: {
+            query: { type: "string", description: "НАЗВАНИЕ фильма, который нужно найти. Если описан сюжет — угадай название." },
+            mood: { type: "string", description: "Настроение: happy, sad, action, cozy, scary, romance, nostalgia, inspire, mystery, scifi, music, think, anime" },
+            type: { type: "string", description: "Тип: movie, series, cartoon" }
+          },
+          required: []
+        }
+      }
+    }];
+
+    var prompt = 'Пользователь хочет посмотреть что-то и описал это так: "' + text + '". ' +
+      'Если пользователь описывает сюжет или идею — угадай НАЗВАНИЕ известного фильма и передай его в query. ' +
+      'Если называет фильм напрямую — тоже query. ' +
+      'Если описывает только настроение — используй mood. ' +
+      'Значения mood: happy, sad, action, cozy, scary, romance, nostalgia, inspire, mystery, scifi, music, think, anime. ' +
+      'Определи type: movie, series или cartoon. Вызови get_movies.';
+
+    puter.ai.chat(prompt, { tools: tools }).then(function (response) {
+      var message = response.message || response;
+
+      if (message.tool_calls && message.tool_calls.length > 0) {
+        var toolCall = message.tool_calls[0];
+        var args = {};
+        try { args = JSON.parse(toolCall.function.arguments || "{}"); } catch (e) { args = {}; }
+
+        var query = args.query || "";
+        var mood = args.mood || "";
+        var type = args.type || currentType;
+
+        if (query) {
+          searchMovies(query, type);
+          aiStatus.textContent = "Ищем: " + query;
+        } else if (mood && moodGenres[mood]) {
+          currentMood = mood;
+          document.getElementById("type-switch").style.display = "flex";
+          loadMovies(mood, type);
+          aiStatus.textContent = "Подбираем фильмы по настроению: " + mood;
+        } else {
+          searchMovies(text, type);
+          aiStatus.textContent = "Ищем: " + text;
+        }
+      } else {
+        searchMovies(text, currentType);
+        aiStatus.textContent = "Ищем: " + text;
+      }
+    }).catch(function (err) {
+      aiStatus.textContent = "Ошибка нейросети: " + (err.message || err);
+    }).finally(function () {
+      aiButton.disabled = false;
+    });
+  });
+}
+
+function initTypeSwitch() {
+  var typeSwitch = document.getElementById("type-switch");
+  var typeButtons = typeSwitch.querySelectorAll("button");
+
+  for (var i = 0; i < typeButtons.length; i++) {
+    typeButtons[i].addEventListener("click", function () {
+      for (var j = 0; j < typeButtons.length; j++) {
+        typeButtons[j].classList.remove("active");
+      }
+      this.classList.add("active");
+      currentType = this.getAttribute("data-type");
+      if (currentMood) { loadMovies(currentMood, currentType); }
+    });
+  }
+}
+
+function init() {
+  var buttons = document.querySelectorAll("#moods button");
+  var results = document.getElementById("results");
+  var typeSwitch = document.getElementById("type-switch");
+
+  results.innerHTML = '<p class="placeholder">Выбери настроение выше</p>';
+
+  for (var i = 0; i < buttons.length; i++) {
+    buttons[i].addEventListener("click", function () {
+      var all = document.querySelectorAll("#moods button");
+      for (var j = 0; j < all.length; j++) {
+        all[j].classList.remove("active");
+      }
+      this.classList.add("active");
+      currentMood = this.getAttribute("data-mood");
+      typeSwitch.style.display = "flex";
+      loadMovies(currentMood, currentType);
+    });
+  }
+
+  initTypeSwitch();
+  initAI();
+
+  // Панель плейлистов
+  var panel = document.getElementById("playlists-panel");
+  document.getElementById("playlists-toggle").addEventListener("click", function () {
+    renderPlaylists();
+    panel.classList.add("open");
+  });
+  document.getElementById("playlists-close").addEventListener("click", function () {
+    panel.classList.remove("open");
+  });
+
+  // Создание плейлиста
+  document.getElementById("playlist-create-btn").addEventListener("click", function () {
+    var name = document.getElementById("playlist-name-input").value;
+    if (createPlaylist(name)) {
+      document.getElementById("playlist-name-input").value = "";
+      renderPlaylists();
+    } else if (name.trim()) {
+      alert("Такой плейлист уже есть или имя пустое.");
+    }
+  });
+
+  // Модальное окно — создать и добавить
+  document.getElementById("modal-create-btn").addEventListener("click", function () {
+    var name = document.getElementById("modal-new-playlist").value;
+    if (!name.trim()) { return; }
+    createPlaylist(name);
+    if (pendingMovie && addToPlaylist(name, pendingMovie)) {
+      closePlaylistModal();
+      renderPlaylists();
+    }
+  });
+
+  document.getElementById("modal-close").addEventListener("click", closePlaylistModal);
+
+  document.getElementById("playlist-modal").addEventListener("click", function (e) {
+    if (e.target === this) { closePlaylistModal(); }
+  });
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}

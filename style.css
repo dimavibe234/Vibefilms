@@ -16,13 +16,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* --- Заголовок --- */
 header {
   text-align: center;
   margin-bottom: 38px;
   padding-top: 10px;
   animation: fadeDown 0.6s ease both;
-  position: relative;
 }
 
 .header-top {
@@ -70,7 +68,7 @@ header p {
   box-shadow: 0 6px 18px rgba(106, 92, 255, 0.35);
 }
 
-/* --- Панель плейлистов --- */
+/* Панель плейлистов */
 .playlists-panel {
   position: fixed;
   top: 0;
@@ -258,7 +256,7 @@ header p {
   font-style: italic;
 }
 
-/* --- Блок нейросети --- */
+/* Блок нейросети */
 .ai-block {
   max-width: 720px;
   margin: 0 auto 38px;
@@ -363,7 +361,7 @@ header p {
   z-index: 1;
 }
 
-/* --- Кнопки настроений --- */
+/* Кнопки настроений */
 .moods {
   display: flex;
   flex-wrap: wrap;
@@ -402,7 +400,7 @@ header p {
   box-shadow: 0 8px 20px rgba(106, 92, 255, 0.45);
 }
 
-/* --- Переключатель типов --- */
+/* Переключатель типов */
 .type-switch {
   display: flex;
   justify-content: center;
@@ -439,7 +437,7 @@ header p {
   box-shadow: 0 4px 14px rgba(106, 92, 255, 0.4);
 }
 
-/* --- Сетка карточек --- */
+/* Сетка карточек */
 .results {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
@@ -533,7 +531,7 @@ header p {
   font-size: 1rem;
 }
 
-/* --- Модальное окно --- */
+/* Модальное окно */
 .playlist-modal {
   display: none;
   position: fixed;
@@ -615,7 +613,6 @@ header p {
   color: #e8eaed;
 }
 
-/* --- Анимации --- */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: translateY(0); }
@@ -626,7 +623,6 @@ header p {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* --- Адаптив --- */
 @media (max-width: 600px) {
   body {
     padding: 20px 14px 50px;
