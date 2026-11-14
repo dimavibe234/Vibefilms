@@ -143,7 +143,7 @@ header p {
   flex-wrap: wrap;
   gap: 10px;
   justify-content: center;
-  margin-bottom: 36px;
+  margin-bottom: 26px;
   max-width: 840px;
   margin-left: auto;
   margin-right: auto;
@@ -173,6 +173,41 @@ header p {
   border-color: transparent;
   color: #fff;
   box-shadow: 0 6px 16px rgba(58, 123, 213, 0.4);
+}
+
+/* --- Переключатель Фильмы / Сериалы --- */
+.type-switch {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 auto 28px;
+  background: #1a2129;
+  border: 1px solid #2c3640;
+  border-radius: 40px;
+  padding: 6px;
+  width: fit-content;
+}
+
+.type-switch button {
+  background: transparent;
+  color: #9aa4b2;
+  border: none;
+  border-radius: 30px;
+  padding: 9px 22px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.type-switch button:hover {
+  color: #e8eaed;
+}
+
+.type-switch button.active {
+  background: linear-gradient(135deg, #3a7bd5, #6a5cff);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(58, 123, 213, 0.35);
 }
 
 /* --- Сетка карточек --- */

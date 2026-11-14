@@ -15,6 +15,9 @@ var moodGenres = {
   think:     ["драма", "детектив"]
 };
 
+var currentMood = null;
+var currentType = "movie";
+
 function render(movies) {
   var results = document.getElementById("results");
   if (!movies || movies.length === 0) {
@@ -48,15 +51,16 @@ function render(movies) {
   results.innerHTML = html;
 }
 
-function loadMovies(mood) {
+function loadMovies(mood, type) {
   var results = document.getElementById("results");
-  results.innerHTML = '<p class="placeholder">Загружаем фильмы...</p>';
+  results.innerHTML = '<p class="placeholder">Загружаем ' + (type === "series" ? "сериалы" : "фильмы") + '...</p>';
 
   var genres = moodGenres[mood] || [];
   var params = [];
   for (var i = 0; i < genres.length; i++) {
     params.push("genres.name=" + encodeURIComponent(genres[i]));
   }
+  params.push("type=" + type);
   params.push("sortField=rating.kp");
   params.push("sortType=-1");
   params.push("limit=20");
@@ -82,37 +86,23 @@ function loadMovies(mood) {
 }
 
 // === Нейросеть через Puter.js ===
-
 var moodMap = {
-  "комедия": "happy",
-  "смешное": "happy",
-  "веселое": "happy",
-  "драма": "sad",
-  "грустное": "sad",
-  "боевик": "action",
-  "экшен": "action",
-  "адреналин": "action",
-  "семейное": "cozy",
-  "уютное": "cozy",
-  "анимация": "cozy",
-  "ужасы": "scary",
-  "страшное": "scary",
-  "мелодрама": "romance",
-  "романтика": "romance",
-  "любовь": "romance",
+  "комедия": "happy", "смешное": "happy", "веселое": "happy",
+  "драма": "sad", "грустное": "sad",
+  "боевик": "action", "экшен": "action", "адреналин": "action",
+  "семейное": "cozy", "уютное": "cozy", "анимация": "cozy",
+  "ужасы": "scary", "страшное": "scary",
+  "мелодрама": "romance", "романтика": "romance", "любовь": "romance",
   "приключения": "nostalgia",
-  "фантастика": "scifi",
-  "фантастическое": "scifi",
+  "фантастика": "scifi", "фантастическое": "scifi",
   "музыка": "music",
-  "детектив": "mystery",
-  "загадка": "mystery"
+  "детектив": "mystery", "загадка": "mystery"
 };
 
 function initAI() {
   var aiInput = document.getElementById("ai-input");
   var aiButton = document.getElementById("ai-button");
   var aiStatus = document.getElementById("ai-status");
-
   if (!aiButton) { return; }
 
   aiButton.addEventListener("click", function () {
@@ -121,7 +111,6 @@ function initAI() {
       aiStatus.textContent = "Напиши хоть что-нибудь 🙂";
       return;
     }
-
     aiButton.disabled = true;
     aiStatus.textContent = "Думаем...";
 
@@ -132,32 +121,21 @@ function initAI() {
 
     puter.ai.chat(prompt).then(function (response) {
       var answer = "";
-      if (typeof response === "string") {
-        answer = response;
-      } else if (response && response.message && response.message.content) {
-        answer = response.message.content;
-      } else if (response && response.text) {
-        answer = response.text;
-      }
+      if (typeof response === "string") { answer = response; }
+      else if (response && response.message && response.message.content) { answer = response.message.content; }
+      else if (response && response.text) { answer = response.text; }
 
       var clean = answer.toLowerCase().trim();
       var moodKey = null;
-
       for (var key in moodMap) {
-        if (clean.indexOf(key) !== -1) {
-          moodKey = moodMap[key];
-          break;
-        }
+        if (clean.indexOf(key) !== -1) { moodKey = moodMap[key]; break; }
       }
 
       if (moodKey) {
         aiStatus.textContent = "Похоже, тебе подойдёт: " + moodKey;
         var targetBtn = document.querySelector('#moods button[data-mood="' + moodKey + '"]');
-        if (targetBtn) {
-          targetBtn.click();
-        } else {
-          loadMovies(moodKey);
-        }
+        if (targetBtn) { targetBtn.click(); }
+        else { currentMood = moodKey; loadMovies(moodKey, currentType); }
       } else {
         aiStatus.textContent = "Не смогли определить жанр. Попробуй описать иначе.";
       }
@@ -169,9 +147,29 @@ function initAI() {
   });
 }
 
+function initTypeSwitch() {
+  var typeSwitch = document.getElementById("type-switch");
+  var typeButtons = typeSwitch.querySelectorAll("button");
+
+  for (var i = 0; i < typeButtons.length; i++) {
+    typeButtons[i].addEventListener("click", function () {
+      for (var j = 0; j < typeButtons.length; j++) {
+        typeButtons[j].classList.remove("active");
+      }
+      this.classList.add("active");
+      currentType = this.getAttribute("data-type");
+      if (currentMood) {
+        loadMovies(currentMood, currentType);
+      }
+    });
+  }
+}
+
 function init() {
   var buttons = document.querySelectorAll("#moods button");
   var results = document.getElementById("results");
+  var typeSwitch = document.getElementById("type-switch");
+
   results.innerHTML = '<p class="placeholder">Выбери настроение выше</p>';
 
   for (var i = 0; i < buttons.length; i++) {
@@ -181,10 +179,14 @@ function init() {
         all[j].classList.remove("active");
       }
       this.classList.add("active");
-      loadMovies(this.getAttribute("data-mood"));
+
+      currentMood = this.getAttribute("data-mood");
+      typeSwitch.style.display = "flex";
+      loadMovies(currentMood, currentType);
     });
   }
 
+  initTypeSwitch();
   initAI();
 }
 
