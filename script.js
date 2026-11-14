@@ -35,10 +35,10 @@ var moodGenres = {
 
 var currentMood = null;
 var currentType = "movie";
-var pendingMovie = null;
 var currentPage = 1;
 var lastSearchQuery = null;
 
+/* ===== Плейлисты ===== */
 function getPlaylists() {
   try {
     var raw = localStorage.getItem("mood_movies_playlists");
@@ -91,32 +91,6 @@ function deletePlaylist(name) {
   savePlaylists(p);
 }
 
-function updatePlaylistNote(name, title, year, note) {
-  var p = getPlaylists();
-  if (!p[name]) return;
-  p[name].forEach(function (x) {
-    if (x.title === title && x.year === year) x.note = note;
-  });
-  savePlaylists(p);
-}
-
-function exportPlaylist(name) {
-  var p = getPlaylists();
-  if (!p[name]) return;
-  var text = "Плейлист: " + name + "\n\n";
-  p[name].forEach(function (m, i) {
-    text += (i + 1) + ". " + m.title + " (" + (m.year || "?") + ")";
-    if (m.rating) text += " ★ " + m.rating;
-    if (m.note) text += " — " + m.note;
-    text += "\n";
-  });
-  var blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-  var a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = name.replace(/[^a-zа-я0-9]/gi, "_") + ".txt";
-  a.click();
-}
-
 function renderPlaylists() {
   var listEl = document.getElementById("playlists-list");
   if (!listEl) return;
@@ -132,10 +106,7 @@ function renderPlaylists() {
   names.forEach(function (name) {
     html += '<div class="playlist">';
     html += '<div class="playlist-title"><span>' + name + '</span>';
-    html += '<div class="playlist-title-actions">';
-    html += '<button class="playlist-export" data-name="' + name + '">Скачать</button>';
-    html += '<button class="playlist-delete" data-name="' + name + '">Удалить</button>';
-    html += '</div></div>';
+    html += '<button class="playlist-delete" data-name="' + name + '">Удалить</button></div>';
     html += '<div class="playlist-items">';
 
     if (playlists[name].length === 0) {
@@ -147,7 +118,6 @@ function renderPlaylists() {
         html += '<div class="info">';
         html += '<div class="title">' + m.title + '</div>';
         html += '<div class="meta">' + (m.year || "") + (m.rating ? ' · ★ ' + m.rating : "") + '</div>';
-        html += '<input class="note-input" placeholder="Заметка..." value="' + (m.note || "") + '" data-name="' + name + '" data-title="' + m.title + '" data-year="' + (m.year || "") + '">';
         html += '</div>';
         html += '<button class="remove" data-name="' + name + '" data-title="' + m.title + '" data-year="' + (m.year || "") + '">✕</button>';
         html += '</div>';
@@ -167,12 +137,6 @@ function renderPlaylists() {
     });
   });
 
-  listEl.querySelectorAll(".playlist-export").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      exportPlaylist(this.getAttribute("data-name"));
-    });
-  });
-
   listEl.querySelectorAll(".remove").forEach(function (btn) {
     btn.addEventListener("click", function () {
       removeFromPlaylist(
@@ -183,94 +147,45 @@ function renderPlaylists() {
       renderPlaylists();
     });
   });
-
-  listEl.querySelectorAll(".note-input").forEach(function (inp) {
-    inp.addEventListener("change", function () {
-      updatePlaylistNote(
-        this.getAttribute("data-name"),
-        this.getAttribute("data-title"),
-        this.getAttribute("data-year"),
-        this.value
-      );
-    });
-  });
 }
 
-function openPlaylistModal(movie) {
-  pendingMovie = movie;
-  var titleEl = document.getElementById("modal-movie-title");
-  if (titleEl) {
-    titleEl.textContent = movie.title + (movie.year ? " (" + movie.year + ")" : "");
-  }
-
-  var container = document.getElementById("modal-playlists");
+function addMovieToPlaylist(movie) {
   var playlists = getPlaylists();
   var names = Object.keys(playlists);
-  if (!container) return;
 
   if (names.length === 0) {
-    container.innerHTML = '<p class="playlist-empty">Нет плейлистов. Создай новый ниже.</p>';
-  } else {
-    var html = "";
-    names.forEach(function (name) {
-      html += '<button class="modal-playlist-btn" data-name="' + name + '">' + name + '</button>';
-    });
-    container.innerHTML = html;
-
-    container.querySelectorAll(".modal-playlist-btn").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var name = this.getAttribute("data-name");
-        if (addToPlaylist(name, pendingMovie)) {
-          closePlaylistModal();
-        } else {
-          alert("Этот фильм уже есть в плейлисте.");
-        }
-      });
-    });
+    var newName = prompt("Нет плейлистов. Введите название нового плейлиста:", "Мой плейлист");
+    if (!newName || !newName.trim()) return;
+    createPlaylist(newName);
+    addToPlaylist(newName.trim(), movie);
+    alert("Добавлено в плейлист «" + newName.trim() + "»");
+    return;
   }
 
-  var modal = document.getElementById("playlist-modal");
-  if (modal) modal.classList.add("open");
+  var listText = names.map(function (n, i) { return (i + 1) + ". " + n; }).join("\n");
+  var choice = prompt("В какой плейлист добавить?\n\n" + listText + "\n\nВведите номер или название нового:", "1");
+  if (!choice) return;
+
+  var idx = parseInt(choice, 10);
+  if (!isNaN(idx) && idx >= 1 && idx <= names.length) {
+    addToPlaylist(names[idx - 1], movie);
+    alert("Добавлено в «" + names[idx - 1] + "»");
+  } else {
+    var newName2 = choice.trim();
+    if (!newName2) return;
+    createPlaylist(newName2);
+    addToPlaylist(newName2, movie);
+    alert("Добавлено в «" + newName2 + "»");
+  }
 }
 
-function closePlaylistModal() {
-  var modal = document.getElementById("playlist-modal");
-  if (modal) modal.classList.remove("open");
-  pendingMovie = null;
-  var inp = document.getElementById("modal-new-playlist");
-  if (inp) inp.value = "";
-}
-
-function getRatingFilter() {
-  var r = document.getElementById("rating-filter");
-  return r ? parseFloat(r.value) : 0;
-}
-
-function getYearFilter() {
-  var y = document.getElementById("year-filter");
-  return y ? parseInt(y.value, 10) : 1900;
-}
-
-function filterMovies(movies) {
-  var minRating = getRatingFilter();
-  var minYear = getYearFilter();
-  return movies.filter(function (m) {
-    var rating = 0;
-    if (m.rating && m.rating.kp) rating = m.rating.kp;
-    else if (m.rating && m.rating.imdb) rating = m.rating.imdb;
-    var year = parseInt(m.year || (m.releaseYears && m.releaseYears[0]) || 0, 10);
-    if (rating < minRating) return false;
-    if (minYear > 1900 && year < minYear) return false;
-    return true;
-  });
-}
-
+/* ===== Отрисовка ===== */
 function renderSkeleton() {
   var results = document.getElementById("results");
   if (!results) return;
   var html = "";
   for (var i = 0; i < 8; i++) {
-    html += '<div class="card skeleton"><div class="skeleton-img"></div><div class="skeleton-text"></div><div class="skeleton-text short"></div></div>';
+    html += '<div class="card"><div style="width:100%;aspect-ratio:2/3;background:linear-gradient(90deg,#1a2129 25%,#2c3640 50%,#1a2129 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div><div class="info"><div class="title">Загрузка...</div></div></div>';
   }
   results.innerHTML = html;
 }
@@ -278,16 +193,15 @@ function renderSkeleton() {
 function render(movies, append) {
   var results = document.getElementById("results");
   if (!results) return;
-  var filtered = filterMovies(movies || []);
   if (!append) results.innerHTML = "";
 
-  if (!filtered || filtered.length === 0) {
+  if (!movies || movies.length === 0) {
     if (!append) results.innerHTML = '<p class="placeholder">Ничего не найдено</p>';
     return;
   }
 
   var html = "";
-  filtered.forEach(function (m, i) {
+  movies.forEach(function (m, i) {
     var poster = "";
     if (m.poster) poster = m.poster.previewUrl || m.poster.url || "";
     var title = m.name || m.alternativeName || "Без названия";
@@ -301,7 +215,7 @@ function render(movies, append) {
     if (description.length > 120) description = description.substring(0, 120) + "…";
     var kpLink = "https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(title);
 
-    html += '<div class="card" style="animation-delay:' + (i * 0.03) + 's">';
+    html += '<div class="card">';
     if (poster) html += '<img src="' + poster + '" alt="' + title + '" loading="lazy">';
     html += '<div class="info">';
     html += '<div class="title">' + title + '</div>';
@@ -318,7 +232,7 @@ function render(movies, append) {
 
   results.querySelectorAll(".card-add").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      openPlaylistModal({
+      addMovieToPlaylist({
         title: this.getAttribute("data-title"),
         year: this.getAttribute("data-year"),
         rating: this.getAttribute("data-rating"),
@@ -328,6 +242,12 @@ function render(movies, append) {
   });
 }
 
+function updateLoadMore(show) {
+  var more = document.getElementById("load-more");
+  if (more) more.style.display = show ? "block" : "none";
+}
+
+/* ===== Загрузка ===== */
 function loadMovies(mood, type, page, append) {
   var results = document.getElementById("results");
   if (!results) return;
@@ -367,11 +287,11 @@ function loadMovies(mood, type, page, append) {
     })
     .then(function (data) {
       render(data.docs || [], append);
-      var more = document.getElementById("load-more");
-      if (more) more.style.display = (data.docs && data.docs.length === 24) ? "block" : "none";
+      updateLoadMore(data.docs && data.docs.length === 24);
     })
     .catch(function (err) {
       results.innerHTML = '<p class="placeholder">Ошибка загрузки: ' + err.message + '</p>';
+      updateLoadMore(false);
     });
 }
 
@@ -407,25 +327,20 @@ function searchMovies(query, type, page, append) {
     })
     .then(function (data) {
       render(data.docs || [], append);
-      var more = document.getElementById("load-more");
-      if (more) more.style.display = (data.docs && data.docs.length === 24) ? "block" : "none";
+      updateLoadMore(data.docs && data.docs.length === 24);
     })
     .catch(function (err) {
       results.innerHTML = '<p class="placeholder">Ошибка поиска: ' + err.message + '</p>';
+      updateLoadMore(false);
     });
 }
 
+/* ===== Нейросеть ===== */
 function initAI() {
   var aiInput = document.getElementById("ai-input");
   var aiButton = document.getElementById("ai-button");
   var aiStatus = document.getElementById("ai-status");
   if (!aiButton) return;
-
-  document.querySelectorAll(".hint-btn").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      if (aiInput) aiInput.value = this.textContent;
-    });
-  });
 
   aiButton.addEventListener("click", function () {
     var text = aiInput.value.trim();
@@ -496,6 +411,7 @@ function initAI() {
   });
 }
 
+/* ===== Переключатель типов ===== */
 function initTypeSwitch() {
   var typeSwitch = document.getElementById("type-switch");
   if (!typeSwitch) return;
@@ -514,6 +430,7 @@ function initTypeSwitch() {
   }
 }
 
+/* ===== Настройки ===== */
 function initSettings() {
   var settingsPanel = document.getElementById("settings-panel");
   var settingsToggle = document.getElementById("settings-toggle");
@@ -561,26 +478,14 @@ function initSettings() {
     });
   });
 
-  document.querySelectorAll(".radius-btn").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var r = this.getAttribute("data-radius");
-      document.body.setAttribute("data-radius", r);
-      localStorage.setItem("mood_radius", r);
-      document.querySelectorAll(".radius-btn").forEach(function (b) { b.classList.remove("active"); });
-      this.classList.add("active");
-    });
-  });
-
   var resetBtn = document.getElementById("settings-reset");
   if (resetBtn) {
     resetBtn.addEventListener("click", function () {
       localStorage.removeItem("mood_accent");
       localStorage.removeItem("mood_theme");
       localStorage.removeItem("mood_size");
-      localStorage.removeItem("mood_radius");
       document.body.removeAttribute("data-accent");
       document.body.removeAttribute("data-size");
-      document.body.removeAttribute("data-radius");
       document.body.classList.remove("light");
     });
   }
@@ -591,10 +496,9 @@ function initSettings() {
   if (savedTheme === "light") document.body.classList.add("light");
   var savedSize = localStorage.getItem("mood_size");
   if (savedSize) document.body.setAttribute("data-size", savedSize);
-  var savedRadius = localStorage.getItem("mood_radius");
-  if (savedRadius) document.body.setAttribute("data-radius", savedRadius);
 }
 
+/* ===== Запуск ===== */
 function init() {
   var buttons = document.querySelectorAll("#moods button");
   var results = document.getElementById("results");
@@ -618,7 +522,10 @@ function init() {
   if (searchBtn && searchInput) {
     var doSearch = function () {
       var q = searchInput.value.trim();
-      if (q) searchMovies(q, currentType);
+      if (q) {
+        currentMood = null;
+        searchMovies(q, currentType);
+      }
     };
     searchBtn.addEventListener("click", doSearch);
     searchInput.addEventListener("keydown", function (e) {
@@ -640,24 +547,6 @@ function init() {
         for (var j = 0; j < all.length; j++) all[j].classList.remove("active");
         targetBtn.classList.add("active");
       }
-    });
-  }
-
-  var ratingFilter = document.getElementById("rating-filter");
-  if (ratingFilter) {
-    ratingFilter.addEventListener("input", function () {
-      var val = document.getElementById("rating-value");
-      if (val) val.textContent = this.value;
-      if (currentMood) loadMovies(currentMood, currentType);
-      else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType);
-    });
-  }
-
-  var yearFilter = document.getElementById("year-filter");
-  if (yearFilter) {
-    yearFilter.addEventListener("change", function () {
-      if (currentMood) loadMovies(currentMood, currentType);
-      else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType);
     });
   }
 
@@ -699,29 +588,6 @@ function init() {
       } else if (name.trim()) {
         alert("Такой плейлист уже есть или имя пустое.");
       }
-    });
-  }
-
-  var modalCreate = document.getElementById("modal-create-btn");
-  if (modalCreate) {
-    modalCreate.addEventListener("click", function () {
-      var name = document.getElementById("modal-new-playlist").value;
-      if (!name.trim()) return;
-      createPlaylist(name);
-      if (pendingMovie && addToPlaylist(name, pendingMovie)) {
-        closePlaylistModal();
-        renderPlaylists();
-      }
-    });
-  }
-
-  var modalClose = document.getElementById("modal-close");
-  if (modalClose) modalClose.addEventListener("click", closePlaylistModal);
-
-  var modal = document.getElementById("playlist-modal");
-  if (modal) {
-    modal.addEventListener("click", function (e) {
-      if (e.target === this) closePlaylistModal();
     });
   }
 }
