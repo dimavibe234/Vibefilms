@@ -10,15 +10,69 @@
   <header>
     <div class="header-top">
       <h1>Какое у тебя настроение?</h1>
-      <button id="playlists-toggle" class="playlists-toggle">📚 Мои плейлисты</button>
+      <div class="header-actions">
+        <button id="theme-toggle" class="icon-btn" title="Сменить тему">🌙</button>
+        <button id="settings-toggle" class="icon-btn" title="Настройки">⚙️</button>
+        <button id="playlists-toggle" class="playlists-toggle">📚 Мои плейлисты</button>
+      </div>
     </div>
     <p>Выбери настроение — подберём фильм, сериал или мультик</p>
   </header>
 
-  <aside id="playlists-panel" class="playlists-panel">
-    <div class="playlists-header">
+  <!-- Панель настроек внешнего вида -->
+  <aside id="settings-panel" class="side-panel settings-panel">
+    <div class="panel-header">
+      <h2>Настройки вида</h2>
+      <button id="settings-close" class="panel-close">✕</button>
+    </div>
+
+    <div class="setting-group">
+      <label>Акцентный цвет</label>
+      <div class="color-row" id="accent-colors">
+        <button class="color-dot" data-accent="blue" style="background:#3a7bd5"></button>
+        <button class="color-dot" data-accent="purple" style="background:#8b5cf6"></button>
+        <button class="color-dot" data-accent="pink" style="background:#ec4899"></button>
+        <button class="color-dot" data-accent="green" style="background:#10b981"></button>
+        <button class="color-dot" data-accent="orange" style="background:#f59e0b"></button>
+        <button class="color-dot" data-accent="red" style="background:#ef4444"></button>
+        <button class="color-dot" data-accent="cyan" style="background:#06b6d4"></button>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <label>Тема</label>
+      <div class="theme-row">
+        <button class="theme-btn active" data-theme="dark">Тёмная</button>
+        <button class="theme-btn" data-theme="light">Светлая</button>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <label>Размер карточек</label>
+      <div class="theme-row">
+        <button class="size-btn" data-size="small">Мелкие</button>
+        <button class="size-btn active" data-size="medium">Средние</button>
+        <button class="size-btn" data-size="large">Крупные</button>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <label>Скругление углов</label>
+      <div class="theme-row">
+        <button class="radius-btn" data-radius="none">Острые</button>
+        <button class="radius-btn active" data-radius="soft">Мягкие</button>
+        <button class="radius-btn" data-radius="round">Круглые</button>
+      </div>
+    </div>
+
+    <button id="settings-reset" class="reset-btn">Сбросить настройки</button>
+  </aside>
+
+  <!-- Панель плейлистов -->
+  <aside id="playlists-panel" class="side-panel playlists-panel">
+    <div class="panel-header">
       <h2>Мои плейлисты</h2>
-      <button id="playlists-close" class="playlists-close">✕</button>
+      <button id="playlists-close" class="panel-close">✕</button>
     </div>
 
     <div class="playlist-create">
@@ -54,6 +108,23 @@
       <button data-mood="music">🎵 Музыка</button>
       <button data-mood="think">🤔 Подумать</button>
       <button data-mood="anime">🌸 Аниме</button>
+      <button data-mood="fantasy">🧙 Фэнтези</button>
+      <button data-mood="crime">🔫 Криминал</button>
+      <button data-mood="thriller">😰 Триллер</button>
+      <button data-mood="documentary">📖 Документальное</button>
+      <button data-mood="sport">⚽ Спорт</button>
+      <button data-mood="war">🎖️ Военное</button>
+      <button data-mood="western">🤠 Вестерн</button>
+      <button data-mood="biography">👤 Биография</button>
+      <button data-mood="kids">🧸 Для детей</button>
+      <button data-mood="adventure">🗺️ Приключения</button>
+      <button data-mood="comedy_dark">🖤 Чёрная комедия</button>
+      <button data-mood="mystic">🔮 Мистика</button>
+      <button data-mood="musical">🎭 Мюзикл</button>
+      <button data-mood="family">👨‍👩‍👧 Семейное</button>
+      <button data-mood="heist">💎 Ограбление</button>
+      <button data-mood="survival">🏕️ Выживание</button>
+      <button data-mood="space">🌌 Космос</button>
     </div>
 
     <div class="type-switch" id="type-switch" style="display: none;">
