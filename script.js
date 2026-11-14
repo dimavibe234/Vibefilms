@@ -39,6 +39,10 @@ function render(movies) {
       if (m.rating.kp) { rating = m.rating.kp.toFixed(1); }
       else if (m.rating.imdb) { rating = m.rating.imdb.toFixed(1); }
     }
+    var description = m.shortDescription || m.description || "";
+    if (description.length > 120) {
+      description = description.substring(0, 120) + "…";
+    }
 
     html += '<div class="card" style="animation-delay:' + (i * 0.03) + 's">';
     if (poster) {
@@ -47,6 +51,9 @@ function render(movies) {
     html += '<div class="info">';
     html += '<div class="title">' + title + '</div>';
     html += '<div class="meta">' + year + (rating ? ' · ★ ' + rating : "") + '</div>';
+    if (description) {
+      html += '<div class="desc">' + description + '</div>';
+    }
     html += '</div></div>';
   }
   results.innerHTML = html;
@@ -79,6 +86,8 @@ function loadMovies(mood, type) {
   params.push("selectFields=year");
   params.push("selectFields=poster");
   params.push("selectFields=rating");
+  params.push("selectFields=shortDescription");
+  params.push("selectFields=description");
 
   var url = BASE + "/v1.4/movie?" + params.join("&");
 
@@ -95,7 +104,6 @@ function loadMovies(mood, type) {
     });
 }
 
-// Поиск по названию (фаззи-поиск)
 function searchMovies(query, type) {
   var results = document.getElementById("results");
   results.innerHTML = '<p class="placeholder">Ищем «' + query + '»...</p>';
@@ -117,6 +125,8 @@ function searchMovies(query, type) {
   params.push("selectFields=year");
   params.push("selectFields=poster");
   params.push("selectFields=rating");
+  params.push("selectFields=shortDescription");
+  params.push("selectFields=description");
 
   var url = BASE + "/v1.4/movie/search?" + params.join("&");
 
@@ -133,7 +143,6 @@ function searchMovies(query, type) {
     });
 }
 
-// === Нейросеть: определяет параметры и сразу выдаёт фильмы ===
 var moodMap = {
   "комедия": "happy", "смешное": "happy", "веселое": "happy",
   "драма": "sad", "грустное": "sad",
@@ -171,7 +180,7 @@ function initAI() {
         parameters: {
           type: "object",
           properties: {
-            query: { type: "string", description: "Название фильма или ключевые слова для поиска (например, 'Интерстеллар')" },
+            query: { type: "string", description: "Название фильма или ключевые слова для поиска" },
             mood: { type: "string", description: "Настроение: happy, sad, action, cozy, scary, romance, nostalgia, inspire, mystery, scifi, music, think, anime" },
             type: { type: "string", description: "Тип: movie (фильм), series (сериал), cartoon (мультик)" }
           },
@@ -204,7 +213,6 @@ function initAI() {
         var mood = args.mood || "";
         var type = args.type || currentType;
 
-        // Приоритет: если есть query — ищем по названию, иначе по настроению
         if (query) {
           searchMovies(query, type);
           aiStatus.textContent = "Ищем: " + query;
@@ -214,7 +222,6 @@ function initAI() {
           loadMovies(mood, type);
           aiStatus.textContent = "Подбираем фильмы по настроению: " + mood;
         } else {
-          // Запасной вариант — угадываем настроение по ключевым словам
           var clean = text.toLowerCase();
           var fallbackMood = null;
           for (var key in moodMap) {
@@ -231,7 +238,6 @@ function initAI() {
           }
         }
       } else {
-        // Если нейросеть не вызвала функцию, пробуем поискать по тексту напрямую
         searchMovies(text, currentType);
         aiStatus.textContent = "Ищем: " + text;
       }
