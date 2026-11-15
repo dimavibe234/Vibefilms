@@ -40,7 +40,164 @@ var lastSearchQuery = null;
 var searchMode = "name";
 var currentMovies = [];
 var currentModalMovie = null;
+var currentUser = null;
 
+/* ===== Firebase ===== */
+var firebaseReady = false;
+var fbAuth = null;
+var fbDb = null;
+var fbProvider = null;
+
+function initFirebase() {
+  if (window.firebaseAuth) {
+    fbAuth = window.firebaseAuth;
+    fbDb = window.firebaseDb;
+    fbProvider = window.googleProvider;
+    firebaseReady = true;
+
+    if (window.firebaseOnAuth) {
+      window.firebaseOnAuth(fbAuth, function (user) {
+        if (user) {
+          currentUser = {
+            id: user.uid,
+            name: user.displayName || user.email,
+            email: user.email,
+            picture: user.photoURL
+          };
+          localStorage.setItem("mood_user", JSON.stringify(currentUser));
+          renderUserInfo();
+          loadUserDataFromFirebase(user.uid);
+        } else {
+          currentUser = null;
+          localStorage.removeItem("mood_user");
+          renderUserInfo();
+        }
+      });
+    }
+  }
+}
+
+function renderUserInfo() {
+  var userInfoEl = document.getElementById("user-info");
+  var loginBtn = document.getElementById("google-login-btn");
+  if (!userInfoEl) return;
+
+  if (currentUser) {
+    userInfoEl.style.display = "flex";
+    if (loginBtn) loginBtn.style.display = "none";
+    userInfoEl.innerHTML =
+      (currentUser.picture ? '<img src="' + currentUser.picture + '" alt="">' : '') +
+      '<span>' + currentUser.name + '</span>' +
+      '<button class="logout-btn" id="logout-btn">Выйти</button>';
+
+    var logoutBtn = document.getElementById("logout-btn");
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", function () {
+        if (window.firebaseSignOut && fbAuth) {
+          window.firebaseSignOut(fbAuth).then(function () {
+            currentUser = null;
+            localStorage.removeItem("mood_user");
+            renderUserInfo();
+            showToast("Вы вышли из аккаунта");
+          });
+        } else {
+          currentUser = null;
+          localStorage.removeItem("mood_user");
+          renderUserInfo();
+        }
+      });
+    }
+  } else {
+    userInfoEl.style.display = "none";
+    if (loginBtn) loginBtn.style.display = "flex";
+  }
+}
+
+function initGoogleLogin() {
+  var loginBtn = document.getElementById("google-login-btn");
+  if (!loginBtn) return;
+
+  loginBtn.addEventListener("click", function () {
+    if (!firebaseReady || !window.firebaseSignIn) {
+      showToast("Firebase ещё загружается, попробуйте через секунду", true);
+      return;
+    }
+    window.firebaseSignIn(fbAuth, fbProvider)
+      .then(function (result) {
+        var user = result.user;
+        currentUser = {
+          id: user.uid,
+          name: user.displayName || user.email,
+          email: user.email,
+          picture: user.photoURL
+        };
+        localStorage.setItem("mood_user", JSON.stringify(currentUser));
+        renderUserInfo();
+        loadUserDataFromFirebase(user.uid);
+        showToast("Привет, " + currentUser.name + "!");
+      })
+      .catch(function (err) {
+        console.error("Ошибка входа:", err);
+        showToast("Ошибка входа: " + err.message, true);
+      });
+  });
+}
+
+/* ===== Сохранение/загрузка в Firestore ===== */
+function saveUserDataToFirebase() {
+  if (!currentUser || !firebaseReady || !fbDb) return;
+  var data = {
+    playlists: getPlaylists(),
+    watched: getWatched(),
+    hidden: getHidden(),
+    accent: localStorage.getItem("mood_accent") || "",
+    theme: localStorage.getItem("mood_theme") || "dark",
+    size: localStorage.getItem("mood_size") || "medium",
+    updatedAt: new Date().toISOString()
+  };
+  var docRef = window.firebaseDoc(fbDb, "users", currentUser.id);
+  window.firebaseSetDoc(docRef, data, { merge: true }).catch(function (err) {
+    console.error("Ошибка сохранения в Firestore:", err);
+  });
+}
+
+function loadUserDataFromFirebase(userId) {
+  if (!firebaseReady || !fbDb) return;
+  var docRef = window.firebaseDoc(fbDb, "users", userId);
+  window.firebaseGetDoc(docRef).then(function (snapshot) {
+    if (snapshot.exists()) {
+      var data = snapshot.data();
+      if (data.playlists) {
+        localStorage.setItem("mood_movies_playlists", JSON.stringify(data.playlists));
+      }
+      if (data.watched) {
+        localStorage.setItem("mood_watched", JSON.stringify(data.watched));
+      }
+      if (data.hidden) {
+        localStorage.setItem("mood_hidden", JSON.stringify(data.hidden));
+      }
+      if (data.accent) {
+        localStorage.setItem("mood_accent", data.accent);
+        document.body.setAttribute("data-accent", data.accent);
+      }
+      if (data.theme) {
+        localStorage.setItem("mood_theme", data.theme);
+        if (data.theme === "light") document.body.classList.add("light");
+        else document.body.classList.remove("light");
+      }
+      if (data.size) {
+        localStorage.setItem("mood_size", data.size);
+        document.body.setAttribute("data-size", data.size);
+      }
+      renderPlaylists();
+      showToast("Данные загружены из облака");
+    }
+  }).catch(function (err) {
+    console.error("Ошибка загрузки из Firestore:", err);
+  });
+}
+
+/* ===== Toast ===== */
 function showToast(text, isError) {
   var toast = document.getElementById("toast");
   if (!toast) return;
@@ -50,16 +207,18 @@ function showToast(text, isError) {
   toast._timer = setTimeout(function () { toast.className = "toast"; }, 2500);
 }
 
+/* ===== Скрытые фильмы ===== */
 function getHidden() {
   try { return JSON.parse(localStorage.getItem("mood_hidden") || "[]"); } catch (e) { return []; }
 }
 function saveHidden(list) { localStorage.setItem("mood_hidden", JSON.stringify(list)); }
 function hideMovie(title) {
   var list = getHidden();
-  if (list.indexOf(title) === -1) { list.push(title); saveHidden(list); }
+  if (list.indexOf(title) === -1) { list.push(title); saveHidden(list); saveUserDataToFirebase(); }
 }
 function isHidden(title) { return getHidden().indexOf(title) !== -1; }
 
+/* ===== Просмотренные ===== */
 function getWatched() {
   try { return JSON.parse(localStorage.getItem("mood_watched") || "[]"); } catch (e) { return []; }
 }
@@ -80,21 +239,27 @@ function toggleWatchedGlobal(title, year) {
   if (found === -1) {
     list.push({ title: title, year: year || "" });
     saveWatched(list);
+    saveUserDataToFirebase();
     return true;
   } else {
     list.splice(found, 1);
     saveWatched(list);
+    saveUserDataToFirebase();
     return false;
   }
 }
 
+/* ===== Плейлисты ===== */
 function getPlaylists() {
   try {
     var raw = localStorage.getItem("mood_movies_playlists");
     return raw ? JSON.parse(raw) : {};
   } catch (e) { return {}; }
 }
-function savePlaylists(p) { localStorage.setItem("mood_movies_playlists", JSON.stringify(p)); }
+function savePlaylists(p) {
+  localStorage.setItem("mood_movies_playlists", JSON.stringify(p));
+  saveUserDataToFirebase();
+}
 
 function createPlaylist(name) {
   var p = getPlaylists();
@@ -878,6 +1043,7 @@ function initSettings() {
       localStorage.setItem("mood_accent", accent);
       document.querySelectorAll(".color-dot").forEach(function (d) { d.classList.remove("active"); });
       this.classList.add("active");
+      saveUserDataToFirebase();
     });
   });
 
@@ -889,6 +1055,7 @@ function initSettings() {
       localStorage.setItem("mood_theme", theme);
       document.querySelectorAll(".theme-btn").forEach(function (b) { b.classList.remove("active"); });
       this.classList.add("active");
+      saveUserDataToFirebase();
     });
   });
 
@@ -899,6 +1066,7 @@ function initSettings() {
       localStorage.setItem("mood_size", size);
       document.querySelectorAll(".size-btn").forEach(function (b) { b.classList.remove("active"); });
       this.classList.add("active");
+      saveUserDataToFirebase();
     });
   });
 
@@ -914,6 +1082,7 @@ function initSettings() {
       document.body.removeAttribute("data-size");
       document.body.classList.remove("light");
       showToast("Настройки, скрытые и просмотренные фильмы сброшены");
+      saveUserDataToFirebase();
     });
   }
 
@@ -931,6 +1100,14 @@ function init() {
   var typeSwitch = document.getElementById("type-switch");
 
   if (results) results.innerHTML = '<p class="placeholder">Выбери настроение выше</p>';
+
+  // Firebase
+  if (window.firebaseAuth) {
+    initFirebase();
+  } else {
+    window.addEventListener("firebase-ready", initFirebase);
+  }
+  initGoogleLogin();
 
   for (var i = 0; i < buttons.length; i++) {
     buttons[i].addEventListener("click", function () {

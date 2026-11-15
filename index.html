@@ -17,6 +17,14 @@
       </div>
     </div>
     <p>Выбери настроение — подберём фильм, сериал или мультик</p>
+
+    <div class="google-login-block">
+      <button id="google-login-btn" class="google-btn">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" width="20" height="20">
+        Войти через Google
+      </button>
+      <div id="user-info" class="user-info" style="display: none;"></div>
+    </div>
   </header>
 
   <aside id="settings-panel" class="side-panel">
@@ -176,6 +184,38 @@
   </div>
 
   <div id="toast" class="toast"></div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBd7a0IJ_54SacowpCs4EZF5BIFKy-3qxw",
+      authDomain: "movie-a9fdf.firebaseapp.com",
+      projectId: "movie-a9fdf",
+      storageBucket: "movie-a9fdf.firebasestorage.app",
+      messagingSenderId: "398219529169",
+      appId: "1:398219529169:web:8cf9008857598dc8032ef0"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    window.firebaseAuth = auth;
+    window.firebaseDb = db;
+    window.googleProvider = new GoogleAuthProvider();
+    window.firebaseSignIn = signInWithPopup;
+    window.firebaseSignOut = signOut;
+    window.firebaseOnAuth = onAuthStateChanged;
+    window.firebaseDoc = doc;
+    window.firebaseSetDoc = setDoc;
+    window.firebaseGetDoc = getDoc;
+
+    window.dispatchEvent(new Event('firebase-ready'));
+  </script>
 
   <script src="https://js.puter.com/v2/"></script>
   <script src="script.js"></script>
