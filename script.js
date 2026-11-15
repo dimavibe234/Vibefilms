@@ -80,7 +80,12 @@ function addToPlaylist(name, movie) {
   var p = getPlaylists();
   if (!p[name]) p[name] = [];
   var exists = p[name].some(function (x) { return x.title === movie.title && x.year === movie.year; });
-  if (!exists) { p[name].push(movie); savePlaylists(p); return true; }
+  if (!exists) {
+    movie.watched = false;
+    p[name].push(movie);
+    savePlaylists(p);
+    return true;
+  }
   return false;
 }
 
@@ -97,6 +102,18 @@ function deletePlaylist(name) {
   savePlaylists(p);
 }
 
+function toggleWatched(name, title, year) {
+  var p = getPlaylists();
+  if (!p[name]) return;
+  p[name].forEach(function (x) {
+    if (x.title === title && x.year === year) {
+      x.watched = !x.watched;
+    }
+  });
+  savePlaylists(p);
+  renderPlaylists();
+}
+
 function renderPlaylists() {
   var listEl = document.getElementById("playlists-list");
   if (!listEl) return;
@@ -110,26 +127,52 @@ function renderPlaylists() {
 
   var html = "";
   names.forEach(function (name) {
-    html += '<div class="playlist">';
-    html += '<div class="playlist-title"><span>' + name + '</span>';
-    html += '<button class="playlist-delete" data-name="' + name + '">Удалить</button></div>';
-    html += '<div class="playlist-items">';
+    var items = playlists[name] || [];
+    var notWatched = items.filter(function (m) { return !m.watched; });
+    var watched = items.filter(function (m) { return m.watched; });
 
-    if (playlists[name].length === 0) {
+    html += '<div class="playlist">';
+    html += '<div class="playlist-title"><span>' + name + ' (' + items.length + ')</span>';
+    html += '<button class="playlist-delete" data-name="' + name + '">Удалить</button></div>';
+
+    if (items.length === 0) {
       html += '<p class="playlist-empty">Пусто</p>';
     } else {
-      playlists[name].forEach(function (m) {
-        html += '<div class="playlist-item">';
-        if (m.poster) html += '<img src="' + m.poster + '" alt="">';
-        html += '<div class="info">';
-        html += '<div class="title">' + m.title + '</div>';
-        html += '<div class="meta">' + (m.year || "") + (m.rating ? ' · ★ ' + m.rating : "") + '</div>';
+      if (notWatched.length > 0) {
+        html += '<div class="playlist-section-title">Не просмотрено (' + notWatched.length + ')</div>';
+        html += '<div class="playlist-items">';
+        notWatched.forEach(function (m) {
+          html += '<div class="playlist-item">';
+          if (m.poster) html += '<img src="' + m.poster + '" alt="">';
+          html += '<div class="info">';
+          html += '<div class="title">' + m.title + '</div>';
+          html += '<div class="meta">' + (m.year || "") + (m.rating ? ' · ★ ' + m.rating : "") + '</div>';
+          html += '</div>';
+          html += '<button class="watched-toggle" data-name="' + name + '" data-title="' + m.title + '" data-year="' + (m.year || "") + '" title="Отметить просмотренным">✓</button>';
+          html += '<button class="remove" data-name="' + name + '" data-title="' + m.title + '" data-year="' + (m.year || "") + '">✕</button>';
+          html += '</div>';
+        });
         html += '</div>';
-        html += '<button class="remove" data-name="' + name + '" data-title="' + m.title + '" data-year="' + (m.year || "") + '">✕</button>';
+      }
+
+      if (watched.length > 0) {
+        html += '<div class="playlist-section-title">Просмотрено (' + watched.length + ')</div>';
+        html += '<div class="playlist-items">';
+        watched.forEach(function (m) {
+          html += '<div class="playlist-item watched-item">';
+          if (m.poster) html += '<img src="' + m.poster + '" alt="">';
+          html += '<div class="info">';
+          html += '<div class="title">' + m.title + '</div>';
+          html += '<div class="meta">' + (m.year || "") + (m.rating ? ' · ★ ' + m.rating : "") + '</div>';
+          html += '</div>';
+          html += '<button class="watched-toggle watched" data-name="' + name + '" data-title="' + m.title + '" data-year="' + (m.year || "") + '" title="Вернуть в непросмотренные">✓</button>';
+          html += '<button class="remove" data-name="' + name + '" data-title="' + m.title + '" data-year="' + (m.year || "") + '">✕</button>';
+          html += '</div>';
+        });
         html += '</div>';
-      });
+      }
     }
-    html += '</div></div>';
+    html += '</div>';
   });
   listEl.innerHTML = html;
 
@@ -137,6 +180,16 @@ function renderPlaylists() {
     btn.addEventListener("click", function () {
       var name = this.getAttribute("data-name");
       if (confirm('Удалить плейлист "' + name + '"?')) { deletePlaylist(name); renderPlaylists(); }
+    });
+  });
+
+  listEl.querySelectorAll(".watched-toggle").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      toggleWatched(
+        this.getAttribute("data-name"),
+        this.getAttribute("data-title"),
+        this.getAttribute("data-year")
+      );
     });
   });
 
@@ -781,36 +834,4 @@ function init() {
     });
   }
   if (pClose) {
-    pClose.addEventListener("click", function () {
-      if (panel) panel.classList.remove("open");
-    });
-  }
-
-  var similarClose = document.getElementById("similar-close");
-  if (similarClose) {
-    similarClose.addEventListener("click", function () {
-      var sp = document.getElementById("similar-panel");
-      if (sp) sp.classList.remove("open");
-    });
-  }
-
-  var createBtn = document.getElementById("playlist-create-btn");
-  if (createBtn) {
-    createBtn.addEventListener("click", function () {
-      var name = document.getElementById("playlist-name-input").value;
-      if (createPlaylist(name)) {
-        document.getElementById("playlist-name-input").value = "";
-        renderPlaylists();
-        showToast("Плейлист «" + name.trim() + "» создан");
-      } else if (name.trim()) {
-        showToast("Такой плейлист уже есть", true);
-      }
-    });
-  }
-}
-
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", init);
-} else {
-  init();
-}
+   

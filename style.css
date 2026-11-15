@@ -149,9 +149,12 @@ header p { color: var(--text-muted); font-size: 1rem; }
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.panel-close:hover { border-color: var(--accent-1); }
+.panel-close:hover { border-color: var(--accent-1); color: var(--accent-1); }
 
 .setting-group { margin-bottom: 24px; }
 
@@ -278,6 +281,15 @@ header p { color: var(--text-muted); font-size: 1rem; }
 
 .playlist-delete:hover { color: #ff6b6b; }
 
+.playlist-section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin: 10px 0 6px;
+}
+
 .playlist-items { display: flex; flex-direction: column; gap: 8px; }
 
 .playlist-item {
@@ -310,6 +322,31 @@ header p { color: var(--text-muted); font-size: 1rem; }
 
 .playlist-item .meta { font-size: 0.72rem; color: var(--text-muted); }
 
+.playlist-item .watched-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.playlist-item .watched-toggle:hover { border-color: #10b981; color: #10b981; }
+.playlist-item .watched-toggle.watched {
+  background: #10b981;
+  border-color: #10b981;
+  color: #fff;
+}
+
+.playlist-item.watched-item { opacity: 0.7; }
+
 .playlist-item .remove {
   background: transparent;
   color: var(--text-muted);
@@ -318,6 +355,7 @@ header p { color: var(--text-muted); font-size: 1rem; }
   cursor: pointer;
   padding: 4px;
   transition: color 0.2s;
+  flex-shrink: 0;
 }
 
 .playlist-item .remove:hover { color: #ff6b6b; }
