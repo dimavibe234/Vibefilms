@@ -38,6 +38,8 @@ var currentType = "movie";
 var currentPage = 1;
 var lastSearchQuery = null;
 var searchMode = "name";
+var currentMovies = [];
+var currentModalMovie = null;
 
 function showToast(text, isError) {
   var toast = document.getElementById("toast");
@@ -57,6 +59,34 @@ function hideMovie(title) {
   if (list.indexOf(title) === -1) { list.push(title); saveHidden(list); }
 }
 function isHidden(title) { return getHidden().indexOf(title) !== -1; }
+
+function getWatched() {
+  try { return JSON.parse(localStorage.getItem("mood_watched") || "[]"); } catch (e) { return []; }
+}
+function saveWatched(list) { localStorage.setItem("mood_watched", JSON.stringify(list)); }
+function isWatched(title) {
+  var list = getWatched();
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].title === title) return true;
+  }
+  return false;
+}
+function toggleWatchedGlobal(title, year) {
+  var list = getWatched();
+  var found = -1;
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].title === title) { found = i; break; }
+  }
+  if (found === -1) {
+    list.push({ title: title, year: year || "" });
+    saveWatched(list);
+    return true;
+  } else {
+    list.splice(found, 1);
+    saveWatched(list);
+    return false;
+  }
+}
 
 function getPlaylists() {
   try {
@@ -100,7 +130,25 @@ function deletePlaylist(name) {
   savePlaylists(p);
 }
 
-function toggleWatched(name, title, year) {
+function exportPlaylist(name) {
+  var p = getPlaylists();
+  if (!p[name]) return;
+  var text = "Плейлист: " + name + "\n\n";
+  p[name].forEach(function (m, i) {
+    text += (i + 1) + ". " + m.title + " (" + (m.year || "?") + ")";
+    if (m.rating) text += " ★ " + m.rating;
+    if (m.watched) text += " [просмотрено]";
+    text += "\n";
+  });
+  var blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name.replace(/[^a-zа-я0-9]/gi, "_") + ".txt";
+  a.click();
+  showToast("Плейлист «" + name + "» скачан");
+}
+
+function togglePlaylistWatched(name, title, year) {
   var p = getPlaylists();
   if (!p[name]) return;
   p[name].forEach(function (x) {
@@ -131,7 +179,10 @@ function renderPlaylists() {
 
     html += '<div class="playlist">';
     html += '<div class="playlist-title"><span>' + name + ' (' + items.length + ')</span>';
-    html += '<button class="playlist-delete" data-name="' + name + '">Удалить</button></div>';
+    html += '<div class="playlist-title-actions">';
+    html += '<button class="playlist-export" data-name="' + name + '">⬇ Скачать</button>';
+    html += '<button class="playlist-delete" data-name="' + name + '">Удалить</button>';
+    html += '</div></div>';
 
     if (items.length === 0) {
       html += '<p class="playlist-empty">Пусто</p>';
@@ -179,9 +230,14 @@ function renderPlaylists() {
       if (confirm('Удалить плейлист "' + name + '"?')) { deletePlaylist(name); renderPlaylists(); }
     });
   });
+  listEl.querySelectorAll(".playlist-export").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      exportPlaylist(this.getAttribute("data-name"));
+    });
+  });
   listEl.querySelectorAll(".watched-toggle").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      toggleWatched(this.getAttribute("data-name"), this.getAttribute("data-title"), this.getAttribute("data-year"));
+      togglePlaylistWatched(this.getAttribute("data-name"), this.getAttribute("data-title"), this.getAttribute("data-year"));
     });
   });
   listEl.querySelectorAll(".remove").forEach(function (btn) {
@@ -254,18 +310,17 @@ function render(movies, append, containerId) {
   if (!results) return;
   if (!append) results.innerHTML = "";
 
-  var filtered = (movies || []).filter(function (m) {
-    var t = m.name || m.alternativeName || "";
-    return !isHidden(t);
-  });
-
-  if (!filtered || filtered.length === 0) {
+  if (!movies || movies.length === 0) {
     if (!append) results.innerHTML = '<p class="placeholder">Ничего не найдено</p>';
     return;
   }
 
+  if (containerId !== "similar-list") {
+    currentMovies = append ? currentMovies.concat(movies) : movies;
+  }
+
   var html = "";
-  filtered.forEach(function (m) {
+  movies.forEach(function (m) {
     var poster = "";
     if (m.poster) poster = m.poster.previewUrl || m.poster.url || "";
     var title = m.name || m.alternativeName || "Без названия";
@@ -277,22 +332,24 @@ function render(movies, append, containerId) {
     }
     var description = m.shortDescription || m.description || "";
     if (description.length > 120) description = description.substring(0, 120) + "…";
-    var kpLink = "https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(title);
-    var rutubeLink = "https://rutube.ru/search/?query=" + encodeURIComponent(title);
+    var watched = isWatched(title);
 
     html += '<div class="card">';
     html += '<button class="card-hide" data-title="' + title + '" title="Скрыть">✕</button>';
-    if (poster) html += '<img src="' + poster + '" alt="' + title + '" loading="lazy" data-title="' + title + '" data-year="' + year + '">';
+    if (poster) html += '<img src="' + poster + '" alt="' + title + '" loading="lazy" data-title="' + title + '">';
     html += '<div class="info">';
-    html += '<div class="title" data-title="' + title + '" data-year="' + year + '">' + title + '</div>';
+    html += '<div class="title" data-title="' + title + '">' + title + (watched ? ' ✓' : '') + '</div>';
     html += '<div class="meta">' + year + (rating > 0 ? ' · ' + buildStars(rating) : "") + '</div>';
     html += buildGenres(m.genres);
     if (description) html += '<div class="desc">' + description + '</div>';
     html += '<div class="card-actions">';
     html += '<button class="card-add" data-title="' + title + '" data-year="' + year + '" data-rating="' + (rating > 0 ? rating.toFixed(1) : "") + '" data-poster="' + poster + '">＋ В плейлист</button>';
-    html += '<a class="card-link" href="' + rutubeLink + '" target="_blank" rel="noopener">Rutube</a>';
-    html += '<a class="card-link" href="' + kpLink + '" target="_blank" rel="noopener">КП</a>';
-    html += '</div></div></div>';
+    html += '</div>';
+    html += '<div class="card-links-row">';
+    html += '<a class="card-link kp" href="https://www.kinopoisk.ru/index.php?kp_query=' + encodeURIComponent(title) + '" target="_blank" rel="noopener">🎬 Кинопоиск</a>';
+    html += '<a class="card-link rutube" href="https://rutube.ru/search/?query=' + encodeURIComponent(title) + '" target="_blank" rel="noopener">▶ Rutube</a>';
+    html += '</div>';
+    html += '</div></div>';
   });
 
   if (append) results.innerHTML += html;
@@ -330,9 +387,10 @@ function render(movies, append, containerId) {
     });
   });
 
-  results.querySelectorAll("img[data-title], .title[data-title]").forEach(function (el) {
+  results.querySelectorAll(".card img[data-title], .card .title[data-title]").forEach(function (el) {
     el.addEventListener("click", function () {
-      openSimilar(this.getAttribute("data-title"));
+      var title = this.getAttribute("data-title");
+      openMovieModal(title);
     });
   });
 }
@@ -372,18 +430,116 @@ function getYearFilter() {
   var y = document.getElementById("year-filter");
   return y ? parseInt(y.value, 10) : 1900;
 }
+function isUnwatchedFilterOn() {
+  var f = document.getElementById("filter-unwatched");
+  return f ? f.checked : false;
+}
+function isNewFilterOn() {
+  var f = document.getElementById("filter-new");
+  return f ? f.checked : false;
+}
+
 function filterMovies(movies) {
   var minRating = getRatingFilter();
   var minYear = getYearFilter();
+  var onlyUnwatched = isUnwatchedFilterOn();
+  var onlyNew = isNewFilterOn();
+  var currentYear = new Date().getFullYear();
+
   return movies.filter(function (m) {
+    var title = m.name || m.alternativeName || "";
+    if (isHidden(title)) return false;
+
     var rating = 0;
     if (m.rating && m.rating.kp) rating = m.rating.kp;
     else if (m.rating && m.rating.imdb) rating = m.rating.imdb;
+
     var year = parseInt(m.year || (m.releaseYears && m.releaseYears[0]) || 0, 10);
+
     if (rating < minRating) return false;
     if (minYear > 1900 && year < minYear) return false;
+    if (onlyUnwatched && isWatched(title)) return false;
+    if (onlyNew && year < currentYear - 1) return false;
+
     return true;
   });
+}
+
+function openMovieModal(title) {
+  var modal = document.getElementById("movie-modal");
+  var body = document.getElementById("movie-modal-body");
+  if (!modal || !body) return;
+
+  var movie = null;
+  for (var i = 0; i < currentMovies.length; i++) {
+    var t = currentMovies[i].name || currentMovies[i].alternativeName || "";
+    if (t === title) { movie = currentMovies[i]; break; }
+  }
+  if (!movie) return;
+
+  currentModalMovie = movie;
+  var poster = "";
+  if (movie.poster) poster = movie.poster.previewUrl || movie.poster.url || "";
+  var mTitle = movie.name || movie.alternativeName || "Без названия";
+  var year = movie.year || (movie.releaseYears && movie.releaseYears[0]) || "";
+  var rating = 0;
+  if (movie.rating) {
+    if (movie.rating.kp) rating = movie.rating.kp;
+    else if (movie.rating.imdb) rating = movie.rating.imdb;
+  }
+  var description = movie.description || movie.shortDescription || "Описание отсутствует.";
+  var genresHtml = "";
+  if (movie.genres && movie.genres.length) {
+    movie.genres.forEach(function (g) {
+      genresHtml += '<span class="genre-tag">' + g.name + '</span>';
+    });
+  }
+  var watched = isWatched(mTitle);
+  var kpLink = "https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(mTitle);
+  var rutubeLink = "https://rutube.ru/search/?query=" + encodeURIComponent(mTitle);
+
+  var html = '<div class="movie-modal-body">';
+  if (poster) html += '<div class="movie-modal-poster"><img src="' + poster + '" alt="' + mTitle + '"></div>';
+  html += '<div class="movie-modal-info">';
+  html += '<h2>' + mTitle + '</h2>';
+  html += '<div class="movie-modal-meta">';
+  if (year) html += '<span>' + year + '</span>';
+  if (rating > 0) html += '<span class="movie-modal-rating">★ ' + rating.toFixed(1) + '</span>';
+  html += '</div>';
+  if (genresHtml) html += '<div class="movie-modal-genres">' + genresHtml + '</div>';
+  html += '<div class="movie-modal-desc">' + description + '</div>';
+  html += '<div class="movie-modal-actions">';
+  html += '<button class="movie-modal-btn watched-btn' + (watched ? ' watched' : '') + '" id="modal-watched-btn">' + (watched ? '✓ Просмотрено' : '○ Отметить просмотренным') + '</button>';
+  html += '<button class="movie-modal-btn playlist-btn" id="modal-playlist-btn">＋ Добавить в плейлист</button>';
+  html += '<a class="movie-modal-btn kp" href="' + kpLink + '" target="_blank" rel="noopener">🎬 Открыть на Кинопоиске</a>';
+  html += '<a class="movie-modal-btn rutube" href="' + rutubeLink + '" target="_blank" rel="noopener">▶ Найти на Rutube</a>';
+  html += '</div>';
+  html += '</div></div>';
+
+  body.innerHTML = html;
+  modal.classList.add("open");
+
+  var watchedBtn = document.getElementById("modal-watched-btn");
+  if (watchedBtn) {
+    watchedBtn.addEventListener("click", function () {
+      var nowWatched = toggleWatchedGlobal(mTitle, year);
+      this.classList.toggle("watched", nowWatched);
+      this.textContent = nowWatched ? '✓ Просмотрено' : '○ Отметить просмотренным';
+      showToast(nowWatched ? "Отмечено как просмотренное" : "Возвращено в непросмотренные");
+    });
+  }
+
+  var playlistBtn = document.getElementById("modal-playlist-btn");
+  if (playlistBtn) {
+    playlistBtn.addEventListener("click", function () {
+      addMovieToPlaylist({
+        title: mTitle,
+        year: year,
+        rating: rating > 0 ? rating.toFixed(1) : "",
+        poster: poster
+      });
+    });
+  }
 }
 function loadMovies(mood, type, page, append) {
   var results = document.getElementById("results");
@@ -753,10 +909,11 @@ function initSettings() {
       localStorage.removeItem("mood_theme");
       localStorage.removeItem("mood_size");
       localStorage.removeItem("mood_hidden");
+      localStorage.removeItem("mood_watched");
       document.body.removeAttribute("data-accent");
       document.body.removeAttribute("data-size");
       document.body.classList.remove("light");
-      showToast("Настройки и скрытые фильмы сброшены");
+      showToast("Настройки, скрытые и просмотренные фильмы сброшены");
     });
   }
 
@@ -823,6 +980,22 @@ function init() {
     });
   }
 
+  var unwatchedFilter = document.getElementById("filter-unwatched");
+  if (unwatchedFilter) {
+    unwatchedFilter.addEventListener("change", function () {
+      if (currentMood) loadMovies(currentMood, currentType);
+      else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType);
+    });
+  }
+
+  var newFilter = document.getElementById("filter-new");
+  if (newFilter) {
+    newFilter.addEventListener("change", function () {
+      if (currentMood) loadMovies(currentMood, currentType);
+      else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType);
+    });
+  }
+
   var loadMore = document.getElementById("load-more");
   if (loadMore) {
     loadMore.addEventListener("click", function () {
@@ -849,6 +1022,21 @@ function init() {
   if (pClose) {
     pClose.addEventListener("click", function () {
       if (panel) panel.classList.remove("open");
+    });
+  }
+
+  var movieModalClose = document.getElementById("movie-modal-close");
+  if (movieModalClose) {
+    movieModalClose.addEventListener("click", function () {
+      var mm = document.getElementById("movie-modal");
+      if (mm) mm.classList.remove("open");
+    });
+  }
+
+  var movieModal = document.getElementById("movie-modal");
+  if (movieModal) {
+    movieModal.addEventListener("click", function (e) {
+      if (e.target === this) this.classList.remove("open");
     });
   }
 

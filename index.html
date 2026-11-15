@@ -19,7 +19,6 @@
     <p>Выбери настроение — подберём фильм, сериал или мультик</p>
   </header>
 
-  <!-- Панель настроек -->
   <aside id="settings-panel" class="side-panel">
     <div class="panel-header">
       <h2>Настройки вида</h2>
@@ -55,7 +54,6 @@
     <button id="settings-reset" class="reset-btn">Сбросить настройки</button>
   </aside>
 
-  <!-- Панель плейлистов -->
   <aside id="playlists-panel" class="side-panel">
     <div class="panel-header">
       <h2>Мои плейлисты</h2>
@@ -69,13 +67,11 @@
   </aside>
 
   <main>
-    <!-- Переключатель поиска -->
     <div class="search-mode-switch">
       <button class="search-mode-btn active" data-mode="name">🔍 По названию</button>
       <button class="search-mode-btn" data-mode="ai">✨ Нейросеть</button>
     </div>
 
-    <!-- Поиск по названию -->
     <div class="search-block" id="search-by-name">
       <div class="search-row">
         <input type="text" id="search-input" placeholder="Поиск по названию...">
@@ -85,7 +81,6 @@
       </div>
     </div>
 
-    <!-- Нейросеть -->
     <div class="ai-block" id="search-by-ai" style="display: none;">
       <h3>✨ Не знаешь, чего хочешь?</h3>
       <p>Опиши своё настроение словами — нейросеть подберёт жанр</p>
@@ -105,6 +100,18 @@
       <div class="filter-item">
         <label>Год от</label>
         <input type="number" id="year-filter" min="1900" max="2026" value="1900" placeholder="1900">
+      </div>
+      <div class="filter-item filter-toggle">
+        <label class="toggle-label">
+          <input type="checkbox" id="filter-unwatched">
+          <span>Только непросмотренные</span>
+        </label>
+      </div>
+      <div class="filter-item filter-toggle">
+        <label class="toggle-label">
+          <input type="checkbox" id="filter-new">
+          <span>Только новинки</span>
+        </label>
       </div>
     </div>
 
@@ -151,7 +158,13 @@
     <button id="load-more" class="load-more" style="display: none;">Показать ещё</button>
   </main>
 
-  <!-- Модальное окно для похожих фильмов -->
+  <div id="movie-modal" class="movie-modal">
+    <div class="movie-modal-content">
+      <button id="movie-modal-close" class="movie-modal-close">✕</button>
+      <div id="movie-modal-body"></div>
+    </div>
+  </div>
+
   <div id="similar-modal" class="similar-modal">
     <div class="similar-modal-content">
       <div class="similar-modal-header">
