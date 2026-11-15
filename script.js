@@ -247,7 +247,7 @@ function updateLoadMore(show) {
   if (more) more.style.display = show ? "block" : "none";
 }
 
-/* ===== Загрузка ===== */
+/* ===== Загрузка по настроению ===== */
 function loadMovies(mood, type, page, append) {
   var results = document.getElementById("results");
   if (!results) return;
@@ -295,6 +295,7 @@ function loadMovies(mood, type, page, append) {
     });
 }
 
+/* ===== Поиск ===== */
 function searchMovies(query, type, page, append) {
   var results = document.getElementById("results");
   if (!results) return;
@@ -332,6 +333,62 @@ function searchMovies(query, type, page, append) {
     .catch(function (err) {
       results.innerHTML = '<p class="placeholder">Ошибка поиска: ' + err.message + '</p>';
       updateLoadMore(false);
+    });
+}
+
+/* ===== Удиви меня — сразу случайные фильмы ===== */
+function loadRandomMovies(type) {
+  var results = document.getElementById("results");
+  if (!results) return;
+  renderSkeleton();
+
+  currentMood = null;
+  lastSearchQuery = null;
+  currentType = type;
+
+  var randomPage = Math.floor(Math.random() * 5) + 1;
+
+  var params = [];
+  if (type === "series") params.push("typeNumber=2");
+  else if (type === "cartoon") params.push("typeNumber=3");
+  else params.push("typeNumber=1");
+
+  params.push("sortField=votes.kp");
+  params.push("sortType=-1");
+  params.push("page=" + randomPage);
+  params.push("limit=24");
+  params.push("selectFields=name");
+  params.push("selectFields=alternativeName");
+  params.push("selectFields=year");
+  params.push("selectFields=poster");
+  params.push("selectFields=rating");
+  params.push("selectFields=shortDescription");
+  params.push("selectFields=description");
+
+  var url = BASE + "/v1.4/movie?" + params.join("&") + "&_=" + Date.now();
+
+  fetch(url)
+    .then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    })
+    .then(function (data) {
+      var docs = data.docs || [];
+      for (var i = docs.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = docs[i];
+        docs[i] = docs[j];
+        docs[j] = tmp;
+      }
+      render(docs, false);
+      updateLoadMore(false);
+      var ts = document.getElementById("type-switch");
+      if (ts) ts.style.display = "flex";
+      var all = document.querySelectorAll("#moods button");
+      for (var k = 0; k < all.length; k++) all[k].classList.remove("active");
+    })
+    .catch(function (err) {
+      results.innerHTML = '<p class="placeholder">Ошибка загрузки: ' + err.message + '</p>';
     });
 }
 
@@ -411,7 +468,6 @@ function initAI() {
   });
 }
 
-/* ===== Переключатель типов ===== */
 function initTypeSwitch() {
   var typeSwitch = document.getElementById("type-switch");
   if (!typeSwitch) return;
@@ -430,7 +486,6 @@ function initTypeSwitch() {
   }
 }
 
-/* ===== Настройки ===== */
 function initSettings() {
   var settingsPanel = document.getElementById("settings-panel");
   var settingsToggle = document.getElementById("settings-toggle");
@@ -498,7 +553,6 @@ function initSettings() {
   if (savedSize) document.body.setAttribute("data-size", savedSize);
 }
 
-/* ===== Запуск ===== */
 function init() {
   var buttons = document.querySelectorAll("#moods button");
   var results = document.getElementById("results");
@@ -536,17 +590,7 @@ function init() {
   var randomBtn = document.getElementById("random-btn");
   if (randomBtn) {
     randomBtn.addEventListener("click", function () {
-      var moods = Object.keys(moodGenres);
-      var randomMood = moods[Math.floor(Math.random() * moods.length)];
-      currentMood = randomMood;
-      if (typeSwitch) typeSwitch.style.display = "flex";
-      loadMovies(randomMood, currentType);
-      var targetBtn = document.querySelector('#moods button[data-mood="' + randomMood + '"]');
-      if (targetBtn) {
-        var all = document.querySelectorAll("#moods button");
-        for (var j = 0; j < all.length; j++) all[j].classList.remove("active");
-        targetBtn.classList.add("active");
-      }
+      loadRandomMovies(currentType);
     });
   }
 
