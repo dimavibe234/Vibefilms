@@ -3,20 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Подбор фильмов по настроению</title>
+  <title>SuperHeroFilms</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
     <div class="header-top">
-      <h1>Какое у тебя настроение?</h1>
+      <h1>SuperHeroFilms</h1>
       <div class="header-actions">
         <button id="settings-toggle" class="icon-btn" title="Настройки">⚙️</button>
-        <button id="playlists-toggle" class="playlists-toggle">📚 Мои плейлисты</button>
+        <button id="playlists-toggle" class="playlists-toggle">📚 <span class="hide-mobile">Мои плейлисты</span></button>
       </div>
     </div>
-    <p>Выбери настроение — подберём фильм, сериал или мультик</p>
 
     <div class="google-login-block">
       <button id="google-login-btn" class="google-btn">
@@ -27,6 +26,7 @@
     </div>
   </header>
 
+  <!-- Панель настроек -->
   <aside id="settings-panel" class="side-panel">
     <div class="panel-header">
       <h2>Настройки вида</h2>
@@ -60,7 +60,7 @@
       </div>
     </div>
     <div class="setting-group">
-      <label>Тема по времени суток</label>
+      <label>Авто-тема (вечер/день)</label>
       <div class="theme-row">
         <button class="auto-theme-btn" id="auto-theme-off">Выкл</button>
         <button class="auto-theme-btn" id="auto-theme-on">Вкл</button>
@@ -69,6 +69,7 @@
     <button id="settings-reset" class="reset-btn">Сбросить настройки</button>
   </aside>
 
+  <!-- Панель плейлистов -->
   <aside id="playlists-panel" class="side-panel">
     <div class="panel-header">
       <h2>Мои плейлисты</h2>
@@ -84,85 +85,96 @@
   </aside>
 
   <main>
-    <div class="search-mode-switch">
-      <button class="search-mode-btn active" data-mode="name">🔍 По названию</button>
-      <button class="search-mode-btn" data-mode="ai">✨ Нейросеть</button>
+    <!-- Вкладки (Поиск / Нейросеть) -->
+    <div class="search-tabs">
+      <button class="tab-btn active" data-target="tab-name">🔍 Поиск</button>
+      <button class="tab-btn" data-target="tab-ai">✨ Нейросеть</button>
     </div>
 
-    <div class="search-block" id="search-by-name">
+    <!-- Блок 1: Поиск по названию -->
+    <div id="tab-name" class="tab-content active">
       <div class="search-row">
-        <input type="text" id="search-input" placeholder="Поиск по названию...">
+        <input type="text" id="search-input" placeholder="Введите название фильма...">
         <button id="search-btn">Найти</button>
-        <button id="random-btn" title="Удиви меня">🎲</button>
-        <button id="masterpiece-btn" title="Шедевр">💎</button>
+      </div>
+      <div class="quick-actions">
+        <button id="random-btn" class="action-chip">🎲 Удиви меня</button>
+        <button id="masterpiece-btn" class="action-chip gold">💎 Шедевр</button>
       </div>
     </div>
 
-    <div class="ai-block" id="search-by-ai" style="display: none;">
-      <h3>✨ Не знаешь, чего хочешь?</h3>
-      <p>Опиши своё настроение словами — нейросеть подберёт жанр</p>
-      <div class="ai-input-row">
-        <input type="text" id="ai-input" placeholder="например: хочу что-то тёплое и смешное">
-        <button id="ai-button">Подобрать</button>
+    <!-- Блок 2: Нейросеть -->
+    <div id="tab-ai" class="tab-content">
+      <div class="ai-block" style="margin-top: 0; padding: 20px;">
+        <h3>✨ Опиши, что хочешь</h3>
+        <p>Например: "фильм про мужа, который забыл жену"</p>
+        <div class="ai-input-row">
+          <input type="text" id="ai-input" placeholder="Твой запрос...">
+          <button id="ai-button">Подобрать</button>
+        </div>
+        <p id="ai-status" class="ai-status"></p>
       </div>
-      <p id="ai-status" class="ai-status"></p>
     </div>
 
-    <div class="filters-block">
-      <div class="filter-item">
-        <label>Рейтинг от</label>
-        <input type="range" id="rating-filter" min="0" max="10" step="0.5" value="0">
-        <span id="rating-value">0</span>
-      </div>
-      <div class="filter-item">
-        <label>Год от</label>
-        <input type="number" id="year-filter" min="1900" max="2026" value="1900" placeholder="1900">
-      </div>
-      <div class="filter-item filter-toggle">
+    <!-- Фильтры (Спрятаны в выдвижной блок) -->
+    <details class="filters-accordion">
+      <summary>⚙️ Фильтры и сортировка</summary>
+      <div class="filters-content">
+        <div class="filter-item">
+          <label>Рейтинг от</label>
+          <input type="range" id="rating-filter" min="0" max="10" step="0.5" value="0">
+          <span id="rating-value">0</span>
+        </div>
+        <div class="filter-item">
+          <label>Год от</label>
+          <input type="number" id="year-filter" min="1900" max="2026" value="1900" placeholder="1900">
+        </div>
         <label class="toggle-label">
           <input type="checkbox" id="filter-unwatched">
           <span>Только непросмотренные</span>
         </label>
-      </div>
-      <div class="filter-item filter-toggle">
         <label class="toggle-label">
           <input type="checkbox" id="filter-new">
           <span>Только новинки</span>
         </label>
       </div>
-    </div>
+    </details>
 
-    <div class="moods" id="moods">
-      <button data-mood="happy">😄 Весело</button>
-      <button data-mood="sad">😢 Грустно</button>
-      <button data-mood="action">🔥 Адреналин</button>
-      <button data-mood="cozy">🛋️ Уютно</button>
-      <button data-mood="scary">👻 Страшно</button>
-      <button data-mood="romance">💕 Романтика</button>
-      <button data-mood="nostalgia">📼 Ностальгия</button>
-      <button data-mood="inspire">🚀 Вдохновение</button>
-      <button data-mood="mystery">🕵️ Детектив</button>
-      <button data-mood="scifi">🛸 Фантастика</button>
-      <button data-mood="music">🎵 Музыка</button>
-      <button data-mood="think">🤔 Подумать</button>
-      <button data-mood="anime">🌸 Аниме</button>
-      <button data-mood="fantasy">🧙 Фэнтези</button>
-      <button data-mood="crime">🔫 Криминал</button>
-      <button data-mood="thriller">😰 Триллер</button>
-      <button data-mood="documentary">📖 Документальное</button>
-      <button data-mood="sport">⚽ Спорт</button>
-      <button data-mood="war">🎖️ Военное</button>
-      <button data-mood="western">🤠 Вестерн</button>
-      <button data-mood="biography">👤 Биография</button>
-      <button data-mood="kids">🧸 Для детей</button>
-      <button data-mood="adventure">🗺️ Приключения</button>
-      <button data-mood="comedy_dark">🖤 Чёрная комедия</button>
-      <button data-mood="mystic">🔮 Мистика</button>
-      <button data-mood="musical">🎭 Мюзикл</button>
-      <button data-mood="family">👨‍👩‍👧 Семейное</button>
-      <button data-mood="heist">💎 Ограбление</button>
-      <button data-mood="survival">🏕️ Выживание</button>
-      <button data-mood="space">🌌 Космос</button>
+    <!-- Категории (Настроения) -->
+    <div class="moods-wrapper">
+      <h3 class="section-title">Выбери настроение</h3>
+      <div class="moods" id="moods">
+        <button data-mood="happy">😄 Весело</button>
+        <button data-mood="sad">😢 Грустно</button>
+        <button data-mood="action">🔥 Адреналин</button>
+        <button data-mood="cozy">🛋️ Уютно</button>
+        <button data-mood="scary">👻 Страшно</button>
+        <button data-mood="romance">💕 Романтика</button>
+        <button data-mood="nostalgia">📼 Ностальгия</button>
+        <button data-mood="inspire">🚀 Вдохновение</button>
+        <button data-mood="mystery">🕵️ Детектив</button>
+        <button data-mood="scifi">🛸 Фантастика</button>
+        <button data-mood="music">🎵 Музыка</button>
+        <button data-mood="think">🤔 Подумать</button>
+        <button data-mood="anime">🌸 Аниме</button>
+        <button data-mood="fantasy">🧙 Фэнтези</button>
+        <button data-mood="crime">🔫 Криминал</button>
+        <button data-mood="thriller">😰 Триллер</button>
+        <button data-mood="documentary">📖 Документальное</button>
+        <button data-mood="sport">⚽ Спорт</button>
+        <button data-mood="war">🎖️ Военное</button>
+        <button data-mood="western">🤠 Вестерн</button>
+        <button data-mood="biography">👤 Биография</button>
+        <button data-mood="kids">🧸 Для детей</button>
+        <button data-mood="adventure">🗺️ Приключения</button>
+        <button data-mood="comedy_dark">🖤 Чёрная комедия</button>
+        <button data-mood="mystic">🔮 Мистика</button>
+        <button data-mood="musical">🎭 Мюзикл</button>
+        <button data-mood="family">👨‍👩‍👧 Семейное</button>
+        <button data-mood="heist">💎 Ограбление</button>
+        <button data-mood="survival">🏕️ Выживание</button>
+        <button data-mood="space">🌌 Космос</button>
+      </div>
     </div>
 
     <div class="type-switch" id="type-switch" style="display: none;">
@@ -175,6 +187,7 @@
     <button id="load-more" class="load-more" style="display: none;">Показать ещё</button>
   </main>
 
+  <!-- Модальные окна (без изменений) -->
   <div id="movie-modal" class="movie-modal">
     <div class="movie-modal-content">
       <button id="movie-modal-close" class="movie-modal-close">✕</button>
@@ -221,7 +234,6 @@
   </div>
 
   <button id="scroll-top-btn" class="scroll-top-btn" title="Наверх">↑</button>
-
   <div id="toast" class="toast"></div>
 
   <script type="module">
@@ -241,21 +253,12 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-
-    window.firebaseAuth = auth;
-    window.firebaseDb = db;
-    window.googleProvider = new GoogleAuthProvider();
-    window.firebaseSignIn = signInWithRedirect;
-    window.firebaseGetRedirectResult = getRedirectResult;
-    window.firebaseSignOut = signOut;
-    window.firebaseOnAuth = onAuthStateChanged;
-    window.firebaseDoc = doc;
-    window.firebaseSetDoc = setDoc;
-    window.firebaseGetDoc = getDoc;
-
+    window.firebaseAuth = auth; window.firebaseDb = db; window.googleProvider = new GoogleAuthProvider();
+    window.firebaseSignIn = signInWithRedirect; window.firebaseGetRedirectResult = getRedirectResult;
+    window.firebaseSignOut = signOut; window.firebaseOnAuth = onAuthStateChanged;
+    window.firebaseDoc = doc; window.firebaseSetDoc = setDoc; window.firebaseGetDoc = getDoc;
     window.dispatchEvent(new Event('firebase-ready'));
   </script>
-
   <script src="https://js.puter.com/v2/"></script>
   <script src="script.js"></script>
 </body>
