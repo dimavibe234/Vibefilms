@@ -117,7 +117,6 @@ body.light .top-bar { background: rgba(242, 245, 249, 0.9); }
 .social-btn:hover { transform: scale(1.02); }
 .social-btn.kp { background: #f59e0b; color: #111; }
 .social-btn.rutube { background: #10b981; color: #fff; }
-.social-btn svg { width: 20px; height: 20px; fill: currentColor; }
 
 .btn-primary { padding: 10px; border-radius: 8px; border: none; background: var(--accent); color: #fff; font-weight: 700; cursor: pointer; }
 .input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text); margin-bottom: 12px; }

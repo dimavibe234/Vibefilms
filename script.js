@@ -58,4 +58,4 @@ function openProfile() {
   var m = document.getElementById("profile-modal");
   document.getElementById("profile-name-input").value = currentProfile.name || (currentUser ? currentUser.name : "");
   document.getElementById("profile-avatar-input").value = currentProfile.avatar || (currentUser ? currentUser.picture : "");
-  document.getElementById("profile-avatar-img").src = currentProfile.avatar
+  document.getElementById("profile-avatar-img").src = current
