@@ -38,6 +38,18 @@ var currentType = "movie";
 var currentPage = 1;
 var lastSearchQuery = null;
 
+/* ===== Toast ===== */
+function showToast(text, isError) {
+  var toast = document.getElementById("toast");
+  if (!toast) return;
+  toast.textContent = text;
+  toast.className = "toast show" + (isError ? " error" : "");
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(function () {
+    toast.className = "toast";
+  }, 2500);
+}
+
 /* ===== Плейлисты ===== */
 function getPlaylists() {
   try {
@@ -158,7 +170,7 @@ function addMovieToPlaylist(movie) {
     if (!newName || !newName.trim()) return;
     createPlaylist(newName);
     addToPlaylist(newName.trim(), movie);
-    alert("Добавлено в плейлист «" + newName.trim() + "»");
+    showToast("Добавлено в «" + newName.trim() + "»");
     return;
   }
 
@@ -169,17 +181,36 @@ function addMovieToPlaylist(movie) {
   var idx = parseInt(choice, 10);
   if (!isNaN(idx) && idx >= 1 && idx <= names.length) {
     addToPlaylist(names[idx - 1], movie);
-    alert("Добавлено в «" + names[idx - 1] + "»");
+    showToast("Добавлено в «" + names[idx - 1] + "»");
   } else {
     var newName2 = choice.trim();
     if (!newName2) return;
     createPlaylist(newName2);
     addToPlaylist(newName2, movie);
-    alert("Добавлено в «" + newName2 + "»");
+    showToast("Добавлено в «" + newName2 + "»");
   }
 }
 
-/* ===== Отрисовка ===== */
+/* ===== Вспомогательные ===== */
+function buildStars(rating) {
+  var stars = "";
+  for (var i = 1; i <= 5; i++) {
+    var filled = (rating >= i * 2 - 0.5) ? " filled" : "";
+    stars += '<span class="star' + filled + '">★</span>';
+  }
+  return '<span class="stars">' + stars + '</span><span class="rating-num">' + rating.toFixed(1) + '</span>';
+}
+
+function buildGenres(genres) {
+  if (!genres || genres.length === 0) return "";
+  var html = '<div class="genres">';
+  genres.slice(0, 4).forEach(function (g) {
+    html += '<span class="genre-tag">' + g.name + '</span>';
+  });
+  html += '</div>';
+  return html;
+}
+
 function renderSkeleton() {
   var results = document.getElementById("results");
   if (!results) return;
@@ -206,23 +237,26 @@ function render(movies, append) {
     if (m.poster) poster = m.poster.previewUrl || m.poster.url || "";
     var title = m.name || m.alternativeName || "Без названия";
     var year = m.year || (m.releaseYears && m.releaseYears[0]) || "";
-    var rating = "";
+    var rating = 0;
     if (m.rating) {
-      if (m.rating.kp) rating = m.rating.kp.toFixed(1);
-      else if (m.rating.imdb) rating = m.rating.imdb.toFixed(1);
+      if (m.rating.kp) rating = m.rating.kp;
+      else if (m.rating.imdb) rating = m.rating.imdb;
     }
     var description = m.shortDescription || m.description || "";
     if (description.length > 120) description = description.substring(0, 120) + "…";
     var kpLink = "https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(title);
+    var rutubeLink = "https://rutube.ru/search/?query=" + encodeURIComponent(title);
 
     html += '<div class="card">';
     if (poster) html += '<img src="' + poster + '" alt="' + title + '" loading="lazy">';
     html += '<div class="info">';
     html += '<div class="title">' + title + '</div>';
-    html += '<div class="meta">' + year + (rating ? ' · ★ ' + rating : "") + '</div>';
+    html += '<div class="meta">' + year + (rating > 0 ? ' · ' + buildStars(rating) : "") + '</div>';
+    html += buildGenres(m.genres);
     if (description) html += '<div class="desc">' + description + '</div>';
     html += '<div class="card-actions">';
-    html += '<button class="card-add" data-title="' + title + '" data-year="' + year + '" data-rating="' + rating + '" data-poster="' + poster + '">＋ В плейлист</button>';
+    html += '<button class="card-add" data-title="' + title + '" data-year="' + year + '" data-rating="' + (rating > 0 ? rating.toFixed(1) : "") + '" data-poster="' + poster + '">＋ В плейлист</button>';
+    html += '<a class="card-link" href="' + rutubeLink + '" target="_blank" rel="noopener">Rutube</a>';
     html += '<a class="card-link" href="' + kpLink + '" target="_blank" rel="noopener">КП</a>';
     html += '</div></div></div>';
   });
@@ -232,12 +266,19 @@ function render(movies, append) {
 
   results.querySelectorAll(".card-add").forEach(function (btn) {
     btn.addEventListener("click", function () {
+      var card = this.closest(".card");
       addMovieToPlaylist({
         title: this.getAttribute("data-title"),
         year: this.getAttribute("data-year"),
         rating: this.getAttribute("data-rating"),
         poster: this.getAttribute("data-poster")
       });
+      this.classList.add("added");
+      this.textContent = "✓ Добавлено";
+      if (card) {
+        card.classList.add("card-added");
+        setTimeout(function () { card.classList.remove("card-added"); }, 800);
+      }
     });
   });
 }
@@ -247,7 +288,7 @@ function updateLoadMore(show) {
   if (more) more.style.display = show ? "block" : "none";
 }
 
-/* ===== Загрузка по настроению ===== */
+/* ===== Загрузка ===== */
 function loadMovies(mood, type, page, append) {
   var results = document.getElementById("results");
   if (!results) return;
@@ -275,6 +316,7 @@ function loadMovies(mood, type, page, append) {
   params.push("selectFields=year");
   params.push("selectFields=poster");
   params.push("selectFields=rating");
+  params.push("selectFields=genres");
   params.push("selectFields=shortDescription");
   params.push("selectFields=description");
 
@@ -290,12 +332,15 @@ function loadMovies(mood, type, page, append) {
       updateLoadMore(data.docs && data.docs.length === 24);
     })
     .catch(function (err) {
-      results.innerHTML = '<p class="placeholder">Ошибка загрузки: ' + err.message + '</p>';
+      if (String(err.message).indexOf("403") !== -1) {
+        results.innerHTML = '<p class="placeholder">Лимит запросов на сегодня исчерпан. Попробуйте завтра 🌙</p>';
+      } else {
+        results.innerHTML = '<p class="placeholder">Ошибка загрузки: ' + err.message + '</p>';
+      }
       updateLoadMore(false);
     });
 }
 
-/* ===== Поиск ===== */
 function searchMovies(query, type, page, append) {
   var results = document.getElementById("results");
   if (!results) return;
@@ -316,6 +361,7 @@ function searchMovies(query, type, page, append) {
   params.push("selectFields=year");
   params.push("selectFields=poster");
   params.push("selectFields=rating");
+  params.push("selectFields=genres");
   params.push("selectFields=shortDescription");
   params.push("selectFields=description");
 
@@ -336,7 +382,7 @@ function searchMovies(query, type, page, append) {
     });
 }
 
-/* ===== Удиви меня — сразу случайные фильмы ===== */
+/* ===== Удиви меня ===== */
 function loadRandomMovies(type) {
   var results = document.getElementById("results");
   if (!results) return;
@@ -362,6 +408,7 @@ function loadRandomMovies(type) {
   params.push("selectFields=year");
   params.push("selectFields=poster");
   params.push("selectFields=rating");
+  params.push("selectFields=genres");
   params.push("selectFields=shortDescription");
   params.push("selectFields=description");
 
@@ -629,8 +676,9 @@ function init() {
       if (createPlaylist(name)) {
         document.getElementById("playlist-name-input").value = "";
         renderPlaylists();
+        showToast("Плейлист «" + name.trim() + "» создан");
       } else if (name.trim()) {
-        alert("Такой плейлист уже есть или имя пустое.");
+        showToast("Такой плейлист уже есть", true);
       }
     });
   }
