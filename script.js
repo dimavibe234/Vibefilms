@@ -58,17 +58,4 @@ function openProfile() {
   var m = document.getElementById("profile-modal");
   document.getElementById("profile-name-input").value = currentProfile.name || (currentUser ? currentUser.name : "");
   document.getElementById("profile-avatar-input").value = currentProfile.avatar || (currentUser ? currentUser.picture : "");
-  document.getElementById("profile-avatar-img").src = currentProfile.avatar || (currentUser ? currentUser.picture : "");
-  document.querySelectorAll(".profile-color-dot").forEach(function (d) { d.classList.toggle("active", d.dataset.color === currentProfile.color); });
-  document.getElementById("profile-stats").innerHTML = "Фильмов в плейлистах: <b>" + Object.values(getPlaylists()).flat().length + "</b><br>Просмотрено: <b>" + getWatched().length + "</b>";
-  m.classList.add("open");
-}
-
-function initProfile() {
-  var m = document.getElementById("profile-modal");
-  document.getElementById("profile-modal-close").onclick = function () { m.classList.remove("open"); };
-  document.getElementById("profile-save-btn").onclick = function () {
-    currentProfile.name = document.getElementById("profile-name-input").value;
-    currentProfile.avatar = document.getElementById("profile-avatar-input").value;
-    localStorage.setItem("mood_profile", JSON.stringify(currentProfile));
-    renderUserInfo(); saveUserData(); m.classList.remove("open
+  document.getElementById("profile-avatar-img").src = currentProfile.avatar

@@ -37,7 +37,7 @@
 
       <div id="tab-name" class="tab-content active">
         <div class="input-row">
-          <input type="text" id="search-input" placeholder="Название фильма...">
+          <input type="text" id="search-input" placeholder="Введите название фильма...">
           <button id="search-btn">Найти</button>
         </div>
         <div class="quick-actions">
@@ -56,7 +56,7 @@
 
       <!-- Фильтры -->
       <details class="dropdown">
-        <summary>⚙️ Фильтры</summary>
+        <summary>⚙️ Фильтры и сортировка</summary>
         <div class="dropdown-content">
           <div class="filter-row">
             <label>Рейтинг от</label>
@@ -174,7 +174,7 @@
   <!-- Модалки -->
   <div id="movie-modal" class="modal">
     <div class="modal-content">
-      <button id="movie-modal-close" class="btn-icon" style="position:absolute; top:10px; right:10px;">✕</button>
+      <button id="movie-modal-close" class="btn-icon" style="position:absolute; top:10px; right:10px; z-index:10;">✕</button>
       <div id="movie-modal-body"></div>
     </div>
   </div>
@@ -184,7 +184,7 @@
       <button id="profile-modal-close" class="btn-icon" style="position:absolute; top:10px; right:10px;">✕</button>
       <div style="padding:20px;">
         <h2>Профиль</h2>
-        <div style="text-align:center; margin:15px 0;"><img id="profile-avatar-img" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid var(--accent-1);"></div>
+        <div style="text-align:center; margin:15px 0;"><img id="profile-avatar-img" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid var(--accent);"></div>
         <label class="setting-label">Имя</label>
         <input type="text" id="profile-name-input" class="input">
         <label class="setting-label">Аватарка (URL)</label>
