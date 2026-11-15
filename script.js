@@ -37,6 +37,7 @@ var currentMood = null;
 var currentType = "movie";
 var currentPage = 1;
 var lastSearchQuery = null;
+var searchMode = "name";
 
 function showToast(text, isError) {
   var toast = document.getElementById("toast");
@@ -220,6 +221,7 @@ function addMovieToPlaylist(movie) {
     showToast("Добавлено в «" + newName2 + "»");
   }
 }
+
 function buildStars(rating) {
   var stars = "";
   for (var i = 1; i <= 5; i++) {
@@ -341,7 +343,7 @@ function updateLoadMore(show) {
 }
 
 function fetchWithTimeout(url, ms) {
-  ms = ms || 15000;
+  ms = ms || 20000;
   var fetchPromise = fetch(url);
   var timeoutPromise = new Promise(function (resolve, reject) {
     setTimeout(function () { reject(new Error("timeout")); }, ms);
@@ -354,6 +356,8 @@ function handleFetchError(err, results) {
     results.innerHTML = '<p class="placeholder">Сервер не отвечает. Попробуйте позже.</p>';
   } else if (String(err.message).indexOf("403") !== -1) {
     results.innerHTML = '<p class="placeholder">Лимит запросов на сегодня исчерпан. Попробуйте завтра 🌙</p>';
+  } else if (String(err.message).indexOf("504") !== -1) {
+    results.innerHTML = '<p class="placeholder">Сервер не успел ответить. Попробуйте ещё раз.</p>';
   } else {
     results.innerHTML = '<p class="placeholder">Ошибка загрузки: ' + err.message + '</p>';
   }
@@ -381,7 +385,6 @@ function filterMovies(movies) {
     return true;
   });
 }
-
 function loadMovies(mood, type, page, append) {
   var results = document.getElementById("results");
   if (!results) return;
@@ -407,7 +410,7 @@ function loadMovies(mood, type, page, append) {
 
   var url = BASE + "?" + params.join("&");
 
-  fetchWithTimeout(url, 15000)
+  fetchWithTimeout(url, 20000)
     .then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
@@ -438,7 +441,7 @@ function searchMovies(query, type, page, append) {
 
   var url = BASE + "?" + params.join("&");
 
-  fetchWithTimeout(url, 15000)
+  fetchWithTimeout(url, 20000)
     .then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
@@ -473,7 +476,7 @@ function loadRandomMovies(type) {
 
   var url = BASE + "?" + params.join("&") + "&_=" + Date.now();
 
-  fetchWithTimeout(url, 15000)
+  fetchWithTimeout(url, 20000)
     .then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
@@ -513,7 +516,7 @@ function loadMasterpiece() {
 
   var url = BASE + "?" + params.join("&") + "&_=" + Date.now();
 
-  fetchWithTimeout(url, 15000)
+  fetchWithTimeout(url, 20000)
     .then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
@@ -532,18 +535,18 @@ function loadMasterpiece() {
 }
 
 function openSimilar(title) {
-  var panel = document.getElementById("similar-panel");
+  var modal = document.getElementById("similar-modal");
   var list = document.getElementById("similar-list");
   var titleEl = document.getElementById("similar-title");
-  if (!panel || !list) return;
+  if (!modal || !list) return;
 
   if (titleEl) titleEl.textContent = "Похожие на «" + title + "»";
   list.innerHTML = '<p class="placeholder">Загружаем...</p>';
-  panel.classList.add("open");
+  modal.classList.add("open");
 
   var params = ["query=" + encodeURIComponent(title), "limit=1"];
 
-  fetchWithTimeout(BASE + "?" + params.join("&"), 15000)
+  fetchWithTimeout(BASE + "?" + params.join("&"), 20000)
     .then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
@@ -554,13 +557,21 @@ function openSimilar(title) {
         list.innerHTML = '<p class="placeholder">Не удалось найти похожие</p>';
         return;
       }
-      var genreName = docs[0].genres[0].name;
+      var movie = docs[0];
+      var genreName = movie.genres[0].name;
+      var year = movie.year || (movie.releaseYears && movie.releaseYears[0]);
       var p2 = ["genres.name=" + encodeURIComponent(genreName), "typeNumber=1"];
+      if (year) {
+        var y = parseInt(year, 10);
+        if (!isNaN(y)) {
+          p2.push("year=" + (y - 2) + "-" + (y + 2));
+        }
+      }
       p2.push("sortField=rating.kp");
       p2.push("sortType=-1");
-      p2.push("limit=20");
+      p2.push("limit=24");
 
-      return fetchWithTimeout(BASE + "?" + p2.join("&"), 15000);
+      return fetchWithTimeout(BASE + "?" + p2.join("&"), 20000);
     })
     .then(function (r) { return r.json(); })
     .then(function (data) {
@@ -645,6 +656,30 @@ function initAI() {
     }).catch(function (err) {
       aiStatus.textContent = "Ошибка: " + (err.message || err);
     }).finally(function () { aiButton.disabled = false; });
+  });
+}
+
+function initSearchMode() {
+  var modeButtons = document.querySelectorAll(".search-mode-btn");
+  var searchBlock = document.getElementById("search-by-name");
+  var aiBlock = document.getElementById("search-by-ai");
+
+  if (!modeButtons.length) return;
+
+  modeButtons.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      modeButtons.forEach(function (b) { b.classList.remove("active"); });
+      this.classList.add("active");
+      searchMode = this.getAttribute("data-mode");
+
+      if (searchMode === "name") {
+        if (searchBlock) searchBlock.style.display = "block";
+        if (aiBlock) aiBlock.style.display = "none";
+      } else {
+        if (searchBlock) searchBlock.style.display = "none";
+        if (aiBlock) aiBlock.style.display = "block";
+      }
+    });
   });
 }
 
@@ -796,6 +831,7 @@ function init() {
     });
   }
 
+  initSearchMode();
   initTypeSwitch();
   initAI();
   initSettings();
@@ -819,8 +855,15 @@ function init() {
   var similarClose = document.getElementById("similar-close");
   if (similarClose) {
     similarClose.addEventListener("click", function () {
-      var sp = document.getElementById("similar-panel");
-      if (sp) sp.classList.remove("open");
+      var modal = document.getElementById("similar-modal");
+      if (modal) modal.classList.remove("open");
+    });
+  }
+
+  var similarModal = document.getElementById("similar-modal");
+  if (similarModal) {
+    similarModal.addEventListener("click", function (e) {
+      if (e.target === this) this.classList.remove("open");
     });
   }
 
