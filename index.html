@@ -59,6 +59,13 @@
         <button class="size-btn" data-size="large">Крупные</button>
       </div>
     </div>
+    <div class="setting-group">
+      <label>Тема по времени суток</label>
+      <div class="theme-row">
+        <button class="auto-theme-btn" id="auto-theme-off">Выкл</button>
+        <button class="auto-theme-btn" id="auto-theme-on">Вкл</button>
+      </div>
+    </div>
     <button id="settings-reset" class="reset-btn">Сбросить настройки</button>
   </aside>
 
@@ -71,6 +78,8 @@
       <input type="text" id="playlist-name-input" placeholder="Название плейлиста">
       <button id="playlist-create-btn">Создать</button>
     </div>
+    <input type="text" id="playlist-search-input" class="playlist-search-input" placeholder="Поиск по плейлистам...">
+    <button id="random-from-playlists-btn" class="random-from-playlists-btn">🎲 Что посмотреть из моего?</button>
     <div id="playlists-list" class="playlists-list"></div>
   </aside>
 
@@ -183,7 +192,6 @@
     </div>
   </div>
 
-  <!-- Модальное окно профиля -->
   <div id="profile-modal" class="movie-modal">
     <div class="movie-modal-content profile-modal-content">
       <button id="profile-modal-close" class="movie-modal-close">✕</button>
@@ -206,16 +214,19 @@
           <button class="profile-color-dot" data-color="#8b5cf6" style="background:#8b5cf6"></button>
           <button class="profile-color-dot" data-color="#ec4899" style="background:#ec4899"></button>
         </div>
+        <div id="profile-stats" class="profile-stats"></div>
         <button id="profile-save-btn" class="profile-save-btn">Сохранить</button>
       </div>
     </div>
   </div>
 
+  <button id="scroll-top-btn" class="scroll-top-btn" title="Наверх">↑</button>
+
   <div id="toast" class="toast"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -234,7 +245,8 @@
     window.firebaseAuth = auth;
     window.firebaseDb = db;
     window.googleProvider = new GoogleAuthProvider();
-    window.firebaseSignIn = signInWithPopup;
+    window.firebaseSignIn = signInWithRedirect;
+    window.firebaseGetRedirectResult = getRedirectResult;
     window.firebaseSignOut = signOut;
     window.firebaseOnAuth = onAuthStateChanged;
     window.firebaseDoc = doc;

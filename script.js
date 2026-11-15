@@ -42,6 +42,8 @@ var currentMovies = [];
 var currentModalMovie = null;
 var currentUser = null;
 var currentProfile = { name: "", avatar: "", color: "#e8eaed" };
+var playlistSearchQuery = "";
+var autoThemeEnabled = false;
 
 /* ===== Firebase ===== */
 var firebaseReady = false;
@@ -73,6 +75,26 @@ function initFirebase() {
           localStorage.removeItem("mood_user");
           renderUserInfo();
         }
+      });
+    }
+
+    if (window.firebaseGetRedirectResult) {
+      window.firebaseGetRedirectResult(fbAuth).then(function (result) {
+        if (result && result.user) {
+          var user = result.user;
+          currentUser = {
+            id: user.uid,
+            name: user.displayName || user.email,
+            email: user.email,
+            picture: user.photoURL
+          };
+          localStorage.setItem("mood_user", JSON.stringify(currentUser));
+          renderUserInfo();
+          loadUserDataFromFirebase(user.uid);
+          showToast("Привет, " + currentUser.name + "!");
+        }
+      }).catch(function (err) {
+        console.error("Ошибка redirect:", err);
       });
     }
   }
@@ -128,24 +150,10 @@ function initGoogleLogin() {
       showToast("Firebase ещё загружается, попробуйте через секунду", true);
       return;
     }
-    window.firebaseSignIn(fbAuth, fbProvider)
-      .then(function (result) {
-        var user = result.user;
-        currentUser = {
-          id: user.uid,
-          name: user.displayName || user.email,
-          email: user.email,
-          picture: user.photoURL
-        };
-        localStorage.setItem("mood_user", JSON.stringify(currentUser));
-        renderUserInfo();
-        loadUserDataFromFirebase(user.uid);
-        showToast("Привет, " + currentUser.name + "!");
-      })
-      .catch(function (err) {
-        console.error("Ошибка входа:", err);
-        showToast("Ошибка входа: " + err.message, true);
-      });
+    window.firebaseSignIn(fbAuth, fbProvider).catch(function (err) {
+      console.error("Ошибка входа:", err);
+      showToast("Ошибка входа: " + err.message, true);
+    });
   });
 }
 
@@ -155,6 +163,7 @@ function openProfileModal() {
   var nameInput = document.getElementById("profile-name-input");
   var avatarInput = document.getElementById("profile-avatar-input");
   var avatarImg = document.getElementById("profile-avatar-img");
+  var statsEl = document.getElementById("profile-stats");
   if (!modal) return;
 
   nameInput.value = currentProfile.name || (currentUser ? currentUser.name : "");
@@ -164,6 +173,34 @@ function openProfileModal() {
   document.querySelectorAll(".profile-color-dot").forEach(function (dot) {
     dot.classList.toggle("active", dot.getAttribute("data-color") === currentProfile.color);
   });
+
+  // Статистика
+  if (statsEl) {
+    var playlists = getPlaylists();
+    var names = Object.keys(playlists);
+    var totalMovies = 0;
+    var totalWatched = 0;
+    var genreCount = {};
+    names.forEach(function (n) {
+      playlists[n].forEach(function (m) {
+        totalMovies++;
+        if (m.watched) totalWatched++;
+        if (m.genre) {
+          genreCount[m.genre] = (genreCount[m.genre] || 0) + 1;
+        }
+      });
+    });
+    var favGenre = "—";
+    var maxCount = 0;
+    for (var g in genreCount) {
+      if (genreCount[g] > maxCount) { maxCount = genreCount[g]; favGenre = g; }
+    }
+    statsEl.innerHTML =
+      "📚 Плейлистов: <span>" + names.length + "</span><br>" +
+      "🎬 Фильмов в плейлистах: <span>" + totalMovies + "</span><br>" +
+      "✅ Просмотрено: <span>" + totalWatched + "</span><br>" +
+      "❤️ Любимый жанр: <span>" + favGenre + "</span>";
+  }
 
   modal.classList.add("open");
 }
@@ -196,9 +233,7 @@ function initProfile() {
   if (modal) modal.addEventListener("click", function (e) { if (e.target === this) closeProfileModal(); });
   if (saveBtn) saveBtn.addEventListener("click", saveProfile);
   if (avatarInput && avatarImg) {
-    avatarInput.addEventListener("input", function () {
-      avatarImg.src = this.value;
-    });
+    avatarInput.addEventListener("input", function () { avatarImg.src = this.value; });
   }
 
   document.querySelectorAll(".profile-color-dot").forEach(function (dot) {
@@ -210,9 +245,7 @@ function initProfile() {
   });
 
   var saved = localStorage.getItem("mood_profile");
-  if (saved) {
-    try { currentProfile = JSON.parse(saved); } catch (e) {}
-  }
+  if (saved) { try { currentProfile = JSON.parse(saved); } catch (e) {} }
 }
 
 /* ===== Сохранение/загрузка в Firestore ===== */
@@ -226,6 +259,7 @@ function saveUserDataToFirebase() {
     accent: localStorage.getItem("mood_accent") || "",
     theme: localStorage.getItem("mood_theme") || "dark",
     size: localStorage.getItem("mood_size") || "medium",
+    autoTheme: autoThemeEnabled,
     updatedAt: new Date().toISOString()
   };
   var docRef = window.firebaseDoc(fbDb, "users", currentUser.id);
@@ -243,14 +277,11 @@ function loadUserDataFromFirebase(userId) {
       if (data.playlists) localStorage.setItem("mood_movies_playlists", JSON.stringify(data.playlists));
       if (data.watched) localStorage.setItem("mood_watched", JSON.stringify(data.watched));
       if (data.hidden) localStorage.setItem("mood_hidden", JSON.stringify(data.hidden));
-      if (data.profile) {
-        currentProfile = data.profile;
-        localStorage.setItem("mood_profile", JSON.stringify(currentProfile));
-        renderUserInfo();
-      }
+      if (data.profile) { currentProfile = data.profile; localStorage.setItem("mood_profile", JSON.stringify(currentProfile)); renderUserInfo(); }
       if (data.accent) { localStorage.setItem("mood_accent", data.accent); document.body.setAttribute("data-accent", data.accent); }
       if (data.theme) { localStorage.setItem("mood_theme", data.theme); if (data.theme === "light") document.body.classList.add("light"); else document.body.classList.remove("light"); }
       if (data.size) { localStorage.setItem("mood_size", data.size); document.body.setAttribute("data-size", data.size); }
+      if (data.autoTheme !== undefined) { autoThemeEnabled = data.autoTheme; localStorage.setItem("mood_auto_theme", autoThemeEnabled ? "1" : "0"); }
       renderPlaylists();
       showToast("Данные загружены из облака");
     }
@@ -342,7 +373,15 @@ function renderPlaylists() {
   if (!listEl) return;
   var playlists = getPlaylists();
   var names = Object.keys(playlists);
-  if (names.length === 0) { listEl.innerHTML = '<p class="playlist-empty">Пока нет плейлистов. Создай первый!</p>'; return; }
+
+  if (playlistSearchQuery) {
+    names = names.filter(function (n) { return n.toLowerCase().indexOf(playlistSearchQuery.toLowerCase()) !== -1; });
+  }
+
+  if (names.length === 0) {
+    listEl.innerHTML = '<p class="playlist-empty">' + (playlistSearchQuery ? 'Ничего не найдено' : 'Пока нет плейлистов. Создай первый!') + '</p>';
+    return;
+  }
 
   var html = "";
   names.forEach(function (name) {
@@ -458,6 +497,7 @@ function render(movies, append, containerId) {
     var rating = 0; if (m.rating) { if (m.rating.kp) rating = m.rating.kp; else if (m.rating.imdb) rating = m.rating.imdb; }
     var description = m.shortDescription || m.description || ""; if (description.length > 120) description = description.substring(0, 120) + "…";
     var watched = isWatched(title);
+    var genreName = (m.genres && m.genres.length) ? m.genres[0].name : "";
 
     html += '<div class="card">';
     html += '<button class="card-hide" data-title="' + title + '" title="Скрыть">✕</button>';
@@ -467,7 +507,7 @@ function render(movies, append, containerId) {
     html += '<div class="meta">' + year + (rating > 0 ? ' · ' + buildStars(rating) : "") + '</div>';
     html += buildGenres(m.genres);
     if (description) html += '<div class="desc">' + description + '</div>';
-    html += '<div class="card-actions"><button class="card-add" data-title="' + title + '" data-year="' + year + '" data-rating="' + (rating > 0 ? rating.toFixed(1) : "") + '" data-poster="' + poster + '">＋ В плейлист</button></div>';
+    html += '<div class="card-actions"><button class="card-add" data-title="' + title + '" data-year="' + year + '" data-rating="' + (rating > 0 ? rating.toFixed(1) : "") + '" data-poster="' + poster + '" data-genre="' + genreName + '">＋ В плейлист</button></div>';
     html += '<div class="card-links-row"><a class="card-link kp" href="https://www.kinopoisk.ru/index.php?kp_query=' + encodeURIComponent(title) + '" target="_blank" rel="noopener">🎬 Кинопоиск</a><a class="card-link rutube" href="https://rutube.ru/search/?query=' + encodeURIComponent(title) + '" target="_blank" rel="noopener">▶ Rutube</a></div>';
     html += '</div></div>';
   });
@@ -478,7 +518,7 @@ function render(movies, append, containerId) {
     btn.addEventListener("click", function (e) {
       e.stopPropagation();
       var card = this.closest(".card");
-      addMovieToPlaylist({ title: this.getAttribute("data-title"), year: this.getAttribute("data-year"), rating: this.getAttribute("data-rating"), poster: this.getAttribute("data-poster") });
+      addMovieToPlaylist({ title: this.getAttribute("data-title"), year: this.getAttribute("data-year"), rating: this.getAttribute("data-rating"), poster: this.getAttribute("data-poster"), genre: this.getAttribute("data-genre") });
       this.classList.add("added"); this.textContent = "✓ Добавлено";
       if (card) { card.classList.add("card-added"); setTimeout(function () { card.classList.remove("card-added"); }, 800); }
     });
@@ -583,8 +623,9 @@ function loadMovies(mood, type, page, append) {
   else if (type === "cartoon") params.push("typeNumber=3");
   else params.push("typeNumber=1");
 
-  params.push("sortField=rating.kp");
+  params.push("sortField=votes.kp");
   params.push("sortType=-1");
+  params.push("votes.kp=10000-10000000");
   params.push("page=" + currentPage);
   params.push("limit=24");
 
@@ -618,6 +659,7 @@ function searchMovies(query, type, page, append) {
   else params.push("typeNumber=1");
   params.push("page=" + currentPage);
   params.push("limit=24");
+  params.push("votes.kp=1000-10000000");
 
   var url = BASE + "?" + params.join("&");
 
@@ -651,6 +693,7 @@ function loadRandomMovies(type) {
 
   params.push("sortField=votes.kp");
   params.push("sortType=-1");
+  params.push("votes.kp=10000-10000000");
   params.push("page=" + randomPage);
   params.push("limit=24");
 
@@ -745,8 +788,9 @@ function openSimilar(title) {
         var y = parseInt(year, 10);
         if (!isNaN(y)) p2.push("year=" + (y - 2) + "-" + (y + 2));
       }
-      p2.push("sortField=rating.kp");
+      p2.push("sortField=votes.kp");
       p2.push("sortType=-1");
+      p2.push("votes.kp=5000-10000000");
       p2.push("limit=24");
 
       return fetchWithTimeout(BASE + "?" + p2.join("&"), 20000);
@@ -919,6 +963,37 @@ function initSettings() {
     });
   });
 
+  // Авто-тема по времени суток
+  var autoOff = document.getElementById("auto-theme-off");
+  var autoOn = document.getElementById("auto-theme-on");
+
+  function updateAutoThemeButtons() {
+    if (autoOff) autoOff.classList.toggle("active", !autoThemeEnabled);
+    if (autoOn) autoOn.classList.toggle("active", autoThemeEnabled);
+  }
+
+  if (autoOff) {
+    autoOff.addEventListener("click", function () {
+      autoThemeEnabled = false;
+      localStorage.setItem("mood_auto_theme", "0");
+      updateAutoThemeButtons();
+      saveUserDataToFirebase();
+    });
+  }
+  if (autoOn) {
+    autoOn.addEventListener("click", function () {
+      autoThemeEnabled = true;
+      localStorage.setItem("mood_auto_theme", "1");
+      applyAutoTheme();
+      updateAutoThemeButtons();
+      saveUserDataToFirebase();
+    });
+  }
+
+  var savedAuto = localStorage.getItem("mood_auto_theme");
+  if (savedAuto === "1") { autoThemeEnabled = true; }
+  updateAutoThemeButtons();
+
   var resetBtn = document.getElementById("settings-reset");
   if (resetBtn) {
     resetBtn.addEventListener("click", function () {
@@ -927,9 +1002,12 @@ function initSettings() {
       localStorage.removeItem("mood_size");
       localStorage.removeItem("mood_hidden");
       localStorage.removeItem("mood_watched");
+      localStorage.removeItem("mood_auto_theme");
+      autoThemeEnabled = false;
       document.body.removeAttribute("data-accent");
       document.body.removeAttribute("data-size");
       document.body.classList.remove("light");
+      updateAutoThemeButtons();
       showToast("Настройки, скрытые и просмотренные фильмы сброшены");
       saveUserDataToFirebase();
     });
@@ -941,6 +1019,75 @@ function initSettings() {
   if (savedTheme === "light") document.body.classList.add("light");
   var savedSize = localStorage.getItem("mood_size");
   if (savedSize) document.body.setAttribute("data-size", savedSize);
+}
+
+function applyAutoTheme() {
+  if (!autoThemeEnabled) return;
+  var hour = new Date().getHours();
+  var isNight = (hour >= 20 || hour < 7);
+  if (isNight) {
+    document.body.classList.add("light");
+    localStorage.setItem("mood_theme", "light");
+  } else {
+    document.body.classList.remove("light");
+    localStorage.setItem("mood_theme", "dark");
+  }
+}
+
+function initScrollTop() {
+  var btn = document.getElementById("scroll-top-btn");
+  if (!btn) return;
+
+  window.addEventListener("scroll", function () {
+    if (window.scrollY > 400) {
+      btn.classList.add("visible");
+    } else {
+      btn.classList.remove("visible");
+    }
+  });
+
+  btn.addEventListener("click", function () {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+}
+
+function initPlaylistSearch() {
+  var input = document.getElementById("playlist-search-input");
+  if (!input) return;
+  input.addEventListener("input", function () {
+    playlistSearchQuery = this.value.trim();
+    renderPlaylists();
+  });
+}
+
+function initRandomFromPlaylists() {
+  var btn = document.getElementById("random-from-playlists-btn");
+  if (!btn) return;
+  btn.addEventListener("click", function () {
+    var playlists = getPlaylists();
+    var names = Object.keys(playlists);
+    var allMovies = [];
+    names.forEach(function (n) {
+      playlists[n].forEach(function (m) { allMovies.push(m); });
+    });
+    if (allMovies.length === 0) {
+      showToast("В плейлистах пока нет фильмов", true);
+      return;
+    }
+    var random = allMovies[Math.floor(Math.random() * allMovies.length)];
+    var fakeMovie = {
+      name: random.title,
+      year: random.year,
+      rating: random.rating ? { kp: parseFloat(random.rating) } : null,
+      poster: random.poster ? { previewUrl: random.poster } : null,
+      description: "Фильм из вашего плейлиста",
+      genres: []
+    };
+    currentMovies = [fakeMovie];
+    render([fakeMovie], false);
+    updateLoadMore(false);
+    showToast("🎲 Случайный фильм из вашего плейлиста");
+  });
 }
 
 function init() {
@@ -958,10 +1105,17 @@ function init() {
   }
   initGoogleLogin();
   initProfile();
+  initScrollTop();
+  initPlaylistSearch();
+  initRandomFromPlaylists();
 
   // Восстанавливаем профиль из localStorage
   var savedProfile = localStorage.getItem("mood_profile");
   if (savedProfile) { try { currentProfile = JSON.parse(savedProfile); } catch (e) {} }
+
+  // Авто-тема при загрузке
+  var savedAuto = localStorage.getItem("mood_auto_theme");
+  if (savedAuto === "1") { autoThemeEnabled = true; applyAutoTheme(); }
 
   for (var i = 0; i < buttons.length; i++) {
     buttons[i].addEventListener("click", function () {
@@ -1076,4 +1230,4 @@ if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", init);
 } else {
   init();
-}
+}ы
