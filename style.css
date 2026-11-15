@@ -105,6 +105,7 @@ header p { color: var(--text-muted); font-size: 1rem; }
 
 .playlists-toggle:hover { border-color: var(--accent-1); }
 
+/* Боковые панели */
 .side-panel {
   position: fixed;
   top: 0;
@@ -217,6 +218,7 @@ header p { color: var(--text-muted); font-size: 1rem; }
 
 .reset-btn:hover { border-color: #ff6b6b; color: #ff6b6b; }
 
+/* Плейлисты */
 .playlist-create { display: flex; gap: 8px; margin-bottom: 20px; }
 
 .playlist-create input {
@@ -322,6 +324,13 @@ header p { color: var(--text-muted); font-size: 1rem; }
 
 .playlist-empty { color: var(--text-muted); font-size: 0.8rem; font-style: italic; opacity: 0.7; }
 
+/* Панель похожих */
+.similar-panel { width: 520px; }
+.similar-results { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 14px; }
+.similar-results .card .title { font-size: 0.8rem; }
+.similar-results .card-actions { display: none; }
+
+/* Поиск */
 .search-block { max-width: 720px; margin: 0 auto 16px; }
 .search-row { display: flex; gap: 8px; }
 
@@ -352,7 +361,9 @@ header p { color: var(--text-muted); font-size: 1rem; }
 
 .search-row button:hover { filter: brightness(1.1); }
 .search-row #random-btn { padding: 14px 18px; font-size: 1.1rem; }
+.search-row #masterpiece-btn { padding: 14px 18px; font-size: 1.1rem; background: linear-gradient(135deg, #f59e0b, #fbbf24); }
 
+/* Нейросеть */
 .ai-block {
   max-width: 720px;
   margin: 0 auto 30px;
@@ -413,6 +424,7 @@ header p { color: var(--text-muted); font-size: 1rem; }
 
 .ai-status { margin-top: 16px; font-size: 0.9rem; color: var(--text-muted); min-height: 1.2em; position: relative; z-index: 1; }
 
+/* Настроения */
 .moods {
   display: flex;
   flex-wrap: wrap;
@@ -444,6 +456,7 @@ header p { color: var(--text-muted); font-size: 1rem; }
   color: #fff;
 }
 
+/* Переключатель типов */
 .type-switch {
   display: flex;
   justify-content: center;
@@ -475,6 +488,7 @@ header p { color: var(--text-muted); font-size: 1rem; }
   color: #fff;
 }
 
+/* Карточки */
 .results {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(var(--card-min), 1fr));
@@ -502,20 +516,16 @@ header p { color: var(--text-muted); font-size: 1rem; }
   aspect-ratio: 2 / 3;
   object-fit: cover;
   background: var(--border);
+  cursor: pointer;
 }
 
 .card .info { padding: 13px 15px 15px; display: flex; flex-direction: column; flex: 1; }
-.card .title { font-size: 0.9rem; font-weight: 600; margin-bottom: 6px; line-height: 1.3; color: var(--text-main); }
+.card .title { font-size: 0.9rem; font-weight: 600; margin-bottom: 6px; line-height: 1.3; color: var(--text-main); cursor: pointer; }
+.card .title:hover { color: var(--accent-1); }
 .card .meta { font-size: 0.78rem; color: var(--text-muted); }
 
-/* --- Жанры-теги --- */
-.card .genres {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 6px;
-}
-
+/* Жанры-теги */
+.card .genres { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 .card .genre-tag {
   font-size: 0.68rem;
   padding: 2px 8px;
@@ -526,28 +536,11 @@ header p { color: var(--text-muted); font-size: 1rem; }
   white-space: nowrap;
 }
 
-/* --- Рейтинг звёздами --- */
-.card .stars {
-  display: inline-flex;
-  gap: 2px;
-  font-size: 0.8rem;
-  margin-left: 4px;
-  vertical-align: middle;
-}
-
-.card .star {
-  color: #3a4552;
-}
-
-.card .star.filled {
-  color: #ffd76e;
-}
-
-.card .rating-num {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin-left: 6px;
-}
+/* Звёзды */
+.card .stars { display: inline-flex; gap: 2px; font-size: 0.8rem; margin-left: 4px; vertical-align: middle; }
+.card .star { color: #3a4552; }
+.card .star.filled { color: #ffd76e; }
+.card .rating-num { font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; }
 
 .card .desc {
   font-size: 0.75rem;
@@ -583,11 +576,33 @@ header p { color: var(--text-muted); font-size: 1rem; }
   color: #fff;
 }
 
-/* --- Подсветка карточки при добавлении --- */
-.card.card-added {
-  animation: cardAdded 0.8s ease;
-  border-color: #10b981 !important;
+/* Кнопка «Скрыть» на карточке */
+.card-hide {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(10, 14, 18, 0.75);
+  color: #cfd6de;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  opacity: 0;
+  transition: all 0.2s;
+  backdrop-filter: blur(4px);
 }
+
+.card:hover .card-hide { opacity: 1; }
+.card-hide:hover { background: #ef4444; color: #fff; transform: scale(1.1); }
+
+/* Подсветка карточки при добавлении */
+.card.card-added { animation: cardAdded 0.8s ease; border-color: #10b981 !important; }
 
 @keyframes cardAdded {
   0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
@@ -595,7 +610,6 @@ header p { color: var(--text-muted); font-size: 1rem; }
   100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
 
-/* --- Кнопка добавления активна --- */
 .card-add.added {
   background: linear-gradient(135deg, #10b981, #34d399) !important;
   border-color: transparent !important;
@@ -627,7 +641,7 @@ header p { color: var(--text-muted); font-size: 1rem; }
 
 .load-more:hover { filter: brightness(1.12); transform: translateY(-2px); }
 
-/* --- Toast --- */
+/* Toast */
 .toast {
   position: fixed;
   bottom: 30px;
@@ -647,15 +661,8 @@ header p { color: var(--text-muted); font-size: 1rem; }
   white-space: nowrap;
 }
 
-.toast.show {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-
-.toast.error {
-  background: linear-gradient(135deg, #ef4444, #f87171);
-  box-shadow: 0 10px 30px rgba(239, 68, 68, 0.4);
-}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.error { background: linear-gradient(135deg, #ef4444, #f87171); box-shadow: 0 10px 30px rgba(239, 68, 68, 0.4); }
 
 @keyframes shimmer {
   0% { background-position: 200% 0; }
@@ -676,5 +683,6 @@ header p { color: var(--text-muted); font-size: 1rem; }
   .results { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 14px; }
   .card .title { font-size: 0.82rem; }
   .side-panel { width: 100vw; max-width: 100vw; }
+  .similar-panel { width: 100vw; }
   .toast { white-space: normal; text-align: center; max-width: 90vw; }
 }
