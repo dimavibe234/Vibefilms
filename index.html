@@ -9,7 +9,7 @@
 </head>
 <body>
   
-  <!-- Верхняя панель управления (Фиксированная) -->
+  <!-- Фиксированная верхняя панель -->
   <div class="top-bar">
     <div class="top-bar-logo">SuperHeroFilms</div>
     <div class="top-bar-actions">
@@ -19,7 +19,6 @@
     </div>
   </div>
 
-  <!-- Блок с кнопкой авторизации -->
   <div class="header-hero">
     <p>Твой личный проводник в мир кино</p>
     <div class="google-login-block">
@@ -31,11 +30,10 @@
     </div>
   </div>
 
-  <!-- Главный блок управления -->
   <main>
     <div class="control-panel">
       <div class="search-tabs">
-        <button class="tab-btn active" data-target="tab-name">🔍 Поиск по названию</button>
+        <button class="tab-btn active" data-target="tab-name">🔍 Поиск</button>
         <button class="tab-btn" data-target="tab-ai">✨ Нейросеть</button>
       </div>
 
@@ -52,7 +50,7 @@
 
       <div id="tab-ai" class="tab-content">
         <div class="ai-input-row">
-          <input type="text" id="ai-input" placeholder="Опиши, что хочешь посмотреть...">
+          <input type="text" id="ai-input" placeholder="Опиши сюжет (например: фильм про Марс)">
           <button id="ai-button">Подобрать</button>
         </div>
         <p id="ai-status" class="ai-status"></p>
@@ -130,7 +128,7 @@
     <button id="load-more" class="load-more" style="display: none;">Показать ещё</button>
   </main>
 
-  <!-- Модальные окна и панели -->
+  <!-- Панели и модалки -->
   <aside id="settings-panel" class="side-panel">
     <div class="panel-header">
       <h2>Настройки вида</h2>
@@ -225,7 +223,6 @@
 
   <div id="toast" class="toast"></div>
 
-  <!-- Firebase Scripts -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
