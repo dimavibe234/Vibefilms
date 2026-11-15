@@ -183,9 +183,36 @@
     </div>
   </div>
 
+  <!-- Модальное окно профиля -->
+  <div id="profile-modal" class="movie-modal">
+    <div class="movie-modal-content profile-modal-content">
+      <button id="profile-modal-close" class="movie-modal-close">✕</button>
+      <div class="profile-modal-body">
+        <h2>Редактировать профиль</h2>
+        <div class="profile-avatar-preview">
+          <img id="profile-avatar-img" src="" alt="">
+        </div>
+        <label class="profile-label">Имя</label>
+        <input type="text" id="profile-name-input" class="profile-input" placeholder="Ваше имя">
+        <label class="profile-label">Ссылка на аватарку</label>
+        <input type="text" id="profile-avatar-input" class="profile-input" placeholder="https://...">
+        <label class="profile-label">Цвет ника</label>
+        <div class="profile-color-row">
+          <button class="profile-color-dot" data-color="#e8eaed" style="background:#e8eaed"></button>
+          <button class="profile-color-dot" data-color="#ff6b6b" style="background:#ff6b6b"></button>
+          <button class="profile-color-dot" data-color="#ffd76e" style="background:#ffd76e"></button>
+          <button class="profile-color-dot" data-color="#10b981" style="background:#10b981"></button>
+          <button class="profile-color-dot" data-color="#3a7bd5" style="background:#3a7bd5"></button>
+          <button class="profile-color-dot" data-color="#8b5cf6" style="background:#8b5cf6"></button>
+          <button class="profile-color-dot" data-color="#ec4899" style="background:#ec4899"></button>
+        </div>
+        <button id="profile-save-btn" class="profile-save-btn">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast"></div>
 
-  <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
