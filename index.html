@@ -8,14 +8,15 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  
+  <!-- Кнопки в углах экрана -->
+  <button id="settings-toggle" class="floating-btn top-right" title="Настройки">⚙️</button>
+  <button id="playlists-toggle" class="floating-btn bottom-right" title="Мои плейлисты">📚</button>
+  <button id="scroll-top-btn" class="floating-btn bottom-left" title="Наверх">↑</button>
+
   <header>
-    <div class="header-top">
-      <h1>SuperHeroFilms</h1>
-      <div class="header-actions">
-        <button id="settings-toggle" class="icon-btn" title="Настройки">⚙️</button>
-        <button id="playlists-toggle" class="playlists-toggle">📚 <span class="hide-mobile">Мои плейлисты</span></button>
-      </div>
-    </div>
+    <h1>SuperHeroFilms</h1>
+    <p class="subtitle">Твой личный проводник в мир кино</p>
 
     <div class="google-login-block">
       <button id="google-login-btn" class="google-btn">
@@ -26,6 +27,106 @@
     </div>
   </header>
 
+  <!-- Главный блок управления -->
+  <main>
+    <div class="control-panel">
+      <div class="search-tabs">
+        <button class="tab-btn active" data-target="tab-name">🔍 Поиск по названию</button>
+        <button class="tab-btn" data-target="tab-ai">✨ Нейросеть</button>
+      </div>
+
+      <div id="tab-name" class="tab-content active">
+        <div class="search-row">
+          <input type="text" id="search-input" placeholder="Введите название фильма...">
+          <button id="search-btn">Найти</button>
+        </div>
+        <div class="quick-actions">
+          <button id="random-btn" class="action-chip">🎲 Удиви меня</button>
+          <button id="masterpiece-btn" class="action-chip gold">💎 Шедевр</button>
+        </div>
+      </div>
+
+      <div id="tab-ai" class="tab-content">
+        <div class="ai-input-row">
+          <input type="text" id="ai-input" placeholder="Опиши, что хочешь посмотреть...">
+          <button id="ai-button">Подобрать</button>
+        </div>
+        <p id="ai-status" class="ai-status"></p>
+      </div>
+
+      <div class="filters-row">
+        <details class="dropdown-filter">
+          <summary>⚙️ Фильтры</summary>
+          <div class="dropdown-content">
+            <div class="filter-item">
+              <label>Рейтинг от</label>
+              <input type="range" id="rating-filter" min="0" max="10" step="0.5" value="0">
+              <span id="rating-value">0</span>
+            </div>
+            <div class="filter-item">
+              <label>Год от</label>
+              <input type="number" id="year-filter" min="1900" max="2026" value="1900" placeholder="1900">
+            </div>
+            <label class="toggle-label">
+              <input type="checkbox" id="filter-unwatched">
+              <span>Не просмотренные</span>
+            </label>
+            <label class="toggle-label">
+              <input type="checkbox" id="filter-new">
+              <span>Только новинки</span>
+            </label>
+          </div>
+        </details>
+
+        <details class="dropdown-filter">
+          <summary>😊 Настроение</summary>
+          <div class="dropdown-content moods" id="moods">
+            <button data-mood="happy">😄 Весело</button>
+            <button data-mood="sad">😢 Грустно</button>
+            <button data-mood="action">🔥 Адреналин</button>
+            <button data-mood="cozy">🛋️ Уютно</button>
+            <button data-mood="scary">👻 Страшно</button>
+            <button data-mood="romance">💕 Романтика</button>
+            <button data-mood="nostalgia">📼 Ностальгия</button>
+            <button data-mood="inspire">🚀 Вдохновение</button>
+            <button data-mood="mystery">🕵️ Детектив</button>
+            <button data-mood="scifi">🛸 Фантастика</button>
+            <button data-mood="music">🎵 Музыка</button>
+            <button data-mood="think">🤔 Подумать</button>
+            <button data-mood="anime">🌸 Аниме</button>
+            <button data-mood="fantasy">🧙 Фэнтези</button>
+            <button data-mood="crime">🔫 Криминал</button>
+            <button data-mood="thriller">😰 Триллер</button>
+            <button data-mood="documentary">📖 Документальное</button>
+            <button data-mood="sport">⚽ Спорт</button>
+            <button data-mood="war">🎖️ Военное</button>
+            <button data-mood="western">🤠 Вестерн</button>
+            <button data-mood="biography">👤 Биография</button>
+            <button data-mood="kids">🧸 Для детей</button>
+            <button data-mood="adventure">🗺️ Приключения</button>
+            <button data-mood="comedy_dark">🖤 Чёрная комедия</button>
+            <button data-mood="mystic">🔮 Мистика</button>
+            <button data-mood="musical">🎭 Мюзикл</button>
+            <button data-mood="family">👨‍👩‍👧 Семейное</button>
+            <button data-mood="heist">💎 Ограбление</button>
+            <button data-mood="survival">🏕️ Выживание</button>
+            <button data-mood="space">🌌 Космос</button>
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <div class="type-switch" id="type-switch" style="display: none;">
+      <button data-type="movie" class="active">🎬 Фильмы</button>
+      <button data-type="series">📺 Сериалы</button>
+      <button data-type="cartoon">🧸 Мультики</button>
+    </div>
+
+    <div id="results" class="results"></div>
+    <button id="load-more" class="load-more" style="display: none;">Показать ещё</button>
+  </main>
+
+  <!-- Модальные окна и панели -->
   <aside id="settings-panel" class="side-panel">
     <div class="panel-header">
       <h2>Настройки вида</h2>
@@ -75,109 +176,6 @@
     <div id="playlists-list" class="playlists-list"></div>
   </aside>
 
-  <main>
-    <!-- Блок управления -->
-    <div class="control-panel">
-      <!-- Вкладки поиска -->
-      <div class="search-tabs">
-        <button class="tab-btn active" data-target="tab-name">🔍 Поиск</button>
-        <button class="tab-btn" data-target="tab-ai">✨ Нейросеть</button>
-      </div>
-
-      <!-- Контент поиска -->
-      <div id="tab-name" class="tab-content active">
-        <div class="search-row">
-          <input type="text" id="search-input" placeholder="Название фильма...">
-          <button id="search-btn">Найти</button>
-        </div>
-        <div class="quick-actions">
-          <button id="random-btn" class="action-chip">🎲 Удиви меня</button>
-          <button id="masterpiece-btn" class="action-chip gold">💎 Шедевр</button>
-        </div>
-      </div>
-
-      <div id="tab-ai" class="tab-content">
-        <div class="ai-input-row">
-          <input type="text" id="ai-input" placeholder="Опиши сюжет (например: фильм про Марс)">
-          <button id="ai-button">Подобрать</button>
-        </div>
-        <p id="ai-status" class="ai-status"></p>
-      </div>
-
-      <!-- Выпадающие фильтры -->
-      <details class="filters-accordion">
-        <summary>⚙️ Фильтры и сортировка</summary>
-        <div class="filters-content">
-          <div class="filter-item">
-            <label>Рейтинг от</label>
-            <input type="range" id="rating-filter" min="0" max="10" step="0.5" value="0">
-            <span id="rating-value">0</span>
-          </div>
-          <div class="filter-item">
-            <label>Год от</label>
-            <input type="number" id="year-filter" min="1900" max="2026" value="1900" placeholder="1900">
-          </div>
-          <label class="toggle-label">
-            <input type="checkbox" id="filter-unwatched">
-            <span>Только непросмотренные</span>
-          </label>
-          <label class="toggle-label">
-            <input type="checkbox" id="filter-new">
-            <span>Только новинки</span>
-          </label>
-        </div>
-      </details>
-
-      <!-- Выпадающие категории -->
-      <details class="filters-accordion categories-accordion">
-        <summary>😊 Выбрать настроение</summary>
-        <div class="moods" id="moods">
-          <button data-mood="happy">😄 Весело</button>
-          <button data-mood="sad">😢 Грустно</button>
-          <button data-mood="action">🔥 Адреналин</button>
-          <button data-mood="cozy">🛋️ Уютно</button>
-          <button data-mood="scary">👻 Страшно</button>
-          <button data-mood="romance">💕 Романтика</button>
-          <button data-mood="nostalgia">📼 Ностальгия</button>
-          <button data-mood="inspire">🚀 Вдохновение</button>
-          <button data-mood="mystery">🕵️ Детектив</button>
-          <button data-mood="scifi">🛸 Фантастика</button>
-          <button data-mood="music">🎵 Музыка</button>
-          <button data-mood="think">🤔 Подумать</button>
-          <button data-mood="anime">🌸 Аниме</button>
-          <button data-mood="fantasy">🧙 Фэнтези</button>
-          <button data-mood="crime">🔫 Криминал</button>
-          <button data-mood="thriller">😰 Триллер</button>
-          <button data-mood="documentary">📖 Документальное</button>
-          <button data-mood="sport">⚽ Спорт</button>
-          <button data-mood="war">🎖️ Военное</button>
-          <button data-mood="western">🤠 Вестерн</button>
-          <button data-mood="biography">👤 Биография</button>
-          <button data-mood="kids">🧸 Для детей</button>
-          <button data-mood="adventure">🗺️ Приключения</button>
-          <button data-mood="comedy_dark">🖤 Чёрная комедия</button>
-          <button data-mood="mystic">🔮 Мистика</button>
-          <button data-mood="musical">🎭 Мюзикл</button>
-          <button data-mood="family">👨‍👩‍👧 Семейное</button>
-          <button data-mood="heist">💎 Ограбление</button>
-          <button data-mood="survival">🏕️ Выживание</button>
-          <button data-mood="space">🌌 Космос</button>
-        </div>
-      </details>
-    </div>
-
-    <!-- Переключатель фильм/сериал -->
-    <div class="type-switch" id="type-switch" style="display: none;">
-      <button data-type="movie" class="active">🎬 Фильмы</button>
-      <button data-type="series">📺 Сериалы</button>
-      <button data-type="cartoon">🧸 Мультики</button>
-    </div>
-
-    <div id="results" class="results"></div>
-    <button id="load-more" class="load-more" style="display: none;">Показать ещё</button>
-  </main>
-
-  <!-- Модалки и скрипты (без изменений) -->
   <div id="movie-modal" class="movie-modal">
     <div class="movie-modal-content">
       <button id="movie-modal-close" class="movie-modal-close">✕</button>
@@ -221,9 +219,9 @@
     </div>
   </div>
 
-  <button id="scroll-top-btn" class="scroll-top-btn" title="Наверх">↑</button>
   <div id="toast" class="toast"></div>
 
+  <!-- Firebase Scripts -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
