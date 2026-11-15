@@ -151,7 +151,6 @@ function renderPlaylists() {
         });
         html += '</div>';
       }
-
       if (watched.length > 0) {
         html += '<div class="playlist-section-title">Просмотрено (' + watched.length + ')</div>';
         html += '<div class="playlist-items">';
@@ -179,13 +178,11 @@ function renderPlaylists() {
       if (confirm('Удалить плейлист "' + name + '"?')) { deletePlaylist(name); renderPlaylists(); }
     });
   });
-
   listEl.querySelectorAll(".watched-toggle").forEach(function (btn) {
     btn.addEventListener("click", function () {
       toggleWatched(this.getAttribute("data-name"), this.getAttribute("data-title"), this.getAttribute("data-year"));
     });
   });
-
   listEl.querySelectorAll(".remove").forEach(function (btn) {
     btn.addEventListener("click", function () {
       removeFromPlaylist(this.getAttribute("data-name"), this.getAttribute("data-title"), this.getAttribute("data-year"));
@@ -223,7 +220,6 @@ function addMovieToPlaylist(movie) {
     showToast("Добавлено в «" + newName2 + "»");
   }
 }
-
 function buildStars(rating) {
   var stars = "";
   for (var i = 1; i <= 5; i++) {
@@ -780,4 +776,71 @@ function init() {
       var val = document.getElementById("rating-value");
       if (val) val.textContent = this.value;
       if (currentMood) loadMovies(currentMood, currentType);
-      else if (lastSearchQuery) searchMovies(lastSearchQuery, current
+      else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType);
+    });
+  }
+
+  var yearFilter = document.getElementById("year-filter");
+  if (yearFilter) {
+    yearFilter.addEventListener("change", function () {
+      if (currentMood) loadMovies(currentMood, currentType);
+      else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType);
+    });
+  }
+
+  var loadMore = document.getElementById("load-more");
+  if (loadMore) {
+    loadMore.addEventListener("click", function () {
+      if (currentMood) loadMovies(currentMood, currentType, currentPage + 1, true);
+      else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType, currentPage + 1, true);
+    });
+  }
+
+  initTypeSwitch();
+  initAI();
+  initSettings();
+
+  var panel = document.getElementById("playlists-panel");
+  var pToggle = document.getElementById("playlists-toggle");
+  var pClose = document.getElementById("playlists-close");
+
+  if (pToggle) {
+    pToggle.addEventListener("click", function () {
+      renderPlaylists();
+      if (panel) panel.classList.add("open");
+    });
+  }
+  if (pClose) {
+    pClose.addEventListener("click", function () {
+      if (panel) panel.classList.remove("open");
+    });
+  }
+
+  var similarClose = document.getElementById("similar-close");
+  if (similarClose) {
+    similarClose.addEventListener("click", function () {
+      var sp = document.getElementById("similar-panel");
+      if (sp) sp.classList.remove("open");
+    });
+  }
+
+  var createBtn = document.getElementById("playlist-create-btn");
+  if (createBtn) {
+    createBtn.addEventListener("click", function () {
+      var name = document.getElementById("playlist-name-input").value;
+      if (createPlaylist(name)) {
+        document.getElementById("playlist-name-input").value = "";
+        renderPlaylists();
+        showToast("Плейлист «" + name.trim() + "» создан");
+      } else if (name.trim()) {
+        showToast("Такой плейлист уже есть", true);
+      }
+    });
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}
