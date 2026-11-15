@@ -363,6 +363,35 @@ header p { color: var(--text-muted); font-size: 1rem; }
 .search-row #random-btn { padding: 14px 18px; font-size: 1.1rem; }
 .search-row #masterpiece-btn { padding: 14px 18px; font-size: 1.1rem; background: linear-gradient(135deg, #f59e0b, #fbbf24); }
 
+/* Фильтры */
+.filters-block {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 720px;
+  margin: 0 auto 24px;
+  padding: 14px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.filter-item { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-muted); }
+.filter-item label { font-weight: 600; white-space: nowrap; }
+.filter-item input[type="range"] { width: 120px; accent-color: var(--accent-1); }
+.filter-item input[type="number"] {
+  width: 80px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text-main);
+  font-size: 0.85rem;
+  outline: none;
+}
+#rating-value { color: var(--text-main); font-weight: 700; min-width: 24px; }
+
 /* Нейросеть */
 .ai-block {
   max-width: 720px;
@@ -576,7 +605,7 @@ header p { color: var(--text-muted); font-size: 1rem; }
   color: #fff;
 }
 
-/* Кнопка «Скрыть» на карточке */
+/* Кнопка «Скрыть» */
 .card-hide {
   position: absolute;
   top: 8px;
@@ -601,7 +630,7 @@ header p { color: var(--text-muted); font-size: 1rem; }
 .card:hover .card-hide { opacity: 1; }
 .card-hide:hover { background: #ef4444; color: #fff; transform: scale(1.1); }
 
-/* Подсветка карточки при добавлении */
+/* Подсветка при добавлении */
 .card.card-added { animation: cardAdded 0.8s ease; border-color: #10b981 !important; }
 
 @keyframes cardAdded {

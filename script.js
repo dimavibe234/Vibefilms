@@ -321,7 +321,30 @@ function handleFetchError(err, results) {
   updateLoadMore(false);
 }
 
-/* ===== Загрузка (без selectFields) ===== */
+/* ===== Фильтры ===== */
+function getRatingFilter() {
+  var r = document.getElementById("rating-filter");
+  return r ? parseFloat(r.value) : 0;
+}
+function getYearFilter() {
+  var y = document.getElementById("year-filter");
+  return y ? parseInt(y.value, 10) : 1900;
+}
+function filterMovies(movies) {
+  var minRating = getRatingFilter();
+  var minYear = getYearFilter();
+  return movies.filter(function (m) {
+    var rating = 0;
+    if (m.rating && m.rating.kp) rating = m.rating.kp;
+    else if (m.rating && m.rating.imdb) rating = m.rating.imdb;
+    var year = parseInt(m.year || (m.releaseYears && m.releaseYears[0]) || 0, 10);
+    if (rating < minRating) return false;
+    if (minYear > 1900 && year < minYear) return false;
+    return true;
+  });
+}
+
+/* ===== Загрузка ===== */
 function loadMovies(mood, type, page, append) {
   var results = document.getElementById("results");
   if (!results) return;
@@ -353,7 +376,8 @@ function loadMovies(mood, type, page, append) {
       return r.json();
     })
     .then(function (data) {
-      render(data.docs || [], append);
+      var docs = filterMovies(data.docs || []);
+      render(docs, append);
       updateLoadMore(data.docs && data.docs.length === 24);
     })
     .catch(function (err) { handleFetchError(err, results); });
@@ -383,12 +407,14 @@ function searchMovies(query, type, page, append) {
       return r.json();
     })
     .then(function (data) {
-      render(data.docs || [], append);
+      var docs = filterMovies(data.docs || []);
+      render(docs, append);
       updateLoadMore(data.docs && data.docs.length === 24);
     })
     .catch(function (err) { handleFetchError(err, results); });
 }
 
+/* ===== Удиви меня ===== */
 function loadRandomMovies(type) {
   var results = document.getElementById("results");
   if (!results) return;
@@ -417,7 +443,7 @@ function loadRandomMovies(type) {
       return r.json();
     })
     .then(function (data) {
-      var docs = data.docs || [];
+      var docs = filterMovies(data.docs || []);
       for (var i = docs.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1));
         var tmp = docs[i]; docs[i] = docs[j]; docs[j] = tmp;
@@ -432,6 +458,7 @@ function loadRandomMovies(type) {
     .catch(function (err) { handleFetchError(err, results); });
 }
 
+/* ===== Шедевр ===== */
 function loadMasterpiece() {
   var results = document.getElementById("results");
   if (!results) return;
@@ -457,7 +484,7 @@ function loadMasterpiece() {
       return r.json();
     })
     .then(function (data) {
-      var docs = data.docs || [];
+      var docs = filterMovies(data.docs || []);
       for (var i = docs.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1));
         var tmp = docs[i]; docs[i] = docs[j]; docs[j] = tmp;
@@ -469,6 +496,7 @@ function loadMasterpiece() {
     .catch(function (err) { handleFetchError(err, results); });
 }
 
+/* ===== Похожие ===== */
 function openSimilar(title) {
   var panel = document.getElementById("similar-panel");
   var list = document.getElementById("similar-list");
@@ -516,6 +544,7 @@ function openSimilar(title) {
     });
 }
 
+/* ===== Нейросеть ===== */
 function initAI() {
   var aiInput = document.getElementById("ai-input");
   var aiButton = document.getElementById("ai-button");
@@ -586,6 +615,7 @@ function initAI() {
   });
 }
 
+/* ===== Переключатель типов ===== */
 function initTypeSwitch() {
   var typeSwitch = document.getElementById("type-switch");
   if (!typeSwitch) return;
@@ -602,6 +632,7 @@ function initTypeSwitch() {
   }
 }
 
+/* ===== Настройки ===== */
 function initSettings() {
   var settingsPanel = document.getElementById("settings-panel");
   var settingsToggle = document.getElementById("settings-toggle");
@@ -671,6 +702,7 @@ function initSettings() {
   if (savedSize) document.body.setAttribute("data-size", savedSize);
 }
 
+/* ===== Запуск ===== */
 function init() {
   var buttons = document.querySelectorAll("#moods button");
   var results = document.getElementById("results");
@@ -707,6 +739,24 @@ function init() {
 
   var masterpieceBtn = document.getElementById("masterpiece-btn");
   if (masterpieceBtn) masterpieceBtn.addEventListener("click", loadMasterpiece);
+
+  var ratingFilter = document.getElementById("rating-filter");
+  if (ratingFilter) {
+    ratingFilter.addEventListener("input", function () {
+      var val = document.getElementById("rating-value");
+      if (val) val.textContent = this.value;
+      if (currentMood) loadMovies(currentMood, currentType);
+      else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType);
+    });
+  }
+
+  var yearFilter = document.getElementById("year-filter");
+  if (yearFilter) {
+    yearFilter.addEventListener("change", function () {
+      if (currentMood) loadMovies(currentMood, currentType);
+      else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType);
+    });
+  }
 
   var loadMore = document.getElementById("load-more");
   if (loadMore) {
