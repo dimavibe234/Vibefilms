@@ -38,7 +38,6 @@ var currentType = "movie";
 var currentPage = 1;
 var lastSearchQuery = null;
 
-/* ===== Toast ===== */
 function showToast(text, isError) {
   var toast = document.getElementById("toast");
   if (!toast) return;
@@ -48,7 +47,6 @@ function showToast(text, isError) {
   toast._timer = setTimeout(function () { toast.className = "toast"; }, 2500);
 }
 
-/* ===== Скрытые фильмы ===== */
 function getHidden() {
   try { return JSON.parse(localStorage.getItem("mood_hidden") || "[]"); } catch (e) { return []; }
 }
@@ -59,7 +57,6 @@ function hideMovie(title) {
 }
 function isHidden(title) { return getHidden().indexOf(title) !== -1; }
 
-/* ===== Плейлисты ===== */
 function getPlaylists() {
   try {
     var raw = localStorage.getItem("mood_movies_playlists");
@@ -185,11 +182,7 @@ function renderPlaylists() {
 
   listEl.querySelectorAll(".watched-toggle").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      toggleWatched(
-        this.getAttribute("data-name"),
-        this.getAttribute("data-title"),
-        this.getAttribute("data-year")
-      );
+      toggleWatched(this.getAttribute("data-name"), this.getAttribute("data-title"), this.getAttribute("data-year"));
     });
   });
 
@@ -231,7 +224,6 @@ function addMovieToPlaylist(movie) {
   }
 }
 
-/* ===== Вспомогательные ===== */
 function buildStars(rating) {
   var stars = "";
   for (var i = 1; i <= 5; i++) {
@@ -342,8 +334,7 @@ function render(movies, append, containerId) {
 
   results.querySelectorAll("img[data-title], .title[data-title]").forEach(function (el) {
     el.addEventListener("click", function () {
-      var title = this.getAttribute("data-title");
-      openSimilar(title);
+      openSimilar(this.getAttribute("data-title"));
     });
   });
 }
@@ -353,7 +344,6 @@ function updateLoadMore(show) {
   if (more) more.style.display = show ? "block" : "none";
 }
 
-/* ===== Fetch с тайм-аутом ===== */
 function fetchWithTimeout(url, ms) {
   ms = ms || 15000;
   var fetchPromise = fetch(url);
@@ -374,7 +364,6 @@ function handleFetchError(err, results) {
   updateLoadMore(false);
 }
 
-/* ===== Фильтры ===== */
 function getRatingFilter() {
   var r = document.getElementById("rating-filter");
   return r ? parseFloat(r.value) : 0;
@@ -397,7 +386,6 @@ function filterMovies(movies) {
   });
 }
 
-/* ===== Загрузка ===== */
 function loadMovies(mood, type, page, append) {
   var results = document.getElementById("results");
   if (!results) return;
@@ -467,7 +455,6 @@ function searchMovies(query, type, page, append) {
     .catch(function (err) { handleFetchError(err, results); });
 }
 
-/* ===== Удиви меня ===== */
 function loadRandomMovies(type) {
   var results = document.getElementById("results");
   if (!results) return;
@@ -511,7 +498,6 @@ function loadRandomMovies(type) {
     .catch(function (err) { handleFetchError(err, results); });
 }
 
-/* ===== Шедевр ===== */
 function loadMasterpiece() {
   var results = document.getElementById("results");
   if (!results) return;
@@ -549,7 +535,6 @@ function loadMasterpiece() {
     .catch(function (err) { handleFetchError(err, results); });
 }
 
-/* ===== Похожие ===== */
 function openSimilar(title) {
   var panel = document.getElementById("similar-panel");
   var list = document.getElementById("similar-list");
@@ -597,7 +582,6 @@ function openSimilar(title) {
     });
 }
 
-/* ===== Нейросеть ===== */
 function initAI() {
   var aiInput = document.getElementById("ai-input");
   var aiButton = document.getElementById("ai-button");
@@ -668,7 +652,6 @@ function initAI() {
   });
 }
 
-/* ===== Переключатель типов ===== */
 function initTypeSwitch() {
   var typeSwitch = document.getElementById("type-switch");
   if (!typeSwitch) return;
@@ -685,7 +668,6 @@ function initTypeSwitch() {
   }
 }
 
-/* ===== Настройки ===== */
 function initSettings() {
   var settingsPanel = document.getElementById("settings-panel");
   var settingsToggle = document.getElementById("settings-toggle");
@@ -755,7 +737,6 @@ function initSettings() {
   if (savedSize) document.body.setAttribute("data-size", savedSize);
 }
 
-/* ===== Запуск ===== */
 function init() {
   var buttons = document.querySelectorAll("#moods button");
   var results = document.getElementById("results");
@@ -799,39 +780,4 @@ function init() {
       var val = document.getElementById("rating-value");
       if (val) val.textContent = this.value;
       if (currentMood) loadMovies(currentMood, currentType);
-      else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType);
-    });
-  }
-
-  var yearFilter = document.getElementById("year-filter");
-  if (yearFilter) {
-    yearFilter.addEventListener("change", function () {
-      if (currentMood) loadMovies(currentMood, currentType);
-      else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType);
-    });
-  }
-
-  var loadMore = document.getElementById("load-more");
-  if (loadMore) {
-    loadMore.addEventListener("click", function () {
-      if (currentMood) loadMovies(currentMood, currentType, currentPage + 1, true);
-      else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType, currentPage + 1, true);
-    });
-  }
-
-  initTypeSwitch();
-  initAI();
-  initSettings();
-
-  var panel = document.getElementById("playlists-panel");
-  var pToggle = document.getElementById("playlists-toggle");
-  var pClose = document.getElementById("playlists-close");
-
-  if (pToggle) {
-    pToggle.addEventListener("click", function () {
-      renderPlaylists();
-      if (panel) panel.classList.add("open");
-    });
-  }
-  if (pClose) {
-   
+      else if (lastSearchQuery) searchMovies(lastSearchQuery, current
