@@ -302,7 +302,7 @@ function updateLoadMore(show) {
 
 /* ===== Fetch с тайм-аутом ===== */
 function fetchWithTimeout(url, ms) {
-  ms = ms || 10000;
+  ms = ms || 15000;
   var fetchPromise = fetch(url);
   var timeoutPromise = new Promise(function (resolve, reject) {
     setTimeout(function () { reject(new Error("timeout")); }, ms);
@@ -321,7 +321,7 @@ function handleFetchError(err, results) {
   updateLoadMore(false);
 }
 
-/* ===== Загрузка ===== */
+/* ===== Загрузка (без selectFields) ===== */
 function loadMovies(mood, type, page, append) {
   var results = document.getElementById("results");
   if (!results) return;
@@ -344,14 +344,6 @@ function loadMovies(mood, type, page, append) {
   params.push("sortType=-1");
   params.push("page=" + currentPage);
   params.push("limit=24");
-  params.push("selectFields=name");
-  params.push("selectFields=alternativeName");
-  params.push("selectFields=year");
-  params.push("selectFields=poster");
-  params.push("selectFields=rating");
-  params.push("selectFields=genres");
-  params.push("selectFields=shortDescription");
-  params.push("selectFields=description");
 
   var url = BASE + "?" + params.join("&");
 
@@ -382,14 +374,6 @@ function searchMovies(query, type, page, append) {
   else params.push("typeNumber=1");
   params.push("page=" + currentPage);
   params.push("limit=24");
-  params.push("selectFields=name");
-  params.push("selectFields=alternativeName");
-  params.push("selectFields=year");
-  params.push("selectFields=poster");
-  params.push("selectFields=rating");
-  params.push("selectFields=genres");
-  params.push("selectFields=shortDescription");
-  params.push("selectFields=description");
 
   var url = BASE + "?" + params.join("&");
 
@@ -424,14 +408,6 @@ function loadRandomMovies(type) {
   params.push("sortType=-1");
   params.push("page=" + randomPage);
   params.push("limit=24");
-  params.push("selectFields=name");
-  params.push("selectFields=alternativeName");
-  params.push("selectFields=year");
-  params.push("selectFields=poster");
-  params.push("selectFields=rating");
-  params.push("selectFields=genres");
-  params.push("selectFields=shortDescription");
-  params.push("selectFields=description");
 
   var url = BASE + "?" + params.join("&") + "&_=" + Date.now();
 
@@ -472,14 +448,6 @@ function loadMasterpiece() {
   params.push("sortType=-1");
   params.push("page=" + randomPage);
   params.push("limit=24");
-  params.push("selectFields=name");
-  params.push("selectFields=alternativeName");
-  params.push("selectFields=year");
-  params.push("selectFields=poster");
-  params.push("selectFields=rating");
-  params.push("selectFields=genres");
-  params.push("selectFields=shortDescription");
-  params.push("selectFields=description");
 
   var url = BASE + "?" + params.join("&") + "&_=" + Date.now();
 
@@ -512,8 +480,6 @@ function openSimilar(title) {
   panel.classList.add("open");
 
   var params = ["query=" + encodeURIComponent(title), "limit=1"];
-  params.push("selectFields=name");
-  params.push("selectFields=genres");
 
   fetchWithTimeout(BASE + "?" + params.join("&"), 15000)
     .then(function (r) {
@@ -531,13 +497,6 @@ function openSimilar(title) {
       p2.push("sortField=rating.kp");
       p2.push("sortType=-1");
       p2.push("limit=20");
-      p2.push("selectFields=name");
-      p2.push("selectFields=alternativeName");
-      p2.push("selectFields=year");
-      p2.push("selectFields=poster");
-      p2.push("selectFields=rating");
-      p2.push("selectFields=genres");
-      p2.push("selectFields=shortDescription");
 
       return fetchWithTimeout(BASE + "?" + p2.join("&"), 15000);
     })
