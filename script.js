@@ -251,13 +251,13 @@ function initAI() {
     if (!text) return;
 
     aiButton.disabled = true;
-    aiStatus.textContent = "Подбираем фильмы...";
+    aiStatus.textContent = "Анализируем запрос...";
 
-    // Просим нейросеть подобрать 3 КОНКРЕТНЫХ фильма
+    // Просим нейросеть определить ЖАНР из фиксированного списка
     var prompt = 'Пользователь хочет найти фильм. Его запрос: "' + text + '". ' +
-      'Подбери 3 известных фильма, которые лучше всего подходят под этот запрос. ' +
-      'Ответь ТОЛЬКО их названиями на русском языке через запятую, без пояснений. ' +
-      'Пример: Зверополис, Мадагаскар, Побег из курятника';
+      'Твоя задача — определить, к какому ЖАНРУ относится этот запрос. ' +
+      'Выбери ОДИН жанр из этого списка: комедия, драма, боевик, семейный, ужасы, мелодрама, приключения, фантастика, музыка, детектив. ' +
+      'Ответь ТОЛЬКО ОДНИМ СЛОВОМ (названием жанра), без пояснений.';
 
     puter.ai.chat(prompt).then(function (response) {
       var answer = "";
@@ -265,15 +265,26 @@ function initAI() {
       else if (response && response.message && response.message.content) answer = response.message.content;
       else if (response && response.text) answer = response.text;
 
-      var titles = answer.split(',').map(function (t) { return t.trim().replace(/^[0-9]+[\.\)]\s*/, ''); }).filter(function (t) { return t.length > 1; });
+      var genre = answer.trim().toLowerCase();
+      
+      // Сопоставляем ответ нейросети с нашими категориями
+      var mood = "happy"; // По умолчанию комедия
+      if (genre.indexOf("комедия") !== -1) mood = "happy";
+      else if (genre.indexOf("драма") !== -1) mood = "sad";
+      else if (genre.indexOf("боевик") !== -1) mood = "action";
+      else if (genre.indexOf("семейный") !== -1) mood = "family";
+      else if (genre.indexOf("ужасы") !== -1) mood = "scary";
+      else if (genre.indexOf("мелодрама") !== -1) mood = "romance";
+      else if (genre.indexOf("приключения") !== -1) mood = "adventure";
+      else if (genre.indexOf("фантастика") !== -1) mood = "scifi";
+      else if (genre.indexOf("музыка") !== -1) mood = "music";
+      else if (genre.indexOf("детектив") !== -1) mood = "mystery";
 
-      if (titles.length > 0) {
-        // Ищем первый фильм из списка
-        aiStatus.textContent = "Ищем: " + titles[0];
-        searchMovies(titles[0], currentType);
-      } else {
-        aiStatus.textContent = "Не удалось подобрать фильмы. Попробуйте иначе.";
-      }
+      aiStatus.textContent = "Жанр: " + genre + ". Загружаем фильмы...";
+      
+      // Загружаем фильмы по этому жанру (и по типу: фильм/сериал/мультик)
+      loadMovies(mood, currentType);
+
     }).catch(function (err) {
       aiStatus.textContent = "Ошибка ИИ: " + (err.message || err);
     }).finally(function () {
