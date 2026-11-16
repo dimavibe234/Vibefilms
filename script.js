@@ -254,11 +254,15 @@ function initAI() {
     aiStatus.textContent = "Подбираем фильмы...";
 
     var prompt = 'Пользователь хочет найти фильм. Его запрос: "' + text + '". ' +
-      'Подбери 5 известных фильмов, которые лучше всего подходят под этот запрос (учитывай и настроение, и сюжет). ' +
-      'Ответь ТОЛЬКО их названиями на русском языке через запятую, без пояснений и без нумерации. ' +
-      'Например: Зверополис, Мадагаскар, Побег из курятника, Король Лев, Ледниковый период';
+      'Подбери 3 известных фильма, которые лучше всего подходят под этот запрос. ' +
+      'Ответь ТОЛЬКО их названиями на русском языке через запятую, без пояснений. ' +
+      'Пример: Зверополис, Мадагаскар, Побег из курятника';
 
     puter.ai.chat(prompt).then(function (response) {
+      // Выводим сырой ответ для диагностики
+      var raw = JSON.stringify(response);
+      aiStatus.textContent = "RAW: " + raw.substring(0, 100) + "...";
+
       var answer = "";
       if (typeof response === "string") answer = response;
       else if (response && response.message && response.message.content) answer = response.message.content;
@@ -267,10 +271,12 @@ function initAI() {
       var titles = answer.split(',').map(function (t) { return t.trim().replace(/^[0-9]+[\.\)]\s*/, ''); }).filter(function (t) { return t.length > 1; });
 
       if (titles.length > 0) {
-        aiStatus.textContent = "Ищем: " + titles[0];
-        searchMovies(titles[0], currentType);
+        setTimeout(function () {
+          aiStatus.textContent = "Ищем: " + titles[0];
+          searchMovies(titles[0], currentType);
+        }, 1500);
       } else {
-        aiStatus.textContent = "Не удалось подобрать фильмы, попробуйте иначе.";
+        aiStatus.textContent = "Не удалось подобрать фильмы. Ответ ИИ: " + answer.substring(0, 50);
       }
     }).catch(function (err) {
       aiStatus.textContent = "Ошибка ИИ: " + (err.message || err);
