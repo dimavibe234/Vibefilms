@@ -262,6 +262,16 @@ function buildGenres(g) {
 
 var RENDER_LIMIT = 20;
 
+function sortMovies(res) {
+  res.sort(function(a, b) {
+    var ya = parseInt(extractYear(a.title) || 0, 10);
+    var yb = parseInt(extractYear(b.title) || 0, 10);
+    if (yb !== ya) return yb - ya; // сначала новые
+    return (a.movie_id || 0) - (b.movie_id || 0); // при равном годе — по ID
+  });
+  return res;
+}
+
 function render(movies, append) {
   var el = $("results"); if (!el) return;
   if (!append) el.innerHTML = '<p class="empty">Загрузка постеров...</p>';
@@ -356,8 +366,7 @@ function loadMovies(mood, type, append) {
   }
   var res = filterByMood(allMovies, mood);
   res = applyClientFilters(res);
-  // Сортировка по movie_id (сначала популярные/известные)
-  res.sort(function(a, b) { return (a.movie_id || 0) - (b.movie_id || 0); });
+  res = sortMovies(res);
   if (!append) currentMovies = res;
   render(res, append);
 }
@@ -386,8 +395,7 @@ function searchMovies(q, type, append) {
     return (m.title || '').toLowerCase().indexOf(query) !== -1;
   });
   res = applyClientFilters(res);
-  // Сортировка по movie_id
-  res.sort(function(a, b) { return (a.movie_id || 0) - (b.movie_id || 0); });
+  res = sortMovies(res);
   if (!append) currentMovies = res;
   render(res, append);
 }
