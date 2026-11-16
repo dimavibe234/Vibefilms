@@ -251,13 +251,13 @@ function initAI() {
     if (!text) return;
 
     aiButton.disabled = true;
-    aiStatus.textContent = "Анализируем запрос...";
+    aiStatus.textContent = "Подбираем фильмы...";
 
-    // Просим нейросеть определить ЖАНР и КЛЮЧЕВОЕ СЛОВО
+    // Просим нейросеть подобрать 3 КОНКРЕТНЫХ фильма
     var prompt = 'Пользователь хочет найти фильм. Его запрос: "' + text + '". ' +
-      'Твоя задача — определить, к какому ЖАНРУ (комедия, драма, боевик, семейный, ужасы, мелодрама, приключения, фантастика, музыка, детектив) относится запрос. ' +
-      'А также выделить ОДНО ключевое слово (например: животные, космос, машины, любовь, школа). ' +
-      'Ответь строго в формате: ЖАНР|СЛОВО. Например: комедия|животные. Никаких других слов, только ЖАНР и СЛОВО через вертикальную черту.';
+      'Подбери 3 известных фильма, которые лучше всего подходят под этот запрос. ' +
+      'Ответь ТОЛЬКО их названиями на русском языке через запятую, без пояснений. ' +
+      'Пример: Зверополис, Мадагаскар, Побег из курятника';
 
     puter.ai.chat(prompt).then(function (response) {
       var answer = "";
@@ -265,22 +265,14 @@ function initAI() {
       else if (response && response.message && response.message.content) answer = response.message.content;
       else if (response && response.text) answer = response.text;
 
-      var parts = answer.trim().split('|');
-      var genre = parts[0] ? parts[0].trim().toLowerCase() : "";
-      var keyword = parts[1] ? parts[1].trim().toLowerCase() : "";
+      var titles = answer.split(',').map(function (t) { return t.trim().replace(/^[0-9]+[\.\)]\s*/, ''); }).filter(function (t) { return t.length > 1; });
 
-      // Ищем по ключевому слову через поиск
-      if (keyword) {
-        aiStatus.textContent = "Ищем: " + keyword;
-        searchMovies(keyword, currentType);
+      if (titles.length > 0) {
+        // Ищем первый фильм из списка
+        aiStatus.textContent = "Ищем: " + titles[0];
+        searchMovies(titles[0], currentType);
       } else {
-        // Если не получилось, просто ищем по жанру
-        var mood = "happy";
-        for (var k in moodGenres) {
-          if (genre.indexOf(moodGenres[k][0]) !== -1) { mood = k; break; }
-        }
-        aiStatus.textContent = "Ищем по жанру: " + moodGenres[mood][0];
-        loadMovies(mood, currentType);
+        aiStatus.textContent = "Не удалось подобрать фильмы. Попробуйте иначе.";
       }
     }).catch(function (err) {
       aiStatus.textContent = "Ошибка ИИ: " + (err.message || err);
