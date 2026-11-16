@@ -240,6 +240,52 @@ function openMovieModal(title) {
   document.getElementById("movie-modal").classList.add("open");
 }
 
+function initAI() {
+  var aiInput = document.getElementById("ai-input");
+  var aiButton = document.getElementById("ai-button");
+  var aiStatus = document.getElementById("ai-status");
+  if (!aiButton) return;
+
+  aiButton.onclick = function () {
+    var text = aiInput.value.trim();
+    if (!text) return;
+
+    aiButton.disabled = true;
+    aiStatus.textContent = "Думаем...";
+
+    var prompt = 'Пользователь хочет найти фильм. Его запрос: "' + text + '". ' +
+      'Выдели из этого запроса ГЛАВНОЕ СУЩЕСТВИТЕЛЬНОЕ (тему, например: животные, космос, машины, любовь, война), ' +
+      'которое лучше всего подходит для поиска по названию или описанию. ' +
+      'Ответь ТОЛЬКО ОДНИМ СЛОВОМ (существительным в именительном падеже), без пояснений.';
+
+    puter.ai.chat(prompt).then(function (response) {
+      var answer = "";
+      if (typeof response === "string") answer = response;
+      else if (response && response.message && response.message.content) answer = response.message.content;
+      else if (response && response.text) answer = response.text;
+
+      var keyword = answer.toLowerCase().trim().replace(/[^а-яa-z0-9\s]/gi, '');
+
+      if (keyword && keyword.length > 1) {
+        aiStatus.textContent = "Ищем: " + keyword;
+        searchMovies(keyword, currentType);
+      } else {
+        aiStatus.textContent = "Не удалось выделить тему, ищем по настроению...";
+        var lower = text.toLowerCase();
+        var mood = "happy";
+        for (var k in moodGenres) {
+          if (lower.indexOf(moodGenres[k][0]) !== -1) { mood = k; break; }
+        }
+        loadMovies(mood, currentType);
+      }
+    }).catch(function (err) {
+      aiStatus.textContent = "Ошибка ИИ: " + (err.message || err);
+    }).finally(function () {
+      aiButton.disabled = false;
+    });
+  };
+}
+
 function init() {
   document.getElementById("movie-modal-close").onclick = function () { document.getElementById("movie-modal").classList.remove("open"); };
   document.getElementById("settings-toggle").onclick = function () { document.getElementById("settings-panel").classList.add("open"); };
@@ -275,23 +321,12 @@ function init() {
   document.getElementById("masterpiece-btn").onclick = function () { searchMovies("шедевр", "movie"); };
   document.getElementById("load-more").onclick = function () { if (currentMood) loadMovies(currentMood, currentType, currentPage + 1, true); else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType, currentPage + 1, true); };
 
-  document.getElementById("ai-button").onclick = function () {
-    var text = document.getElementById("ai-input").value.trim(); if (!text) return;
-    document.getElementById("ai-status").textContent = "Думаем...";
-    puter.ai.chat('Определи жанр для запроса: "' + text + '". Ответь ОДНИМ словом: комедия, драма, боевик, семейный, ужасы, мелодрама, приключения, фантастика, музыка, детектив.').then(function (res) {
-      var ans = (typeof res === 'string' ? res : res.text || "").toLowerCase();
-      var mood = "happy"; for (var k in moodGenres) { if (ans.indexOf(moodGenres[k][0]) !== -1) { mood = k; break; } }
-      document.getElementById("ai-status").textContent = "Жанр: " + moodGenres[mood][0];
-      loadMovies(mood, currentType);
-    }).catch(function () { document.getElementById("ai-status").textContent = "Ошибка ИИ"; });
-  };
-
   document.querySelectorAll(".color-dot").forEach(function (d) { d.onclick = function () { localStorage.setItem("mood_accent", this.dataset.accent); document.body.setAttribute("data-accent", this.dataset.accent); saveUserData(); }; });
   document.querySelectorAll(".theme-btn").forEach(function (b) { b.onclick = function () { document.body.classList.toggle("light", this.dataset.theme === "light"); localStorage.setItem("mood_theme", this.dataset.theme); saveUserData(); }; });
   document.getElementById("playlist-create-btn").onclick = function () { var n = document.getElementById("playlist-name-input").value; if (createPlaylist(n)) { document.getElementById("playlist-name-input").value = ""; renderPlaylists(); } };
 
   if (window.firebaseAuth) initFirebase(); else window.addEventListener("firebase-ready", initFirebase);
-  initGoogleLogin(); initProfile();
+  initGoogleLogin(); initProfile(); initAI();
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
