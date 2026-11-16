@@ -2,15 +2,15 @@ var BASE = "https://functions.yandexcloud.net/d4e59mril3tsi9p47r09";
 
 var moodGenres = {
   happy: ["Comedy"], sad: ["Drama"], action: ["Action"],
-  cozy: ["Family", "Animation"], scary: ["Horror"], romance: ["Romance"],
+  cozy: ["Family", "Animation", "Children"], scary: ["Horror"], romance: ["Romance"],
   nostalgia: ["Adventure"], inspire: ["Drama", "History"],
   mystery: ["Mystery", "Thriller"], scifi: ["Sci-Fi"], music: ["Music"],
   think: ["Drama", "Mystery"], anime: ["Animation"], fantasy: ["Fantasy"],
   crime: ["Crime"], thriller: ["Thriller"], documentary: ["Documentary"],
   sport: ["Sport"], war: ["War"], western: ["Western"], biography: ["Biography"],
-  kids: ["Family", "Animation"], adventure: ["Adventure"],
+  kids: ["Family", "Animation", "Children"], adventure: ["Adventure"],
   comedy_dark: ["Comedy", "Crime"], mystic: ["Mystery", "Horror"],
-  musical: ["Music"], family: ["Family"], heist: ["Crime", "Action"],
+  musical: ["Music"], family: ["Family", "Children"], heist: ["Crime", "Action"],
   survival: ["Adventure", "Thriller"], space: ["Sci-Fi", "Adventure"],
   detective: ["Mystery", "Crime"], psychological: ["Drama", "Thriller"],
   historical: ["History", "Drama"], superhero: ["Action", "Adventure"],
@@ -30,7 +30,7 @@ var genreTranslations = {
   "Fantasy": "фэнтези", "History": "история", "Horror": "ужасы",
   "Music": "музыка", "Mystery": "детектив", "Romance": "мелодрама",
   "Sci-Fi": "фантастика", "Sport": "спорт", "Thriller": "триллер",
-  "War": "военный", "Western": "вестерн"
+  "War": "военный", "Western": "вестерн", "Children": "детский"
 };
 
 var allMovies = [];
@@ -77,7 +77,7 @@ function normalizeTitle(t) {
 function fetchPoster(title, year) {
   var key = title + "_" + year;
   if (posterCache[key]) return Promise.resolve(posterCache[key]);
-  var url = BASE + "?query=" + encodeURIComponent(title) + "&year=" + (year || "");
+  var url = BASE + "?query=" + encodeURIComponent(title) + "&limit=10";
   return fetchWithTimeout(url, 10000)
     .then(function(r) { return r.json(); })
     .then(function(data) {
@@ -97,16 +97,6 @@ function fetchPoster(title, year) {
       return posterUrl;
     })
     .catch(function() { return null; });
-}
-
-// Загрузка постера для конкретной карточки (вызывается сразу после вставки в DOM)
-function loadPosterForCard(imgId, title, year) {
-  var img = document.getElementById(imgId);
-  if (!img) return;
-  fetchPoster(title, year).then(function(url) {
-    if (url && img) img.src = url;
-    else if (img) img.style.display = "none";
-  });
 }
 
 function initFirebase() {
@@ -274,9 +264,9 @@ var RENDER_LIMIT = 20;
 
 function render(movies, append) {
   var el = $("results"); if (!el) return;
-  if (!append) el.innerHTML = "";
+  if (!append) el.innerHTML = '<p class="empty">Загрузка постеров...</p>';
   if (!movies || !movies.length) {
-    if (!append) el.innerHTML = '<p class="empty">Ничего не найдено. Попробуй другое настроение или ослабь фильтры.</p>';
+    if (!append) el.innerHTML = '<p class="empty">Ничего не найдено.</p>';
     return;
   }
 
@@ -289,36 +279,39 @@ function render(movies, append) {
     currentMovies = movies;
   }
 
-  var h = "";
-  var postersToLoad = []; // собираем задачи на загрузку постеров
-
-  toRender.forEach(function (m) {
-    var rawTitle = m.title || "Без названия";
+  var promises = toRender.map(function(m) {
+    var rawTitle = m.title || "";
     var title = cleanTitle(rawTitle);
     var year = extractYear(rawTitle);
-    var rating = m.imdbRating ? parseFloat(m.imdbRating) : 0;
-    var w = isWatched(title);
-    var cachedPoster = posterCache[title + "_" + year] || "";
-    h += '<div class="card">';
-    if (cachedPoster) {
-      h += '<img src="' + cachedPoster + '" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">';
-    } else {
-      var tempId = "poster_" + Math.random().toString(36).slice(2);
-      h += '<img id="' + tempId + '" src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'450\'%3E%3Crect fill=\'%232a3340\' width=\'300\' height=\'450\'/%3E%3Ctext x=\'150\' y=\'225\' fill=\'%238f9bab\' text-anchor=\'middle\' font-size=\'14\'%3EЗагрузка...%3C/text%3E%3C/svg%3E" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">';
-      postersToLoad.push({ id: tempId, title: title, year: year });
-    }
-    h += '<div class="info"><div class="title" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">' + title + (w ? ' ✓' : '') + '</div>';
-    h += '<div class="meta">' + year + (rating > 0 ? ' · ' + buildStars(rating) : "") + '</div>' + buildGenres(m.genres);
-    h += '<button class="card-add" onclick="addMovieToPlaylist({title:\'' + title.replace(/'/g, "\\'") + '\',year:\'' + year + '\',poster:\'' + (cachedPoster || '') + '\'})">＋ В плейлист</button></div></div>';
+    return fetchPoster(title, year).then(function(url) {
+      return { movie: m, title: title, year: year, poster: url };
+    });
   });
 
-  if (append) el.innerHTML += h; else el.innerHTML = h;
+  Promise.all(promises).then(function(results) {
+    var withPoster = results.filter(function(r) { return r.poster; });
 
-  // Запускаем загрузку постеров после вставки в DOM
-  postersToLoad.forEach(function(p) { loadPosterForCard(p.id, p.title, p.year); });
+    if (!withPoster.length) {
+      if (!append) el.innerHTML = '<p class="empty">Не удалось найти постеры для этих фильмов. Попробуй другое настроение.</p>';
+      return;
+    }
 
-  var lm = $("load-more");
-  if (lm) lm.style.display = (currentMood || lastSearchQuery) ? "block" : "none";
+    var h = "";
+    withPoster.forEach(function(r) {
+      var m = r.movie, title = r.title, year = r.year, poster = r.poster;
+      var rating = m.imdbRating ? parseFloat(m.imdbRating) : 0;
+      var w = isWatched(title);
+      h += '<div class="card">';
+      h += '<img src="' + poster + '" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">';
+      h += '<div class="info"><div class="title" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">' + title + (w ? ' ✓' : '') + '</div>';
+      h += '<div class="meta">' + year + (rating > 0 ? ' · ' + buildStars(rating) : "") + '</div>' + buildGenres(m.genres);
+      h += '<button class="card-add" onclick="addMovieToPlaylist({title:\'' + title.replace(/'/g, "\\'") + '\',year:\'' + year + '\',poster:\'' + poster + '\'})">＋ В плейлист</button></div></div>';
+    });
+
+    if (append) el.innerHTML += h; else el.innerHTML = h;
+    var lm = $("load-more");
+    if (lm) lm.style.display = (currentMood || lastSearchQuery) ? "block" : "none";
+  });
 }
 
 function applyClientFilters(movies) {
@@ -354,7 +347,6 @@ function filterByMood(movies, mood) {
 function loadMovies(mood, type, append) {
   var el = $("results"); if (!el) return;
   if (!append) {
-    el.innerHTML = '<p class="empty">Загрузка...</p>';
     currentMood = mood; currentType = type; lastSearchQuery = null;
     updateActiveMoodBar(mood);
   }
@@ -380,7 +372,6 @@ function updateActiveMoodBar(mood) {
 function searchMovies(q, type, append) {
   var el = $("results"); if (!el) return;
   if (!append) {
-    el.innerHTML = '<p class="empty">Поиск...</p>';
     lastSearchQuery = q; currentType = type; currentMood = null;
     updateActiveMoodBar(null);
   }
@@ -412,8 +403,6 @@ function openMovieModal(title) {
   var h = '<div class="movie-header">';
   if (cachedPoster) {
     h += '<img src="' + cachedPoster + '">';
-  } else {
-    h += '<img id="modal-poster" src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'225\'%3E%3Crect fill=\'%232a3340\' width=\'150\' height=\'225\'/%3E%3C/svg%3E">';
   }
   h += '<div><h2>' + title + '</h2><p>' + year + (rating ? ' · ★ ' + rating.toFixed(1) : '') + '</p></div></div>';
   h += '<p style="font-size:0.9rem;line-height:1.5;margin-bottom:20px;">' + desc + '</p>';
@@ -425,14 +414,6 @@ function openMovieModal(title) {
   h += '</div>';
   $("movie-modal-body").innerHTML = h;
   $("movie-modal").classList.add("open");
-
-  // Если постера нет в кэше — грузим для модалки
-  if (!cachedPoster) {
-    fetchPoster(title, year).then(function(url) {
-      var img = document.getElementById("modal-poster");
-      if (url && img) img.src = url; else if (img) img.style.display = "none";
-    });
-  }
 }
 
 function initAI() {
