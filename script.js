@@ -33,6 +33,25 @@ var genreTranslations = {
   "War": "военный", "Western": "вестерн", "Children": "детский"
 };
 
+// Словарик для перевода русских запросов в английские (для поиска по описаниям)
+var ruToEn = {
+  "животные": "animal", "животных": "animal", "животное": "animal",
+  "кот": "cat", "кошка": "cat", "коты": "cat",
+  "собака": "dog", "собаки": "dog", "пёс": "dog",
+  "марс": "mars", "космос": "space", "космический": "space",
+  "любовь": "love", "война": "war", "робот": "robot", "роботы": "robot",
+  "зомби": "zombie", "вампир": "vampire", "вампиры": "vampire",
+  "магия": "magic", "волшебство": "magic", "дракон": "dragon",
+  "школа": "school", "школьники": "school", "студенты": "college",
+  "полиция": "police", "полицейский": "police", "детектив": "detective",
+  "ограбление": "heist", "побег": "escape", "выживание": "survival",
+  "путешествие": "travel", "приключения": "adventure", "дружба": "friendship",
+  "семья": "family", "дети": "children", "ребёнок": "child",
+  "музыка": "music", "музыкант": "musician", "певец": "singer",
+  "спорт": "sport", "футбол": "football", "бокс": "boxing",
+  "будущее": "future", "прошлое": "past", "время": "time"
+};
+
 var allMovies = [];
 var currentMood = null, currentType = "movie", lastSearchQuery = null, currentMovies = [], currentUser = null;
 var currentProfile = { name: "", avatar: "", color: "#e8eaed" };
@@ -266,15 +285,15 @@ function sortMovies(res) {
   res.sort(function(a, b) {
     var ya = parseInt(extractYear(a.title) || 0, 10);
     var yb = parseInt(extractYear(b.title) || 0, 10);
-    if (yb !== ya) return yb - ya; // сначала новые
-    return (a.movie_id || 0) - (b.movie_id || 0); // при равном годе — по ID
+    if (yb !== ya) return yb - ya;
+    return (a.movie_id || 0) - (b.movie_id || 0);
   });
   return res;
 }
 
 function render(movies, append) {
   var el = $("results"); if (!el) return;
-  if (!append) el.innerHTML = '<p class="empty">Загрузка постеров...</p>';
+  if (!append) el.innerHTML = '<p class="empty">Загрузка...</p>';
   if (!movies || !movies.length) {
     if (!append) el.innerHTML = '<p class="empty">Ничего не найдено.</p>';
     return;
@@ -289,33 +308,34 @@ function render(movies, append) {
     currentMovies = movies;
   }
 
+  // Если у фильма уже есть постер (из Кинопоиска) — используем его, иначе грузим
   var promises = toRender.map(function(m) {
     var rawTitle = m.title || "";
     var title = cleanTitle(rawTitle);
     var year = extractYear(rawTitle);
+    if (m.poster) {
+      return Promise.resolve({ movie: m, title: title, year: year, poster: m.poster });
+    }
     return fetchPoster(title, year).then(function(url) {
       return { movie: m, title: title, year: year, poster: url };
     });
   });
 
   Promise.all(promises).then(function(results) {
-    var withPoster = results.filter(function(r) { return r.poster; });
-
-    if (!withPoster.length) {
-      if (!append) el.innerHTML = '<p class="empty">Не удалось найти постеры для этих фильмов. Попробуй другое настроение.</p>';
-      return;
-    }
-
     var h = "";
-    withPoster.forEach(function(r) {
+    results.forEach(function(r) {
       var m = r.movie, title = r.title, year = r.year, poster = r.poster;
       var rating = m.imdbRating ? parseFloat(m.imdbRating) : 0;
       var w = isWatched(title);
       h += '<div class="card">';
-      h += '<img src="' + poster + '" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">';
+      if (poster) {
+        h += '<img src="' + poster + '" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">';
+      } else {
+        h += '<div class="no-poster" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')" style="aspect-ratio:2/3;background:var(--bg-input);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.8rem;text-align:center;padding:10px;">' + title + '</div>';
+      }
       h += '<div class="info"><div class="title" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">' + title + (w ? ' ✓' : '') + '</div>';
       h += '<div class="meta">' + year + (rating > 0 ? ' · ' + buildStars(rating) : "") + '</div>' + buildGenres(m.genres);
-      h += '<button class="card-add" onclick="addMovieToPlaylist({title:\'' + title.replace(/'/g, "\\'") + '\',year:\'' + year + '\',poster:\'' + poster + '\'})">＋ В плейлист</button></div></div>';
+      h += '<button class="card-add" onclick="addMovieToPlaylist({title:\'' + title.replace(/'/g, "\\'") + '\',year:\'' + year + '\',poster:\'' + (poster || '') + '\'})">＋ В плейлист</button></div></div>';
     });
 
     if (append) el.innerHTML += h; else el.innerHTML = h;
@@ -435,10 +455,60 @@ function initAI() {
     var text = aiInput.value.trim();
     if (!text) return;
     aiButton.disabled = true;
-    aiStatus.textContent = "Ищем: " + text;
+    aiStatus.textContent = "Анализируем запрос...";
     $("ai-modal").classList.remove("open");
-    searchMovies(text, currentType);
-    aiButton.disabled = false;
+
+    // Переводим русские ключевые слова в английские для поиска по описаниям
+    var keywords = text.toLowerCase().split(/\s+/).filter(function(w) { return w.length > 2; })
+      .map(function(w) { return ruToEn[w] || w; });
+
+    var candidates = allMovies.filter(function(m) {
+      var haystack = ((m.plot_summary || "") + " " + (m.genres || []).join(" ")).toLowerCase();
+      return keywords.some(function(k) { return haystack.indexOf(k) !== -1; });
+    }).slice(0, 30);
+
+    if (!candidates.length) {
+      aiStatus.textContent = "Не нашлось фильмов по этому запросу. Попробуй иначе.";
+      aiButton.disabled = false;
+      return;
+    }
+
+    var context = candidates.map(function(m, i) {
+      return (i + 1) + ". " + m.title + " — " + (m.plot_summary || "нет описания").slice(0, 200);
+    }).join("\n");
+
+    var prompt = 'Пользователь хочет найти фильм: "' + text + '".\n' +
+      'Вот список фильмов с описаниями:\n' + context + '\n\n' +
+      'Выбери 3 фильма из этого списка, которые лучше всего подходят под запрос. ' +
+      'Ответь ТОЛЬКО их номерами через запятую (например: 1, 5, 12). Без пояснений.';
+
+    aiStatus.textContent = "Нейросеть выбирает...";
+
+    puter.ai.chat(prompt).then(function(response) {
+      var answer = "";
+      if (typeof response === "string") answer = response;
+      else if (response && response.message && response.message.content) answer = response.message.content;
+      else if (response && response.text) answer = response.text;
+
+      var nums = answer.match(/\d+/g) || [];
+      var chosen = nums.map(function(n) { return candidates[parseInt(n, 10) - 1]; }).filter(Boolean);
+
+      if (!chosen.length) {
+        currentMovies = candidates;
+        render(candidates, false);
+        aiStatus.textContent = "Показаны похожие фильмы.";
+      } else {
+        currentMovies = chosen;
+        render(chosen, false);
+        aiStatus.textContent = "Найдено: " + chosen.length;
+      }
+    }).catch(function(err) {
+      aiStatus.textContent = "Ошибка ИИ: " + (err.message || err);
+      currentMovies = candidates;
+      render(candidates, false);
+    }).finally(function() {
+      aiButton.disabled = false;
+    });
   };
 }
 
