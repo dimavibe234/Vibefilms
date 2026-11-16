@@ -98,13 +98,14 @@ function fetchPoster(title, year) {
     })
     .catch(function() { return null; });
 }
-function handlePosterError(img) {
-  var title = img.getAttribute("data-title");
-  var year = img.getAttribute("data-year");
-  if (!title || img.dataset.retried) return;
-  img.dataset.retried = "true";
+
+// Загрузка постера для конкретной карточки (вызывается сразу после вставки в DOM)
+function loadPosterForCard(imgId, title, year) {
+  var img = document.getElementById(imgId);
+  if (!img) return;
   fetchPoster(title, year).then(function(url) {
-    if (url) img.src = url; else img.style.display = "none";
+    if (url && img) img.src = url;
+    else if (img) img.style.display = "none";
   });
 }
 
@@ -281,7 +282,6 @@ function render(movies, append) {
 
   var toRender;
   if (append) {
-    // при "Показать ещё" берём следующие 20 из уже отфильтрованного списка
     var already = document.querySelectorAll("#results .card").length;
     toRender = currentMovies.slice(already, already + RENDER_LIMIT);
   } else {
@@ -290,6 +290,8 @@ function render(movies, append) {
   }
 
   var h = "";
+  var postersToLoad = []; // собираем задачи на загрузку постеров
+
   toRender.forEach(function (m) {
     var rawTitle = m.title || "Без названия";
     var title = cleanTitle(rawTitle);
@@ -301,7 +303,9 @@ function render(movies, append) {
     if (cachedPoster) {
       h += '<img src="' + cachedPoster + '" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">';
     } else {
-      h += '<img src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'450\'%3E%3Crect fill=\'%232a3340\' width=\'300\' height=\'450\'/%3E%3Ctext x=\'150\' y=\'225\' fill=\'%238f9bab\' text-anchor=\'middle\' font-size=\'14\'%3EЗагрузка...%3C/text%3E%3C/svg%3E" data-title="' + title.replace(/"/g, '&quot;') + '" data-year="' + year + '" onerror="handlePosterError(this)" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">';
+      var tempId = "poster_" + Math.random().toString(36).slice(2);
+      h += '<img id="' + tempId + '" src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'450\'%3E%3Crect fill=\'%232a3340\' width=\'300\' height=\'450\'/%3E%3Ctext x=\'150\' y=\'225\' fill=\'%238f9bab\' text-anchor=\'middle\' font-size=\'14\'%3EЗагрузка...%3C/text%3E%3C/svg%3E" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">';
+      postersToLoad.push({ id: tempId, title: title, year: year });
     }
     h += '<div class="info"><div class="title" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">' + title + (w ? ' ✓' : '') + '</div>';
     h += '<div class="meta">' + year + (rating > 0 ? ' · ' + buildStars(rating) : "") + '</div>' + buildGenres(m.genres);
@@ -309,6 +313,10 @@ function render(movies, append) {
   });
 
   if (append) el.innerHTML += h; else el.innerHTML = h;
+
+  // Запускаем загрузку постеров после вставки в DOM
+  postersToLoad.forEach(function(p) { loadPosterForCard(p.id, p.title, p.year); });
+
   var lm = $("load-more");
   if (lm) lm.style.display = (currentMood || lastSearchQuery) ? "block" : "none";
 }
@@ -405,7 +413,7 @@ function openMovieModal(title) {
   if (cachedPoster) {
     h += '<img src="' + cachedPoster + '">';
   } else {
-    h += '<img src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'225\'%3E%3Crect fill=\'%232a3340\' width=\'150\' height=\'225\'/%3E%3C/svg%3E" data-title="' + title.replace(/"/g, '&quot;') + '" data-year="' + year + '" onerror="handlePosterError(this)">';
+    h += '<img id="modal-poster" src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'225\'%3E%3Crect fill=\'%232a3340\' width=\'150\' height=\'225\'/%3E%3C/svg%3E">';
   }
   h += '<div><h2>' + title + '</h2><p>' + year + (rating ? ' · ★ ' + rating.toFixed(1) : '') + '</p></div></div>';
   h += '<p style="font-size:0.9rem;line-height:1.5;margin-bottom:20px;">' + desc + '</p>';
@@ -417,6 +425,14 @@ function openMovieModal(title) {
   h += '</div>';
   $("movie-modal-body").innerHTML = h;
   $("movie-modal").classList.add("open");
+
+  // Если постера нет в кэше — грузим для модалки
+  if (!cachedPoster) {
+    fetchPoster(title, year).then(function(url) {
+      var img = document.getElementById("modal-poster");
+      if (url && img) img.src = url; else if (img) img.style.display = "none";
+    });
+  }
 }
 
 function initAI() {
@@ -504,7 +520,6 @@ function init() {
   if ($("ai-open-btn")) $("ai-open-btn").onclick = function () { $("ai-modal").classList.add("open"); };
   if ($("ai-close")) $("ai-close").onclick = function () { $("ai-modal").classList.remove("open"); };
 
-  // Показать ещё — берём следующие 20 из currentMovies
   if ($("load-more")) $("load-more").onclick = function () {
     if (!currentMood && !lastSearchQuery) return;
     var already = document.querySelectorAll("#results .card").length;
