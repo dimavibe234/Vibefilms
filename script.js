@@ -356,6 +356,8 @@ function loadMovies(mood, type, append) {
   }
   var res = filterByMood(allMovies, mood);
   res = applyClientFilters(res);
+  // Сортировка по movie_id (сначала популярные/известные)
+  res.sort(function(a, b) { return (a.movie_id || 0) - (b.movie_id || 0); });
   if (!append) currentMovies = res;
   render(res, append);
 }
@@ -384,6 +386,8 @@ function searchMovies(q, type, append) {
     return (m.title || '').toLowerCase().indexOf(query) !== -1;
   });
   res = applyClientFilters(res);
+  // Сортировка по movie_id
+  res.sort(function(a, b) { return (a.movie_id || 0) - (b.movie_id || 0); });
   if (!append) currentMovies = res;
   render(res, append);
 }
