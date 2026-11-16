@@ -47,7 +47,6 @@
     <button id="load-more" class="load-more" style="display: none;">Показать ещё</button>
   </main>
 
-  <!-- ===== ПАНЕЛЬ НАСТРОЕНИЙ ===== -->
   <aside id="moods-panel" class="side-panel">
     <div class="panel-header">
       <h2>😊 Настроения</h2>
@@ -123,7 +122,6 @@
     </div>
   </aside>
 
-  <!-- ===== ПАНЕЛЬ ФИЛЬТРОВ ===== -->
   <aside id="filters-panel" class="side-panel">
     <div class="panel-header">
       <h2>⚙️ Фильтры</h2>
@@ -142,7 +140,6 @@
     <button id="filters-reset" class="reset-btn">Сбросить фильтры</button>
   </aside>
 
-  <!-- ===== ПАНЕЛЬ ПЛЕЙЛИСТОВ ===== -->
   <aside id="playlists-panel" class="side-panel">
     <div class="panel-header">
       <h2>📚 Плейлисты</h2>
@@ -155,7 +152,6 @@
     <div id="playlists-list" class="playlists-list"></div>
   </aside>
 
-  <!-- ===== НЕЙРОСЕТЬ ===== -->
   <div id="ai-modal" class="modal">
     <div class="modal-content" style="max-width: 500px;">
       <button id="ai-close" class="btn-icon modal-close">✕</button>
@@ -171,7 +167,6 @@
     </div>
   </div>
 
-  <!-- ===== МОДАЛКА ФИЛЬМА ===== -->
   <div id="movie-modal" class="modal">
     <div class="modal-content">
       <button id="movie-modal-close" class="btn-icon modal-close">✕</button>
@@ -179,7 +174,6 @@
     </div>
   </div>
 
-  <!-- ===== ПРОФИЛЬ ===== -->
   <div id="profile-modal" class="modal">
     <div class="modal-content" style="max-width:400px;">
       <button id="profile-modal-close" class="btn-icon modal-close">✕</button>
@@ -194,12 +188,12 @@
         <input type="text" id="profile-avatar-input" class="panel-input">
         <label class="setting-label">Цвет ника</label>
         <div class="color-row" style="margin-bottom:20px;">
-          <button class="profile-color-dot" data-color="#e8eaed" style="background:#e8eaed"></button>
-          <button class="profile-color-dot" data-color="#ff6b6b" style="background:#ff6b6b"></button>
-          <button class="profile-color-dot" data-color="#ffd76e" style="background:#ffd76e"></button>
-          <button class="profile-color-dot" data-color="#10b981" style="background:#10b981"></button>
-          <button class="profile-color-dot" data-color="#3a7bd5" style="background:#3a7bd5"></button>
-          <button class="profile-color-dot" data-color="#8b5cf6" style="background:#8b5cf6"></button>
+          <button class="profile-color-dot" data-color="#e3e8ef" style="background:#e3e8ef"></button>
+          <button class="profile-color-dot" data-color="#f87171" style="background:#f87171"></button>
+          <button class="profile-color-dot" data-color="#fbbf24" style="background:#fbbf24"></button>
+          <button class="profile-color-dot" data-color="#34d399" style="background:#34d399"></button>
+          <button class="profile-color-dot" data-color="#5b8def" style="background:#5b8def"></button>
+          <button class="profile-color-dot" data-color="#a78bfa" style="background:#a78bfa"></button>
         </div>
         <div id="profile-stats" class="stats-box"></div>
         <button id="profile-save-btn" class="btn-primary" style="width:100%; margin-top:20px;">Сохранить</button>
@@ -210,6 +204,7 @@
   <button id="theme-toggle" class="theme-fab" title="Сменить тему">🌓</button>
   <div id="toast" class="toast"></div>
 
+  <!-- Firebase-модуль -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -224,22 +219,27 @@
       appId: "1:398219529169:web:8cf9008857598dc8032ef0"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    window.firebaseAuth = auth;
-    window.firebaseDb = db;
-    window.googleProvider = new GoogleAuthProvider();
-    window.firebaseSignIn = signInWithPopup;
-    window.firebaseSignOut = signOut;
-    window.firebaseOnAuth = onAuthStateChanged;
-    window.firebaseDoc = doc;
-    window.firebaseSetDoc = setDoc;
-    window.firebaseGetDoc = getDoc;
-
-    window.dispatchEvent(new Event('firebase-ready'));
+    try {
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      window.firebaseAuth = auth;
+      window.firebaseDb = db;
+      window.googleProvider = new GoogleAuthProvider();
+      window.firebaseSignIn = signInWithPopup;
+      window.firebaseSignOut = signOut;
+      window.firebaseOnAuth = onAuthStateChanged;
+      window.firebaseDoc = doc;
+      window.firebaseSetDoc = setDoc;
+      window.firebaseGetDoc = getDoc;
+      console.log("Firebase готов");
+      window.dispatchEvent(new Event('firebase-ready'));
+    } catch (e) {
+      console.error("Firebase init error:", e);
+    }
   </script>
+
+  <!-- Основной скрипт — после Firebase -->
   <script src="script.js"></script>
 </body>
 </html>
