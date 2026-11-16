@@ -253,11 +253,11 @@ function initAI() {
     aiButton.disabled = true;
     aiStatus.textContent = "Анализируем запрос...";
 
-    // Просим нейросеть определить ЖАНР из фиксированного списка
+    // Просим нейросеть выбрать ОДИН или ДВА жанра из списка
     var prompt = 'Пользователь хочет найти фильм. Его запрос: "' + text + '". ' +
-      'Твоя задача — определить, к какому ЖАНРУ относится этот запрос. ' +
-      'Выбери ОДИН жанр из этого списка: комедия, драма, боевик, семейный, ужасы, мелодрама, приключения, фантастика, музыка, детектив. ' +
-      'Ответь ТОЛЬКО ОДНИМ СЛОВОМ (названием жанра), без пояснений.';
+      'Твоя задача — определить, к каким ЖАНРАМ относится этот запрос. ' +
+      'Выбери ОДИН или ДВА жанра из этого списка: комедия, драма, боевик, семейный, ужасы, мелодрама, приключения, фантастика, музыка, детектив. ' +
+      'Ответь ТОЛЬКО названиями жанров через запятую (например: комедия, семейный), без пояснений.';
 
     puter.ai.chat(prompt).then(function (response) {
       var answer = "";
@@ -265,26 +265,29 @@ function initAI() {
       else if (response && response.message && response.message.content) answer = response.message.content;
       else if (response && response.text) answer = response.text;
 
-      var genre = answer.trim().toLowerCase();
+      var genres = answer.toLowerCase().trim();
       
-      // Сопоставляем ответ нейросети с нашими категориями
-      var mood = "happy"; // По умолчанию комедия
-      if (genre.indexOf("комедия") !== -1) mood = "happy";
-      else if (genre.indexOf("драма") !== -1) mood = "sad";
-      else if (genre.indexOf("боевик") !== -1) mood = "action";
-      else if (genre.indexOf("семейный") !== -1) mood = "family";
-      else if (genre.indexOf("ужасы") !== -1) mood = "scary";
-      else if (genre.indexOf("мелодрама") !== -1) mood = "romance";
-      else if (genre.indexOf("приключения") !== -1) mood = "adventure";
-      else if (genre.indexOf("фантастика") !== -1) mood = "scifi";
-      else if (genre.indexOf("музыка") !== -1) mood = "music";
-      else if (genre.indexOf("детектив") !== -1) mood = "mystery";
+      // Определяем, какие категории подходят под ответ
+      var matchedMoods = [];
+      if (genres.indexOf("комедия") !== -1) matchedMoods.push("happy");
+      if (genres.indexOf("драма") !== -1) matchedMoods.push("sad");
+      if (genres.indexOf("боевик") !== -1) matchedMoods.push("action");
+      if (genres.indexOf("семейный") !== -1) matchedMoods.push("family");
+      if (genres.indexOf("ужасы") !== -1) matchedMoods.push("scary");
+      if (genres.indexOf("мелодрама") !== -1) matchedMoods.push("romance");
+      if (genres.indexOf("приключения") !== -1) matchedMoods.push("adventure");
+      if (genres.indexOf("фантастика") !== -1) matchedMoods.push("scifi");
+      if (genres.indexOf("музыка") !== -1) matchedMoods.push("music");
+      if (genres.indexOf("детектив") !== -1) matchedMoods.push("mystery");
 
-      aiStatus.textContent = "Жанр: " + genre + ". Загружаем фильмы...";
-      
-      // Загружаем фильмы по этому жанру (и по типу: фильм/сериал/мультик)
-      loadMovies(mood, currentType);
-
+      if (matchedMoods.length > 0) {
+        aiStatus.textContent = "Жанры: " + genres + ". Загружаем...";
+        // Берем первый совпавший жанр для загрузки
+        loadMovies(matchedMoods[0], currentType);
+      } else {
+        aiStatus.textContent = "Не удалось определить жанр. Пробуем комедию.";
+        loadMovies("happy", currentType);
+      }
     }).catch(function (err) {
       aiStatus.textContent = "Ошибка ИИ: " + (err.message || err);
     }).finally(function () {
@@ -339,7 +342,6 @@ function init() {
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 
 // ==========================================
-// ОБНОВЛЕНИЕ v2.1: Переработана логика ИИ
-// Теперь нейросеть работает как переводчик жанров
-// Дата изменения: 2026 год
+// ОБНОВЛЕНИЕ v2.2: Нейросеть выбирает 1-2 жанра
+// Теперь запрос "веселый про животных" -> комедия, семейный
 // ==========================================
