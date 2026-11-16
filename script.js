@@ -45,15 +45,10 @@ function initGoogleLogin() {
   if (btn) btn.onclick = function () { 
     if (firebaseReady) {
       window.firebaseSignIn(fbAuth, fbProvider).catch(function(err) {
-        if (err.code === 'auth/popup-blocked') {
-          showToast("Разрешите всплывающие окна в браузере!", true);
-        } else {
-          showToast("Ошибка входа: " + err.message, true);
-        }
+        if (err.code === 'auth/popup-blocked') { showToast("Разрешите всплывающие окна!", true); } 
+        else { showToast("Ошибка: " + err.message, true); }
       });
-    } else {
-      showToast("Подождите...", true);
-    }
+    } else { showToast("Подождите...", true); }
   };
 }
 
@@ -107,7 +102,7 @@ function loadUserData(userId) {
       if (d.profile) { currentProfile = d.profile; localStorage.setItem("mood_profile", JSON.stringify(currentProfile)); renderUserInfo(); }
       if (d.accent) { localStorage.setItem("mood_accent", d.accent); document.body.setAttribute("data-accent", d.accent); }
       if (d.theme) { localStorage.setItem("mood_theme", d.theme); document.body.classList.toggle("light", d.theme === "light"); }
-      renderPlaylists(); showToast("Данные загружены из облака");
+      renderPlaylists(); showToast("Данные загружены");
     }
   }).catch(console.error);
 }
@@ -180,7 +175,6 @@ function buildPlaylistItem(n, m) {
 
 function deletePlaylist(name) { var p = getPlaylists(); delete p[name]; savePlaylists(p); renderPlaylists(); }
 function togglePlaylistWatched(n, t) { var p = getPlaylists(); if (!p[n]) return; p[n].forEach(function (x) { if (x.title === t) x.watched = !x.watched; }); savePlaylists(p); renderPlaylists(); }
-
 function buildStars(r) { var s = ""; for (var i = 1; i <= 5; i++) { s += '<span style="color:' + (r >= i * 2 - 0.5 ? "#ffd76e" : "#3a4552") + '">★</span>'; } return '<span style="font-size:0.8rem;">' + s + '</span> <span style="font-size:0.75rem;color:var(--text-muted);">' + r.toFixed(1) + '</span>'; }
 function buildGenres(g) { if (!g || !g.length) return ""; var h = '<div style="margin-top:4px;">'; g.slice(0, 3).forEach(function (x) { h += '<span style="font-size:0.65rem;padding:2px 6px;border-radius:6px;background:rgba(58,123,213,0.2);color:var(--accent);margin-right:4px;">' + x.name + '</span>'; }); return h + '</div>'; }
 
@@ -235,4 +229,7 @@ function openMovieModal(title) {
   var desc = m.description || m.shortDescription || "Описание отсутствует.";
   var w = isWatched(title);
   var h = '<div class="movie-header">' + (poster ? '<img src="' + poster + '">' : '') + '<div><h2>' + title + '</h2><p>' + year + (rating ? ' · ★ ' + rating.toFixed(1) : '') + '</p></div></div>';
-  h += '<p style="font-size:0.9
+  h += '<p style="font-size:0.9rem;line-height:1.5;margin-bottom:20px;">' + desc + '</p>';
+  h += '<button class="btn-primary" style="width:100%;margin-bottom:10px;background:' + (w ? '#10b981' : 'var(--accent)') + '" onclick="toggleWatched(\'' + title.replace(/'/g, "\\'") + '\',\'' + year + '\');openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">' + (w ? '✓ Просмотрено' : '○ Отметить просмотренным') + '</button>';
+  h += '<div class="social-links">';
+  h += '<a class="social-btn kp" href="https://www.kinopo

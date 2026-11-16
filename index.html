@@ -9,7 +9,6 @@
 </head>
 <body>
 
-  <!-- Верхняя панель -->
   <header class="top-bar">
     <div class="logo">SuperHeroFilms</div>
     <div class="actions">
@@ -19,7 +18,6 @@
   </header>
 
   <main class="container">
-    <!-- Авторизация -->
     <div class="auth-block">
       <button id="google-login-btn" class="google-btn">
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18">
@@ -28,7 +26,6 @@
       <div id="user-info" class="user-info" style="display: none;"></div>
     </div>
 
-    <!-- Панель управления -->
     <div class="control-panel">
       <div class="tabs">
         <button class="tab-btn active" data-target="tab-name">🔍 Поиск</button>
@@ -54,7 +51,6 @@
         <p id="ai-status" class="status"></p>
       </div>
 
-      <!-- Фильтры -->
       <details class="dropdown">
         <summary>⚙️ Фильтры</summary>
         <div class="dropdown-content">
@@ -72,7 +68,6 @@
         </div>
       </details>
 
-      <!-- Категории -->
       <details class="dropdown">
         <summary>😊 Выбрать настроение</summary>
         <div class="dropdown-content moods" id="moods">
@@ -110,24 +105,18 @@
       </details>
     </div>
 
-    <!-- Переключатель типов -->
     <div class="type-switch" id="type-switch" style="display: none;">
       <button data-type="movie" class="active">🎬 Фильмы</button>
       <button data-type="series">📺 Сериалы</button>
       <button data-type="cartoon">🧸 Мультики</button>
     </div>
 
-    <!-- Результаты -->
     <div id="results" class="results"></div>
     <button id="load-more" class="load-more" style="display: none;">Показать ещё</button>
   </main>
 
-  <!-- Панели (Настройки и Плейлисты) -->
   <aside id="settings-panel" class="side-panel">
-    <div class="panel-header">
-      <h2>Настройки</h2>
-      <button id="settings-close" class="btn-icon">✕</button>
-    </div>
+    <div class="panel-header"><h2>Настройки</h2><button id="settings-close" class="btn-icon">✕</button></div>
     <div class="setting-group">
       <label>Цвет акцента</label>
       <div class="color-row">
@@ -147,31 +136,18 @@
         <button class="theme-btn" data-theme="light">Светлая</button>
       </div>
     </div>
-    <div class="setting-group">
-      <label>Размер карточек</label>
-      <div class="row">
-        <button class="size-btn" data-size="small">Мелкие</button>
-        <button class="size-btn active" data-size="medium">Средние</button>
-        <button class="size-btn" data-size="large">Крупные</button>
-      </div>
-    </div>
     <button id="settings-reset" class="reset-btn">Сбросить</button>
   </aside>
 
   <aside id="playlists-panel" class="side-panel">
-    <div class="panel-header">
-      <h2>Плейлисты</h2>
-      <button id="playlists-close" class="btn-icon">✕</button>
-    </div>
+    <div class="panel-header"><h2>Плейлисты</h2><button id="playlists-close" class="btn-icon">✕</button></div>
     <div class="playlist-create">
       <input type="text" id="playlist-name-input" placeholder="Название...">
       <button id="playlist-create-btn">Создать</button>
     </div>
-    <button id="random-from-playlists-btn" class="chip gold" style="width:100%; margin-bottom:10px;">🎲 Что посмотреть?</button>
     <div id="playlists-list" class="playlists-list"></div>
   </aside>
 
-  <!-- Модалки -->
   <div id="movie-modal" class="modal">
     <div class="modal-content">
       <button id="movie-modal-close" class="btn-icon" style="position:absolute; top:10px; right:10px; z-index:10;">✕</button>
@@ -206,7 +182,6 @@
 
   <div id="toast" class="toast"></div>
 
-  <!-- Firebase Scripts (с signInWithPopup) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -228,7 +203,7 @@
     window.firebaseAuth = auth; 
     window.firebaseDb = db; 
     window.googleProvider = new GoogleAuthProvider();
-    window.firebaseSignIn = signInWithPopup; // ИЗМЕНЕНО НА POPUP
+    window.firebaseSignIn = signInWithPopup;
     window.firebaseSignOut = signOut; 
     window.firebaseOnAuth = onAuthStateChanged;
     window.firebaseDoc = doc; 
