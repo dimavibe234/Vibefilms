@@ -217,7 +217,7 @@ function renderPlaylists() {
 }
 function buildPlaylistItem(n, m) {
   return '<div class="playlist-item">' + (m.poster ? '<img src="'+m.poster+'">' : '') + '<div class="pl-title">' + m.title + '</div>' +
-    '<button class="pl-check" onclick="togglePlaylistWatched(\''+n+'\',\''+m.title.replace(/'/g,"\\'")+'\')" style="color:'+(m.watched?'#10b981':'#8b96a5')+'">✓</button>' +
+    '<button class="pl-check" onclick="togglePlaylistWatched(\''+n+'\',\''+m.title.replace(/'/g,"\\'")+'\')" style="color:'+(m.watched?'#34d399':'#8f9bab')+'">✓</button>' +
     '<button class="pl-del" onclick="removeFromPlaylist(\''+n+'\',\''+m.title.replace(/'/g,"\\'")+'\');renderPlaylists();">✕</button></div>';
 }
 function deletePlaylist(name) { var p = getPlaylists(); delete p[name]; savePlaylists(p); renderPlaylists(); }
@@ -226,7 +226,7 @@ function togglePlaylistWatched(n, t) { var p = getPlaylists(); if (!p[n]) return
 // ===== Рендер =====
 function buildStars(r) {
   var s = "";
-  for (var i = 1; i <= 5; i++) s += '<span style="color:' + (r >= i * 2 - 0.5 ? "#ffd76e" : "#3a4552") + '">★</span>';
+  for (var i = 1; i <= 5; i++) s += '<span style="color:' + (r >= i * 2 - 0.5 ? "#fbbf24" : "#3a4552") + '">★</span>';
   return '<span class="stars">' + s + '</span> <span class="rating-num">' + r.toFixed(1) + '</span>';
 }
 function buildGenres(g) {
@@ -379,8 +379,8 @@ function openMovieModal(title) {
   var w = isWatched(title);
   var h = '<div class="movie-header">' + (poster ? '<img src="' + poster + '">' : '') + '<div><h2>' + title + '</h2><p>' + year + (rating ? ' · ★ ' + rating.toFixed(1) : '') + '</p></div></div>';
   h += '<p style="font-size:0.9rem;line-height:1.5;margin-bottom:20px;">' + desc + '</p>';
-  h += '<button class="btn-primary" style="width:100%;margin-bottom:10px;background:' + (w ? '#10b981' : 'var(--accent)') + '" onclick="toggleWatched(\'' + title.replace(/'/g, "\\'") + '\',\'' + year + '\');openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">' + (w ? '✓ Просмотрено' : '○ Отметить просмотренным') + '</button>';
-  h += '<button class="btn-primary" style="width:100%;margin-bottom:10px;background:#ef4444;" onclick="hideMovie(\'' + title.replace(/'/g, "\\'") + '\');document.getElementById(\'movie-modal\').classList.remove(\'open\');showToast(\'Скрыто\')">🚫 Скрыть из выдачи</button>';
+  h += '<button class="btn-primary" style="width:100%;margin-bottom:10px;background:' + (w ? '#34d399' : 'var(--accent)') + '" onclick="toggleWatched(\'' + title.replace(/'/g, "\\'") + '\',\'' + year + '\');openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">' + (w ? '✓ Просмотрено' : '○ Отметить просмотренным') + '</button>';
+  h += '<button class="btn-primary" style="width:100%;margin-bottom:10px;background:#f87171;" onclick="hideMovie(\'' + title.replace(/'/g, "\\'") + '\');document.getElementById(\'movie-modal\').classList.remove(\'open\');showToast(\'Скрыто\')">🚫 Скрыть из выдачи</button>';
   h += '<div class="social-links">';
   h += '<a class="social-btn kp" href="https://www.kinopoisk.ru/index.php?kp_query=' + encodeURIComponent(title) + '" target="_blank">🍿 Кинопоиск</a>';
   h += '<a class="social-btn rutube" href="https://rutube.ru/search/?query=' + encodeURIComponent(title) + '" target="_blank">📺 Rutube</a>';
@@ -404,9 +404,50 @@ function initAI() {
   };
 }
 
+// ===== Поиск по настроениям (ИСПРАВЛЕНО) =====
+function initMoodSearch() {
+  var input = $("mood-search");
+  var clearBtn = $("mood-search-clear");
+  var noResults = $("mood-no-results");
+  if (!input) return;
+
+  function applyFilter() {
+    var q = input.value.toLowerCase().trim();
+    var totalVisible = 0;
+
+    document.querySelectorAll("#moods-list .mood-group").forEach(function (grp) {
+      var groupName = (grp.dataset.group || "").toLowerCase();
+      var groupVisible = 0;
+
+      grp.querySelectorAll("button").forEach(function (btn) {
+        var text = btn.textContent.toLowerCase();
+        var moodKey = (btn.dataset.mood || "").toLowerCase();
+        var match = !q || text.indexOf(q) !== -1 || moodKey.indexOf(q) !== -1 || groupName.indexOf(q) !== -1;
+        btn.style.display = match ? "" : "none";
+        if (match) groupVisible++;
+      });
+
+      grp.style.display = groupVisible ? "" : "none";
+      totalVisible += groupVisible;
+    });
+
+    if (noResults) noResults.style.display = (q && totalVisible === 0) ? "block" : "none";
+    if (clearBtn) clearBtn.classList.toggle("visible", !!q);
+  }
+
+  input.addEventListener("input", applyFilter);
+  input.addEventListener("keydown", function (e) { if (e.key === "Escape") { input.value = ""; applyFilter(); } });
+
+  if (clearBtn) clearBtn.onclick = function () {
+    input.value = "";
+    applyFilter();
+    input.focus();
+  };
+}
+
 // ===== Инициализация =====
 function init() {
-  // Модалки и панели
+  // Панели
   var openers = [
     ["moods-toggle", "moods-panel", "moods-close"],
     ["filters-toggle", "filters-panel", "filters-close"],
@@ -418,22 +459,10 @@ function init() {
     if (close && panel) close.onclick = function () { panel.classList.remove("open"); };
   });
 
-  // Поиск настроения
-  var ms = $("mood-search");
-  if (ms) ms.oninput = function () {
-    var q = this.value.toLowerCase().trim();
-    document.querySelectorAll("#moods-list .mood-group").forEach(function (grp) {
-      var visible = 0;
-      grp.querySelectorAll("button").forEach(function (b) {
-        var match = !q || b.textContent.toLowerCase().indexOf(q) !== -1;
-        b.style.display = match ? "" : "none";
-        if (match) visible++;
-      });
-      grp.style.display = visible ? "" : "none";
-    });
-  };
+  // Поиск по настроениям
+  initMoodSearch();
 
-  // Кнопки настроений — из HTML
+  // Кнопки настроений
   document.querySelectorAll("#moods-list button").forEach(function (b) {
     b.onclick = function () {
       document.querySelectorAll("#moods-list button").forEach(function (x) { x.classList.remove("active"); });
@@ -453,7 +482,7 @@ function init() {
     };
   });
 
-  // Поиск
+  // Поиск фильмов
   if ($("search-btn")) $("search-btn").onclick = function () {
     var q = $("search-input").value.trim(); if (q) searchMovies(q, currentType);
   };
@@ -493,35 +522,4 @@ function init() {
   });
   if ($("rating-filter")) $("rating-filter").addEventListener("input", function () { $("rating-value").textContent = this.value; });
   if ($("filters-reset")) $("filters-reset").onclick = function () {
-    $("rating-filter").value = 0; $("rating-value").textContent = "0";
-    $("year-filter").value = 1900;
-    $("filter-unwatched").checked = false; $("filter-new").checked = false;
-    if (currentMood) loadMovies(currentMood, currentType);
-  };
-
-  // Тема
-  var themeBtn = $("theme-toggle");
-  if (themeBtn) themeBtn.onclick = function () {
-    var isLight = document.body.classList.toggle("light");
-    localStorage.setItem("mood_theme", isLight ? "light" : "dark");
-    saveUserData();
-  };
-
-  // Плейлисты
-  if ($("playlist-create-btn")) $("playlist-create-btn").onclick = function () {
-    var n = $("playlist-name-input").value;
-    if (createPlaylist(n)) { $("playlist-name-input").value = ""; renderPlaylists(); }
-  };
-
-  // Модалки закрытия по фону
-  document.querySelectorAll(".modal").forEach(function (m) {
-    m.addEventListener("click", function (e) { if (e.target === m) m.classList.remove("open"); });
-  });
-  if ($("movie-modal-close")) $("movie-modal-close").onclick = function () { $("movie-modal").classList.remove("open"); };
-
-  // Firebase
-  if (window.firebaseAuth) initFirebase(); else window.addEventListener("firebase-ready", initFirebase);
-  initGoogleLogin(); initProfile(); initAI();
-}
-
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
+    $("rating-filter").value

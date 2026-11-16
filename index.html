@@ -47,15 +47,18 @@
     <button id="load-more" class="load-more" style="display: none;">Показать ещё</button>
   </main>
 
-  <!-- ===== ПАНЕЛЬ НАСТРОЕНИЙ (все категории в HTML) ===== -->
+  <!-- ===== ПАНЕЛЬ НАСТРОЕНИЙ ===== -->
   <aside id="moods-panel" class="side-panel">
     <div class="panel-header">
       <h2>😊 Настроения</h2>
       <button id="moods-close" class="btn-icon">✕</button>
     </div>
-    <input type="text" id="mood-search" class="panel-input" placeholder="Найти настроение...">
+    <div class="mood-search-wrap">
+      <input type="text" id="mood-search" class="panel-input" placeholder="Найти настроение...">
+      <button id="mood-search-clear" class="mood-search-clear" title="Очистить">✕</button>
+    </div>
     <div class="moods-list" id="moods-list">
-      <div class="mood-group">
+      <div class="mood-group" data-group="Эмоции">
         <div class="mood-group-title">Эмоции</div>
         <button data-mood="happy">😄 Весело</button>
         <button data-mood="sad">😢 Грустно</button>
@@ -67,7 +70,7 @@
         <button data-mood="inspire">🚀 Вдохновение</button>
         <button data-mood="think">🤔 Подумать</button>
       </div>
-      <div class="mood-group">
+      <div class="mood-group" data-group="Жанры">
         <div class="mood-group-title">Жанры</div>
         <button data-mood="mystery">🕵️ Детектив</button>
         <button data-mood="scifi">🛸 Фантастика</button>
@@ -82,7 +85,7 @@
         <button data-mood="biography">👤 Биография</button>
         <button data-mood="music">🎵 Музыка</button>
       </div>
-      <div class="mood-group">
+      <div class="mood-group" data-group="Нишевые">
         <div class="mood-group-title">Нишевые</div>
         <button data-mood="kids">🧸 Для детей</button>
         <button data-mood="adventure">🗺️ Приключения</button>
@@ -94,7 +97,7 @@
         <button data-mood="survival">🏕️ Выживание</button>
         <button data-mood="space">🌌 Космос</button>
       </div>
-      <div class="mood-group">
+      <div class="mood-group" data-group="Ещё">
         <div class="mood-group-title">Ещё</div>
         <button data-mood="psychological">🧠 Психологическое</button>
         <button data-mood="historical">🏛️ Историческое</button>
@@ -116,6 +119,7 @@
         <button data-mood="cooking">🍳 Кулинария</button>
         <button data-mood="travel">✈️ Путешествия</button>
       </div>
+      <p id="mood-no-results" class="mood-no-results" style="display:none;">Ничего не найдено</p>
     </div>
   </aside>
 
