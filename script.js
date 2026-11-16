@@ -268,6 +268,9 @@ function buildGenres(g) {
   g.slice(0, 3).forEach(function (x) { h += '<span class="genre-tag">' + (genreTranslations[x] || x) + '</span>'; });
   return h + '</div>';
 }
+
+var RENDER_LIMIT = 20;
+
 function render(movies, append) {
   var el = $("results"); if (!el) return;
   if (!append) el.innerHTML = "";
@@ -275,9 +278,19 @@ function render(movies, append) {
     if (!append) el.innerHTML = '<p class="empty">Ничего не найдено. Попробуй другое настроение или ослабь фильтры.</p>';
     return;
   }
-  currentMovies = append ? currentMovies.concat(movies) : movies;
+
+  var toRender;
+  if (append) {
+    // при "Показать ещё" берём следующие 20 из уже отфильтрованного списка
+    var already = document.querySelectorAll("#results .card").length;
+    toRender = currentMovies.slice(already, already + RENDER_LIMIT);
+  } else {
+    toRender = movies.slice(0, RENDER_LIMIT);
+    currentMovies = movies;
+  }
+
   var h = "";
-  movies.forEach(function (m) {
+  toRender.forEach(function (m) {
     var rawTitle = m.title || "Без названия";
     var title = cleanTitle(rawTitle);
     var year = extractYear(rawTitle);
@@ -294,6 +307,7 @@ function render(movies, append) {
     h += '<div class="meta">' + year + (rating > 0 ? ' · ' + buildStars(rating) : "") + '</div>' + buildGenres(m.genres);
     h += '<button class="card-add" onclick="addMovieToPlaylist({title:\'' + title.replace(/'/g, "\\'") + '\',year:\'' + year + '\',poster:\'' + (cachedPoster || '') + '\'})">＋ В плейлист</button></div></div>';
   });
+
   if (append) el.innerHTML += h; else el.innerHTML = h;
   var lm = $("load-more");
   if (lm) lm.style.display = (currentMood || lastSearchQuery) ? "block" : "none";
@@ -342,6 +356,7 @@ function loadMovies(mood, type, append) {
   }
   var res = filterByMood(allMovies, mood);
   res = applyClientFilters(res);
+  if (!append) currentMovies = res;
   render(res, append);
 }
 
@@ -370,6 +385,7 @@ function searchMovies(q, type, append) {
     return (m.title || '').toLowerCase().indexOf(query) !== -1;
   });
   res = applyClientFilters(res);
+  if (!append) currentMovies = res;
   render(res, append);
 }
 
@@ -487,10 +503,16 @@ function init() {
   if ($("masterpiece-btn")) $("masterpiece-btn").onclick = function () { searchMovies("шедевр", "movie"); };
   if ($("ai-open-btn")) $("ai-open-btn").onclick = function () { $("ai-modal").classList.add("open"); };
   if ($("ai-close")) $("ai-close").onclick = function () { $("ai-modal").classList.remove("open"); };
+
+  // Показать ещё — берём следующие 20 из currentMovies
   if ($("load-more")) $("load-more").onclick = function () {
-    if (currentMood) loadMovies(currentMood, currentType, true);
-    else if (lastSearchQuery) showToast("Для поиска подгрузка недоступна");
+    if (!currentMood && !lastSearchQuery) return;
+    var already = document.querySelectorAll("#results .card").length;
+    var next = currentMovies.slice(already, already + RENDER_LIMIT);
+    if (!next.length) { showToast("Больше нет"); return; }
+    render(next, true);
   };
+
   if ($("clear-mood-btn")) $("clear-mood-btn").onclick = function () {
     currentMood = null; updateActiveMoodBar(null);
     document.querySelectorAll("#moods-list button").forEach(function (x) { x.classList.remove("active"); });
