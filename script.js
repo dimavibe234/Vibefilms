@@ -251,22 +251,12 @@ function initAI() {
     if (!text) return;
 
     aiButton.disabled = true;
-    aiStatus.textContent = "Анализируем запрос...";
+    aiStatus.textContent = "Подбираем фильмы...";
 
-    // Даем нейросети выбрать из СПИСКА с номерами (это надежнее, чем просто текст)
     var prompt = 'Пользователь хочет найти фильм. Его запрос: "' + text + '". ' +
-      'Выбери ОДИН или ДВА жанра, которые лучше всего подходят под этот запрос, из списка ниже. ' +
-      'Напиши ТОЛЬКО НОМЕРА выбранных жанров через запятую (например: 1, 5). Никаких слов, только цифры.\n\n' +
-      '1. комедия\n' +
-      '2. драма\n' +
-      '3. боевик\n' +
-      '4. семейный\n' +
-      '5. ужасы\n' +
-      '6. мелодрама\n' +
-      '7. приключения\n' +
-      '8. фантастика\n' +
-      '9. музыка\n' +
-      '10. детектив';
+      'Подбери 3 известных фильма, которые лучше всего подходят под этот запрос. ' +
+      'Ответь ТОЛЬКО их названиями на русском языке через запятую, без пояснений. ' +
+      'Пример: Зверополис, Мадагаскар, Побег из курятника';
 
     puter.ai.chat(prompt).then(function (response) {
       var answer = "";
@@ -274,32 +264,13 @@ function initAI() {
       else if (response && response.message && response.message.content) answer = response.message.content;
       else if (response && response.text) answer = response.text;
 
-      // Извлекаем цифры из ответа
-      var nums = answer.match(/\d+/g);
-      
-      if (nums && nums.length > 0) {
-        // Берем первый номер и сопоставляем с категорией
-        var firstNum = parseInt(nums[0], 10);
-        var moodMap = {
-          1: "happy", 2: "sad", 3: "action", 4: "family", 5: "scary",
-          6: "romance", 7: "adventure", 8: "scifi", 9: "music", 10: "mystery"
-        };
-        
-        var mood = moodMap[firstNum] || "happy";
-        aiStatus.textContent = "Выбран жанр под номером " + firstNum + ". Загружаем...";
-        loadMovies(mood, currentType);
+      var titles = answer.split(',').map(function (t) { return t.trim().replace(/^[0-9]+[\.\)]\s*/, ''); }).filter(function (t) { return t.length > 1; });
+
+      if (titles.length > 0) {
+        aiStatus.textContent = "Ищем: " + titles[0];
+        searchMovies(titles[0], currentType);
       } else {
-        // Если нейросеть не дала цифры, пробуем найти жанр в тексте
-        var genres = answer.toLowerCase().trim();
-        var matchedMood = "happy"; // По умолчанию комедия
-        if (genres.indexOf("комедия") !== -1) matchedMood = "happy";
-        else if (genres.indexOf("драма") !== -1) matchedMood = "sad";
-        else if (genres.indexOf("боевик") !== -1) matchedMood = "action";
-        else if (genres.indexOf("семейный") !== -1) matchedMood = "family";
-        else if (genres.indexOf("ужасы") !== -1) matchedMood = "scary";
-        
-        aiStatus.textContent = "Пробуем жанр: " + matchedMood;
-        loadMovies(matchedMood, currentType);
+        aiStatus.textContent = "Не удалось подобрать фильмы. Попробуйте иначе.";
       }
     }).catch(function (err) {
       aiStatus.textContent = "Ошибка ИИ: " + (err.message || err);
@@ -355,6 +326,6 @@ function init() {
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 
 // ==========================================
-// ОБНОВЛЕНИЕ v2.3: ЖЕСТКАЯ логика выбора жанра
-// Нейросеть теперь возвращает НОМЕРА жанров (1-10)
+// ОБНОВЛЕНИЕ v2.4: Возврат к поиску по названиям
+// Нейросеть снова подбирает конкретные фильмы
 // ==========================================
