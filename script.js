@@ -175,6 +175,7 @@ function buildPlaylistItem(n, m) {
 
 function deletePlaylist(name) { var p = getPlaylists(); delete p[name]; savePlaylists(p); renderPlaylists(); }
 function togglePlaylistWatched(n, t) { var p = getPlaylists(); if (!p[n]) return; p[n].forEach(function (x) { if (x.title === t) x.watched = !x.watched; }); savePlaylists(p); renderPlaylists(); }
+
 function buildStars(r) { var s = ""; for (var i = 1; i <= 5; i++) { s += '<span style="color:' + (r >= i * 2 - 0.5 ? "#ffd76e" : "#3a4552") + '">★</span>'; } return '<span style="font-size:0.8rem;">' + s + '</span> <span style="font-size:0.75rem;color:var(--text-muted);">' + r.toFixed(1) + '</span>'; }
 function buildGenres(g) { if (!g || !g.length) return ""; var h = '<div style="margin-top:4px;">'; g.slice(0, 3).forEach(function (x) { h += '<span style="font-size:0.65rem;padding:2px 6px;border-radius:6px;background:rgba(58,123,213,0.2);color:var(--accent);margin-right:4px;">' + x.name + '</span>'; }); return h + '</div>'; }
 
@@ -232,4 +233,65 @@ function openMovieModal(title) {
   h += '<p style="font-size:0.9rem;line-height:1.5;margin-bottom:20px;">' + desc + '</p>';
   h += '<button class="btn-primary" style="width:100%;margin-bottom:10px;background:' + (w ? '#10b981' : 'var(--accent)') + '" onclick="toggleWatched(\'' + title.replace(/'/g, "\\'") + '\',\'' + year + '\');openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">' + (w ? '✓ Просмотрено' : '○ Отметить просмотренным') + '</button>';
   h += '<div class="social-links">';
-  h += '<a class="social-btn kp" href="https://www.kinopo
+  h += '<a class="social-btn kp" href="https://www.kinopoisk.ru/index.php?kp_query=' + encodeURIComponent(title) + '" target="_blank">🍿 Кинопоиск</a>';
+  h += '<a class="social-btn rutube" href="https://rutube.ru/search/?query=' + encodeURIComponent(title) + '" target="_blank">📺 Rutube</a>';
+  h += '</div>';
+  document.getElementById("movie-modal-body").innerHTML = h;
+  document.getElementById("movie-modal").classList.add("open");
+}
+
+function init() {
+  document.getElementById("movie-modal-close").onclick = function () { document.getElementById("movie-modal").classList.remove("open"); };
+  document.getElementById("settings-toggle").onclick = function () { document.getElementById("settings-panel").classList.add("open"); };
+  document.getElementById("settings-close").onclick = function () { document.getElementById("settings-panel").classList.remove("open"); };
+  document.getElementById("playlists-toggle").onclick = function () { renderPlaylists(); document.getElementById("playlists-panel").classList.add("open"); };
+  document.getElementById("playlists-close").onclick = function () { document.getElementById("playlists-panel").classList.remove("open"); };
+  
+  document.querySelectorAll(".tab-btn").forEach(function (b) {
+    b.onclick = function () {
+      document.querySelectorAll(".tab-btn").forEach(function (x) { x.classList.remove("active"); });
+      document.querySelectorAll(".tab-content").forEach(function (x) { x.classList.remove("active"); });
+      this.classList.add("active"); document.getElementById(this.dataset.target).classList.add("active");
+    };
+  });
+
+  document.querySelectorAll("#moods button").forEach(function (b) {
+    b.onclick = function () {
+      document.querySelectorAll("#moods button").forEach(function (x) { x.classList.remove("active"); });
+      this.classList.add("active"); document.getElementById("type-switch").style.display = "flex"; loadMovies(this.dataset.mood, currentType);
+    };
+  });
+
+  document.querySelectorAll("#type-switch button").forEach(function (b) {
+    b.onclick = function () {
+      document.querySelectorAll("#type-switch button").forEach(function (x) { x.classList.remove("active"); });
+      this.classList.add("active"); currentType = this.dataset.type; if (currentMood) loadMovies(currentMood, currentType);
+    };
+  });
+
+  document.getElementById("search-btn").onclick = function () { var q = document.getElementById("search-input").value.trim(); if (q) searchMovies(q, currentType); };
+  document.getElementById("search-input").onkeydown = function (e) { if (e.key === "Enter") document.getElementById("search-btn").click(); };
+  document.getElementById("random-btn").onclick = function () { var keys = Object.keys(moodGenres); loadMovies(keys[Math.floor(Math.random() * keys.length)], currentType); };
+  document.getElementById("masterpiece-btn").onclick = function () { searchMovies("шедевр", "movie"); };
+  document.getElementById("load-more").onclick = function () { if (currentMood) loadMovies(currentMood, currentType, currentPage + 1, true); else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType, currentPage + 1, true); };
+
+  document.getElementById("ai-button").onclick = function () {
+    var text = document.getElementById("ai-input").value.trim(); if (!text) return;
+    document.getElementById("ai-status").textContent = "Думаем...";
+    puter.ai.chat('Определи жанр для запроса: "' + text + '". Ответь ОДНИМ словом: комедия, драма, боевик, семейный, ужасы, мелодрама, приключения, фантастика, музыка, детектив.').then(function (res) {
+      var ans = (typeof res === 'string' ? res : res.text || "").toLowerCase();
+      var mood = "happy"; for (var k in moodGenres) { if (ans.indexOf(moodGenres[k][0]) !== -1) { mood = k; break; } }
+      document.getElementById("ai-status").textContent = "Жанр: " + moodGenres[mood][0];
+      loadMovies(mood, currentType);
+    }).catch(function () { document.getElementById("ai-status").textContent = "Ошибка ИИ"; });
+  };
+
+  document.querySelectorAll(".color-dot").forEach(function (d) { d.onclick = function () { localStorage.setItem("mood_accent", this.dataset.accent); document.body.setAttribute("data-accent", this.dataset.accent); saveUserData(); }; });
+  document.querySelectorAll(".theme-btn").forEach(function (b) { b.onclick = function () { document.body.classList.toggle("light", this.dataset.theme === "light"); localStorage.setItem("mood_theme", this.dataset.theme); saveUserData(); }; });
+  document.getElementById("playlist-create-btn").onclick = function () { var n = document.getElementById("playlist-name-input").value; if (createPlaylist(n)) { document.getElementById("playlist-name-input").value = ""; renderPlaylists(); } };
+
+  if (window.firebaseAuth) initFirebase(); else window.addEventListener("firebase-ready", initFirebase);
+  initGoogleLogin(); initProfile();
+}
+
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
