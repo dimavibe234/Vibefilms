@@ -1,5 +1,32 @@
-var BASE = "https://functions.yandexcloud.net/d4e59mril3tsi9p47r09";
-var moodGenres = { happy: ["комедия"], sad: ["драма"], action: ["боевик"], cozy: ["семейный", "анимация"], scary: ["ужасы"], romance: ["мелодрама"], nostalgia: ["приключения"], inspire: ["драма", "история"], mystery: ["детектив", "триллер"], scifi: ["фантастика"], music: ["музыка"], think: ["драма", "детектив"], anime: ["аниме"], fantasy: ["фэнтези"], crime: ["криминал"], thriller: ["триллер"], documentary: ["документальное"], sport: ["спорт"], war: ["военный"], western: ["вестерн"], biography: ["биография"], kids: ["детский"], adventure: ["приключения"], comedy_dark: ["комедия", "криминал"], mystic: ["мистика", "триллер"], musical: ["мюзикл"], family: ["семейный"], heist: ["криминал"], survival: ["приключения", "триллер"], space: ["фантастика", "приключения"] };
+// Базовый URL для Cinemeta
+var CINEMETA_BASE = "https://v3-cinemeta.strem.io";
+
+// Словарь для перевода английских жанров Cinemeta в русские (для отображения)
+var genreTranslations = {
+    "Action": "боевик", "Adventure": "приключения", "Animation": "анимация",
+    "Biography": "биография", "Comedy": "комедия", "Crime": "криминал",
+    "Documentary": "документальный", "Drama": "драма", "Family": "семейный",
+    "Fantasy": "фэнтези", "History": "история", "Horror": "ужасы",
+    "Music": "музыка", "Mystery": "детектив", "Romance": "мелодрама",
+    "Sci-Fi": "фантастика", "Sport": "спорт", "Thriller": "триллер",
+    "War": "военный", "Western": "вестерн"
+};
+
+// Сопоставление наших настроений с жанрами Cinemeta (на английском)
+var moodGenres = {
+    happy: ["Comedy"], sad: ["Drama"], action: ["Action"],
+    cozy: ["Family", "Animation"], scary: ["Horror"],
+    romance: ["Romance"], nostalgia: ["Adventure"],
+    inspire: ["Drama", "History"], mystery: ["Mystery", "Thriller"],
+    scifi: ["Sci-Fi"], music: ["Music"], think: ["Drama", "Mystery"],
+    anime: ["Animation"], fantasy: ["Fantasy"], crime: ["Crime"],
+    thriller: ["Thriller"], documentary: ["Documentary"], sport: ["Sport"],
+    war: ["War"], western: ["Western"], biography: ["Biography"],
+    kids: ["Family", "Animation"], adventure: ["Adventure"],
+    comedy_dark: ["Comedy", "Crime"], mystic: ["Mystery", "Horror"],
+    musical: ["Music"], family: ["Family"], heist: ["Crime", "Action"],
+    survival: ["Adventure", "Thriller"], space: ["Sci-Fi", "Adventure"]
+};
 
 var currentMood = null, currentType = "movie", currentPage = 1, lastSearchQuery = null, currentMovies = [], currentUser = null;
 var currentProfile = { name: "", avatar: "", color: "#e8eaed" };
@@ -177,7 +204,7 @@ function deletePlaylist(name) { var p = getPlaylists(); delete p[name]; savePlay
 function togglePlaylistWatched(n, t) { var p = getPlaylists(); if (!p[n]) return; p[n].forEach(function (x) { if (x.title === t) x.watched = !x.watched; }); savePlaylists(p); renderPlaylists(); }
 
 function buildStars(r) { var s = ""; for (var i = 1; i <= 5; i++) { s += '<span style="color:' + (r >= i * 2 - 0.5 ? "#ffd76e" : "#3a4552") + '">★</span>'; } return '<span style="font-size:0.8rem;">' + s + '</span> <span style="font-size:0.75rem;color:var(--text-muted);">' + r.toFixed(1) + '</span>'; }
-function buildGenres(g) { if (!g || !g.length) return ""; var h = '<div style="margin-top:4px;">'; g.slice(0, 3).forEach(function (x) { h += '<span style="font-size:0.65rem;padding:2px 6px;border-radius:6px;background:rgba(58,123,213,0.2);color:var(--accent);margin-right:4px;">' + x.name + '</span>'; }); return h + '</div>'; }
+function buildGenres(g) { if (!g || !g.length) return ""; var h = '<div style="margin-top:4px;">'; g.slice(0, 3).forEach(function (x) { h += '<span style="font-size:0.65rem;padding:2px 6px;border-radius:6px;background:rgba(58,123,213,0.2);color:var(--accent);margin-right:4px;">' + (genreTranslations[x] || x) + '</span>'; }); return h + '</div>'; }
 
 function render(movies, append) {
   var el = document.getElementById("results"); if (!el) return;
@@ -186,10 +213,10 @@ function render(movies, append) {
   currentMovies = append ? currentMovies.concat(movies) : movies;
   var h = "";
   movies.forEach(function (m) {
-    var poster = m.poster ? (m.poster.previewUrl || m.poster.url) : "";
-    var title = m.name || m.alternativeName || "Без названия";
-    var year = m.year || (m.releaseYears && m.releaseYears[0]) || "";
-    var rating = m.rating ? (m.rating.kp || m.rating.imdb || 0) : 0;
+    var poster = m.poster || "";
+    var title = m.name || "Без названия";
+    var year = m.releaseInfo || "";
+    var rating = m.imdbRating ? parseFloat(m.imdbRating) : 0;
     var w = isWatched(title);
     h += '<div class="card">';
     if (poster) h += '<img src="' + poster + '" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">';
@@ -206,28 +233,36 @@ function loadMovies(mood, type, page, append) {
   var el = document.getElementById("results"); if (!el) return;
   if (!append) el.innerHTML = '<p style="text-align:center;padding:20px;">Загрузка...</p>';
   currentMood = mood; currentType = type; currentPage = page || 1; lastSearchQuery = null;
-  var p = []; (moodGenres[mood] || []).forEach(function (g) { p.push("genres.name=" + encodeURIComponent(g)); });
-  if (type === "series") p.push("typeNumber=2"); else if (type === "cartoon") p.push("typeNumber=3"); else p.push("typeNumber=1");
-  p.push("sortField=votes.kp", "sortType=-1", "votes.kp=10000-10000000", "page=" + currentPage, "limit=24");
-  fetchWithTimeout(BASE + "?" + p.join("&")).then(function (r) { return r.json(); }).then(function (d) { render(d.docs || [], append); }).catch(function (e) { el.innerHTML = '<p style="text-align:center;">Ошибка: ' + e.message + '</p>'; });
+  
+  var genres = moodGenres[mood] || [];
+  var genreQuery = genres.join(",");
+  
+  var url = CINEMETA_BASE + "/catalog/" + type + "/top.json?genre=" + encodeURIComponent(genreQuery);
+  
+  fetchWithTimeout(url).then(function (r) { return r.json(); }).then(function (d) { render(d.metas || [], append); }).catch(function (e) { 
+    el.innerHTML = '<p style="text-align:center;">Ошибка: ' + e.message + '</p>'; 
+  });
 }
 
 function searchMovies(q, type, page, append) {
   var el = document.getElementById("results"); if (!el) return;
   if (!append) el.innerHTML = '<p style="text-align:center;padding:20px;">Поиск...</p>';
   lastSearchQuery = q; currentPage = page || 1; currentType = type;
-  var p = ["query=" + encodeURIComponent(q)]; if (type === "series") p.push("typeNumber=2"); else if (type === "cartoon") p.push("typeNumber=3"); else p.push("typeNumber=1");
-  p.push("page=" + currentPage, "limit=24");
-  fetchWithTimeout(BASE + "?" + p.join("&")).then(function (r) { return r.json(); }).then(function (d) { render(d.docs || [], append); }).catch(function (e) { el.innerHTML = '<p style="text-align:center;">Ошибка: ' + e.message + '</p>'; });
+  
+  var url = CINEMETA_BASE + "/catalog/" + type + "/top/search=" + encodeURIComponent(q) + ".json";
+  
+  fetchWithTimeout(url).then(function (r) { return r.json(); }).then(function (d) { render(d.metas || [], append); }).catch(function (e) { 
+    el.innerHTML = '<p style="text-align:center;">Ошибка: ' + e.message + '</p>'; 
+  });
 }
 
 function openMovieModal(title) {
-  var m = null; for (var i = 0; i < currentMovies.length; i++) { if ((currentMovies[i].name || currentMovies[i].alternativeName) === title) { m = currentMovies[i]; break; } }
+  var m = null; for (var i = 0; i < currentMovies.length; i++) { if ((currentMovies[i].name) === title) { m = currentMovies[i]; break; } }
   if (!m) return;
-  var poster = m.poster ? (m.poster.previewUrl || m.poster.url) : "";
-  var year = m.year || "";
-  var rating = m.rating ? (m.rating.kp || m.rating.imdb || 0) : 0;
-  var desc = m.description || m.shortDescription || "Описание отсутствует.";
+  var poster = m.poster || "";
+  var year = m.releaseInfo || "";
+  var rating = m.imdbRating ? parseFloat(m.imdbRating) : 0;
+  var desc = m.description || "Описание отсутствует.";
   var w = isWatched(title);
   var h = '<div class="movie-header">' + (poster ? '<img src="' + poster + '">' : '') + '<div><h2>' + title + '</h2><p>' + year + (rating ? ' · ★ ' + rating.toFixed(1) : '') + '</p></div></div>';
   h += '<p style="font-size:0.9rem;line-height:1.5;margin-bottom:20px;">' + desc + '</p>';
@@ -253,30 +288,11 @@ function initAI() {
     aiButton.disabled = true;
     aiStatus.textContent = "Подбираем фильмы...";
 
-    var prompt = 'Пользователь хочет найти фильм. Его запрос: "' + text + '". ' +
-      'Подбери 3 известных фильма, которые лучше всего подходят под этот запрос. ' +
-      'Ответь ТОЛЬКО их названиями на русском языке через запятую, без пояснений. ' +
-      'Пример: Зверополис, Мадагаскар, Побег из курятника';
-
-    puter.ai.chat(prompt).then(function (response) {
-      var answer = "";
-      if (typeof response === "string") answer = response;
-      else if (response && response.message && response.message.content) answer = response.message.content;
-      else if (response && response.text) answer = response.text;
-
-      var titles = answer.split(',').map(function (t) { return t.trim().replace(/^[0-9]+[\.\)]\s*/, ''); }).filter(function (t) { return t.length > 1; });
-
-      if (titles.length > 0) {
-        aiStatus.textContent = "Ищем: " + titles[0];
-        searchMovies(titles[0], currentType);
-      } else {
-        aiStatus.textContent = "Не удалось подобрать фильмы. Попробуйте иначе.";
-      }
-    }).catch(function (err) {
-      aiStatus.textContent = "Ошибка ИИ: " + (err.message || err);
-    }).finally(function () {
-      aiButton.disabled = false;
-    });
+    // Нейросеть просто ищет по названию, как обычный поиск
+    aiStatus.textContent = "Ищем: " + text;
+    searchMovies(text, currentType);
+    
+    aiButton.disabled = false;
   };
 }
 
@@ -326,6 +342,6 @@ function init() {
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 
 // ==========================================
-// ОБНОВЛЕНИЕ v2.4: Возврат к поиску по названиям
-// Нейросеть снова подбирает конкретные фильмы
+// ОБНОВЛЕНИЕ v3.1: Возврат к Cinemeta API
+// Нейросеть ищет по названию, как обычный поиск
 // ==========================================
