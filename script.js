@@ -33,7 +33,6 @@ var genreTranslations = {
   "War": "военный", "Western": "вестерн", "Children": "детский"
 };
 
-// Словарик для перевода русских запросов в английские (для поиска по описаниям)
 var ruToEn = {
   "животные": "animal", "животных": "animal", "животное": "animal",
   "кот": "cat", "кошка": "cat", "коты": "cat",
@@ -308,7 +307,6 @@ function render(movies, append) {
     currentMovies = movies;
   }
 
-  // Если у фильма уже есть постер (из Кинопоиска) — используем его, иначе грузим
   var promises = toRender.map(function(m) {
     var rawTitle = m.title || "";
     var title = cleanTitle(rawTitle);
@@ -458,7 +456,6 @@ function initAI() {
     aiStatus.textContent = "Анализируем запрос...";
     $("ai-modal").classList.remove("open");
 
-    // Переводим русские ключевые слова в английские для поиска по описаниям
     var keywords = text.toLowerCase().split(/\s+/).filter(function(w) { return w.length > 2; })
       .map(function(w) { return ruToEn[w] || w; });
 
