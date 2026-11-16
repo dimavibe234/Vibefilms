@@ -251,12 +251,12 @@ function initAI() {
     if (!text) return;
 
     aiButton.disabled = true;
-    aiStatus.textContent = "Думаем...";
+    aiStatus.textContent = "Подбираем фильмы...";
 
     var prompt = 'Пользователь хочет найти фильм. Его запрос: "' + text + '". ' +
-      'Выдели из этого запроса ГЛАВНОЕ СУЩЕСТВИТЕЛЬНОЕ (тему, например: животные, космос, машины, любовь, война), ' +
-      'которое лучше всего подходит для поиска по названию или описанию. ' +
-      'Ответь ТОЛЬКО ОДНИМ СЛОВОМ (существительным в именительном падеже), без пояснений.';
+      'Подбери 5 известных фильмов, которые лучше всего подходят под этот запрос (учитывай и настроение, и сюжет). ' +
+      'Ответь ТОЛЬКО их названиями на русском языке через запятую, без пояснений и без нумерации. ' +
+      'Например: Зверополис, Мадагаскар, Побег из курятника, Король Лев, Ледниковый период';
 
     puter.ai.chat(prompt).then(function (response) {
       var answer = "";
@@ -264,19 +264,13 @@ function initAI() {
       else if (response && response.message && response.message.content) answer = response.message.content;
       else if (response && response.text) answer = response.text;
 
-      var keyword = answer.toLowerCase().trim().replace(/[^а-яa-z0-9\s]/gi, '');
+      var titles = answer.split(',').map(function (t) { return t.trim().replace(/^[0-9]+[\.\)]\s*/, ''); }).filter(function (t) { return t.length > 1; });
 
-      if (keyword && keyword.length > 1) {
-        aiStatus.textContent = "Ищем: " + keyword;
-        searchMovies(keyword, currentType);
+      if (titles.length > 0) {
+        aiStatus.textContent = "Ищем: " + titles[0];
+        searchMovies(titles[0], currentType);
       } else {
-        aiStatus.textContent = "Не удалось выделить тему, ищем по настроению...";
-        var lower = text.toLowerCase();
-        var mood = "happy";
-        for (var k in moodGenres) {
-          if (lower.indexOf(moodGenres[k][0]) !== -1) { mood = k; break; }
-        }
-        loadMovies(mood, currentType);
+        aiStatus.textContent = "Не удалось подобрать фильмы, попробуйте иначе.";
       }
     }).catch(function (err) {
       aiStatus.textContent = "Ошибка ИИ: " + (err.message || err);
