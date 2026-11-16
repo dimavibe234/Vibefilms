@@ -253,11 +253,20 @@ function initAI() {
     aiButton.disabled = true;
     aiStatus.textContent = "Анализируем запрос...";
 
-    // Просим нейросеть выбрать ОДИН или ДВА жанра из списка
+    // Даем нейросети выбрать из СПИСКА с номерами (это надежнее, чем просто текст)
     var prompt = 'Пользователь хочет найти фильм. Его запрос: "' + text + '". ' +
-      'Твоя задача — определить, к каким ЖАНРАМ относится этот запрос. ' +
-      'Выбери ОДИН или ДВА жанра из этого списка: комедия, драма, боевик, семейный, ужасы, мелодрама, приключения, фантастика, музыка, детектив. ' +
-      'Ответь ТОЛЬКО названиями жанров через запятую (например: комедия, семейный), без пояснений.';
+      'Выбери ОДИН или ДВА жанра, которые лучше всего подходят под этот запрос, из списка ниже. ' +
+      'Напиши ТОЛЬКО НОМЕРА выбранных жанров через запятую (например: 1, 5). Никаких слов, только цифры.\n\n' +
+      '1. комедия\n' +
+      '2. драма\n' +
+      '3. боевик\n' +
+      '4. семейный\n' +
+      '5. ужасы\n' +
+      '6. мелодрама\n' +
+      '7. приключения\n' +
+      '8. фантастика\n' +
+      '9. музыка\n' +
+      '10. детектив';
 
     puter.ai.chat(prompt).then(function (response) {
       var answer = "";
@@ -265,28 +274,32 @@ function initAI() {
       else if (response && response.message && response.message.content) answer = response.message.content;
       else if (response && response.text) answer = response.text;
 
-      var genres = answer.toLowerCase().trim();
+      // Извлекаем цифры из ответа
+      var nums = answer.match(/\d+/g);
       
-      // Определяем, какие категории подходят под ответ
-      var matchedMoods = [];
-      if (genres.indexOf("комедия") !== -1) matchedMoods.push("happy");
-      if (genres.indexOf("драма") !== -1) matchedMoods.push("sad");
-      if (genres.indexOf("боевик") !== -1) matchedMoods.push("action");
-      if (genres.indexOf("семейный") !== -1) matchedMoods.push("family");
-      if (genres.indexOf("ужасы") !== -1) matchedMoods.push("scary");
-      if (genres.indexOf("мелодрама") !== -1) matchedMoods.push("romance");
-      if (genres.indexOf("приключения") !== -1) matchedMoods.push("adventure");
-      if (genres.indexOf("фантастика") !== -1) matchedMoods.push("scifi");
-      if (genres.indexOf("музыка") !== -1) matchedMoods.push("music");
-      if (genres.indexOf("детектив") !== -1) matchedMoods.push("mystery");
-
-      if (matchedMoods.length > 0) {
-        aiStatus.textContent = "Жанры: " + genres + ". Загружаем...";
-        // Берем первый совпавший жанр для загрузки
-        loadMovies(matchedMoods[0], currentType);
+      if (nums && nums.length > 0) {
+        // Берем первый номер и сопоставляем с категорией
+        var firstNum = parseInt(nums[0], 10);
+        var moodMap = {
+          1: "happy", 2: "sad", 3: "action", 4: "family", 5: "scary",
+          6: "romance", 7: "adventure", 8: "scifi", 9: "music", 10: "mystery"
+        };
+        
+        var mood = moodMap[firstNum] || "happy";
+        aiStatus.textContent = "Выбран жанр под номером " + firstNum + ". Загружаем...";
+        loadMovies(mood, currentType);
       } else {
-        aiStatus.textContent = "Не удалось определить жанр. Пробуем комедию.";
-        loadMovies("happy", currentType);
+        // Если нейросеть не дала цифры, пробуем найти жанр в тексте
+        var genres = answer.toLowerCase().trim();
+        var matchedMood = "happy"; // По умолчанию комедия
+        if (genres.indexOf("комедия") !== -1) matchedMood = "happy";
+        else if (genres.indexOf("драма") !== -1) matchedMood = "sad";
+        else if (genres.indexOf("боевик") !== -1) matchedMood = "action";
+        else if (genres.indexOf("семейный") !== -1) matchedMood = "family";
+        else if (genres.indexOf("ужасы") !== -1) matchedMood = "scary";
+        
+        aiStatus.textContent = "Пробуем жанр: " + matchedMood;
+        loadMovies(matchedMood, currentType);
       }
     }).catch(function (err) {
       aiStatus.textContent = "Ошибка ИИ: " + (err.message || err);
@@ -342,6 +355,6 @@ function init() {
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 
 // ==========================================
-// ОБНОВЛЕНИЕ v2.2: Нейросеть выбирает 1-2 жанра
-// Теперь запрос "веселый про животных" -> комедия, семейный
+// ОБНОВЛЕНИЕ v2.3: ЖЕСТКАЯ логика выбора жанра
+// Нейросеть теперь возвращает НОМЕРА жанров (1-10)
 // ==========================================
