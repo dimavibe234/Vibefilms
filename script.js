@@ -91,7 +91,7 @@ function fetchKinopoisk(title) {
     .catch(function () { return null; });
 }
 
-// Функция для получения кандидатов с фильтрацией по типу и релевантности
+// Функция для получения кандидатов с фильтрацией по типу
 function fetchCandidatesFromKinopoisk(query, limit, typeFilter) {
   var url = BASE + "?query=" + encodeURIComponent(query) + "&limit=" + (limit || 30);
   return fetchWithTimeout(url, 15000)
@@ -111,7 +111,6 @@ function fetchCandidatesFromKinopoisk(query, limit, typeFilter) {
         };
       }).filter(function(m) { return m.poster; });
 
-      // Фильтр по типу (movie / tv-series / documentary)
       if (typeFilter) {
         movies = movies.filter(function(m) {
           if (typeFilter === "documentary") return m.genres.indexOf("документальный") !== -1 || m.type === "documentary";
@@ -354,7 +353,7 @@ function openMovieModal(title) {
   $("movie-modal").classList.add("open");
 }
 
-// Улучшенная нейросеть: классификация + точный поиск + фильтрация
+// Упрощённая нейросеть: сначала просим название/жанр, потом ищем
 function initAI() {
   var aiInput = $("ai-input");
   var aiButton = $("ai-button");
@@ -369,96 +368,54 @@ function initAI() {
     }
 
     aiButton.disabled = true;
-    aiStatus.textContent = "Нейросеть анализирует запрос...";
+    aiStatus.textContent = "Нейросеть думает...";
 
-    // Шаг 1: Классификация и формулировка поискового запроса
-    var classifierPrompt = 'Проанализируй запрос пользователя: "' + text + '".\n' +
-      'Определи, это КОНКРЕТНЫЙ СЮЖЕТ (например, "побег из Шоушенка", "человек застрял на Марсе") ' +
-      'или ОБЩАЯ ТЕМА/ЖАНР (например, "фильм про животных", "хочу документальный фильм", "комедия").\n' +
-      'Если это КОНКРЕТНЫЙ СЮЖЕТ — верни JSON: {"type": "specific", "searchQuery": "точное название фильма или ключевые слова"}\n' +
-      'Если это ОБЩАЯ ТЕМА — верни JSON: {"type": "general", "searchQuery": "жанр или ключевые слова на русском", "genreFilter": "documentary или пусто"}\n' +
-      'Ответь ТОЛЬКО JSON, без пояснений.';
+    var prompt = 'Пользователь ищет фильм. Запрос: "' + text + '".\n' +
+      'Если это описание конкретного сюжета (например, "человек застрял на Марсе"), напиши название ОДНОГО реального фильма, который подходит. Например: Марсианин.\n' +
+      'Если это общая тема или жанр (например, "хочу документальный фильм", "комедия"), напиши ОДНО слово — жанр для поиска. Например: документальный, комедия, фантастика.\n' +
+      'Ответь ТОЛЬКО одним названием или жанром, без пояснений и кавычек.';
 
-    puter.ai.chat(classifierPrompt).then(function(response) {
+    puter.ai.chat(prompt).then(function (response) {
       var answer = "";
       if (typeof response === "string") answer = response;
       else if (response && response.message && response.message.content) answer = response.message.content;
       else if (response && response.text) answer = response.text;
 
-      var jsonMatch = answer.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("Не удалось распознать ответ нейросети");
-      var parsed = JSON.parse(jsonMatch[0]);
-      var isSpecific = parsed.type === "specific";
-      var searchQuery = parsed.searchQuery || text;
-      var genreFilter = parsed.genreFilter || null;
+      answer = answer.replace(/["'«»]/g, "").trim();
+      answer = answer.split("\n")[0].trim();
 
-      // Для документальных фильмов жёстко ставим фильтр
-      if (text.toLowerCase().indexOf("документальн") !== -1) {
-        genreFilter = "documentary";
-      }
+      if (!answer) throw new Error("Нейросеть не дала ответ");
 
-      aiStatus.textContent = isSpecific ? "Ищем конкретный фильм..." : "Ищем фильмы по теме...";
+      aiStatus.textContent = "Ищем: " + answer;
 
-      var limit = isSpecific ? 15 : 40;
-      return fetchCandidatesFromKinopoisk(searchQuery, limit, genreFilter).then(function(candidates) {
+      return fetchCandidatesFromKinopoisk(answer, 30, null).then(function (candidates) {
         if (!candidates.length) {
-          // Fallback: если с фильтром пусто — пробуем без него
-          if (genreFilter) {
-            return fetchCandidatesFromKinopoisk(searchQuery, limit, null).then(function(candidates2) {
-              if (!candidates2.length) throw new Error("Кинопоиск не нашёл фильмов по запросу «" + searchQuery + "»");
-              return selectBest(candidates2, text, isSpecific);
-            });
-          }
-          throw new Error("Кинопоиск не нашёл фильмов по запросу «" + searchQuery + "»");
+          throw new Error("Кинопоиск не нашёл фильмов по запросу «" + answer + "»");
         }
-        return selectBest(candidates, text, isSpecific);
+
+        if (text.toLowerCase().indexOf("документальн") !== -1) {
+          var docs = candidates.filter(function (m) {
+            return m.genres.indexOf("документальный") !== -1;
+          });
+          if (docs.length) candidates = docs;
+        }
+
+        candidates.sort(function (a, b) { return (b.votes || 0) - (a.votes || 0); });
+
+        var isSpecific = candidates.length > 0 && candidates[0].title.toLowerCase().indexOf(answer.toLowerCase().split(" ")[0]) !== -1;
+        var count = isSpecific ? 1 : 5;
+
+        var movies = candidates.slice(0, count);
+        currentMovies = movies;
+        render(movies, false);
+        aiStatus.textContent = "Найдено: " + movies.length + " фильм(ов)";
       });
-    }).catch(function(err) {
+    }).catch(function (err) {
       aiStatus.textContent = "Ошибка: " + (err.message || err);
-    }).finally(function() {
+    }).finally(function () {
       aiButton.disabled = false;
     });
   };
-
-  function selectBest(candidates, originalText, isSpecific) {
-    // Дополнительная фильтрация по релевантности для конкретного сюжета
-    if (isSpecific) {
-      // Ищем кандидатов, у которых в названии или описании есть ключевые слова из запроса
-      var keywords = originalText.toLowerCase().split(/\s+/).filter(function(w) { return w.length > 3; });
-      var relevant = candidates.filter(function(m) {
-        var haystack = (m.title + " " + m.description).toLowerCase();
-        return keywords.some(function(k) { return haystack.indexOf(k) !== -1; });
-      });
-      if (relevant.length) candidates = relevant;
-    }
-
-    var context = candidates.map(function(m, i) {
-      return (i + 1) + ". " + m.title + " (" + m.year + ") — " + (m.description || "нет описания").slice(0, 150);
-    }).join("\n");
-
-    var count = isSpecific ? 1 : 5;
-    var selectorPrompt = 'Пользователь ищет: "' + originalText + '".\n' +
-      'Вот список реальных фильмов:\n' + context + '\n\n' +
-      'Выбери ' + count + ' фильм(ов) из этого списка, которые ЛУЧШЕ ВСЕГО подходят под запрос. ' +
-      'Игнорируй фильмы, которые не соответствуют теме (например, "Человек с бензопилой" НЕ подходит под "человек застрял на Марсе"). ' +
-      'Ответь ТОЛЬКО их номерами через запятую (например: 1, 5, 12). Без пояснений.';
-
-    return puter.ai.chat(selectorPrompt).then(function(selResponse) {
-      var selAnswer = "";
-      if (typeof selResponse === "string") selAnswer = selResponse;
-      else if (selResponse && selResponse.message && selResponse.message.content) selAnswer = selResponse.message.content;
-      else if (selResponse && selResponse.text) selAnswer = selResponse.text;
-
-      var nums = selAnswer.match(/\d+/g) || [];
-      var chosen = nums.map(function(n) { return candidates[parseInt(n, 10) - 1]; }).filter(Boolean);
-
-      if (!chosen.length) chosen = candidates.slice(0, count);
-
-      currentMovies = chosen;
-      render(chosen, false);
-      aiStatus.textContent = "Найдено: " + chosen.length + " фильм(ов)";
-    });
-  }
 }
 
 // Поиск по категории — 20 фильмов, с фильтрацией по типу
@@ -468,16 +425,21 @@ function loadMoviesByMood(mood) {
   el.innerHTML = '<p class="empty">Подбираем фильмы...</p>';
 
   var searchQuery = moodGenres[mood] || mood;
-  var genreFilter = (mood === "documentary") ? "documentary" : null;
 
-  fetchCandidatesFromKinopoisk(searchQuery, 40, genreFilter).then(function(candidates) {
+  fetchCandidatesFromKinopoisk(searchQuery, 40, null).then(function (candidates) {
     if (!candidates.length) {
       el.innerHTML = '<p class="empty">Ничего не найдено.</p>';
       return;
     }
 
-    // Сортируем по голосам и берём 20
-    candidates.sort(function(a, b) { return (b.votes || 0) - (a.votes || 0); });
+    if (mood === "documentary") {
+      var docs = candidates.filter(function (m) {
+        return m.genres.indexOf("документальный") !== -1;
+      });
+      if (docs.length) candidates = docs;
+    }
+
+    candidates.sort(function (a, b) { return (b.votes || 0) - (a.votes || 0); });
     var movies = candidates.slice(0, 20);
 
     currentMovies = movies;
