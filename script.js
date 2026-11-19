@@ -1,26 +1,20 @@
 var BASE = "https://functions.yandexcloud.net/d4e59mril3tsi9p47r09";
 
 var moodGenres = {
-  happy: ["Comedy"], sad: ["Drama"], action: ["Action"],
-  cozy: ["Family", "Animation", "Children"], scary: ["Horror"], romance: ["Romance"],
-  nostalgia: ["Adventure"], inspire: ["Drama", "History"],
-  mystery: ["Mystery", "Thriller"], scifi: ["Sci-Fi"], music: ["Music"],
-  think: ["Drama", "Mystery"], anime: ["Animation"], fantasy: ["Fantasy"],
-  crime: ["Crime"], thriller: ["Thriller"], documentary: ["Documentary"],
-  sport: ["Sport"], war: ["War"], western: ["Western"], biography: ["Biography"],
-  kids: ["Family", "Animation", "Children"], adventure: ["Adventure"],
-  comedy_dark: ["Comedy", "Crime"], mystic: ["Mystery", "Horror"],
-  musical: ["Music"], family: ["Family", "Children"], heist: ["Crime", "Action"],
-  survival: ["Adventure", "Thriller"], space: ["Sci-Fi", "Adventure"],
-  detective: ["Mystery", "Crime"], psychological: ["Drama", "Thriller"],
-  historical: ["History", "Drama"], superhero: ["Action", "Adventure"],
-  road: ["Adventure", "Comedy"], coming_of_age: ["Drama", "Family"],
-  satire: ["Comedy", "Drama"], epic: ["Adventure", "History"],
-  noir: ["Crime", "Mystery"], dystopia: ["Sci-Fi", "Thriller"],
-  time_travel: ["Sci-Fi", "Adventure"], mockumentary: ["Comedy", "Documentary"],
-  disaster: ["Action", "Thriller"], spy: ["Action", "Thriller"],
-  martial_arts: ["Action"], standup: ["Comedy"], concert: ["Music"],
-  nature: ["Documentary"], cooking: ["Documentary"], travel: ["Documentary", "Adventure"]
+  happy: "весёлые комедии", sad: "грустные драмы", action: "боевики с адреналином",
+  cozy: "уютные семейные фильмы", scary: "страшные ужасы", romance: "романтические фильмы",
+  nostalgia: "фильмы с ностальгией", inspire: "вдохновляющие фильмы",
+  mystery: "детективы и загадки", scifi: "фантастика про космос и будущее",
+  music: "фильмы про музыку и музыкантов", think: "фильмы, которые заставляют думать",
+  anime: "аниме", fantasy: "фэнтези с магией и драконами",
+  crime: "криминальные фильмы", thriller: "триллеры",
+  documentary: "документальные фильмы", sport: "фильмы про спорт",
+  war: "фильмы про войну", western: "вестерны",
+  biography: "биографические фильмы", kids: "фильмы для детей",
+  adventure: "приключенческие фильмы", comedy_dark: "чёрные комедии",
+  mystic: "мистические фильмы", musical: "мюзиклы",
+  family: "семейные фильмы", heist: "фильмы про ограбления",
+  survival: "фильмы про выживание", space: "фильмы про космос"
 };
 
 var genreTranslations = {
@@ -33,7 +27,6 @@ var genreTranslations = {
   "War": "военный", "Western": "вестерн", "Children": "детский"
 };
 
-var allMovies = [];
 var currentMood = null, currentType = "movie", lastSearchQuery = null, currentMovies = [], currentUser = null;
 var currentProfile = { name: "", avatar: "", color: "#e8eaed" };
 var firebaseReady = false, fbAuth = null, fbDb = null, fbProvider = null;
@@ -59,47 +52,12 @@ function fetchWithTimeout(url, ms) {
   return Promise.race([fetch(url), new Promise(function (_, rej) { setTimeout(function () { rej(new Error("timeout")); }, ms || 20000); })]);
 }
 
-function loadMovieLens() {
-  return fetch('movies.json')
-    .then(function(r) { return r.json(); })
-    .then(function(data) { allMovies = data; console.log('MovieLens загружен:', allMovies.length); })
-    .catch(function(e) { console.error('Ошибка загрузки movies.json:', e); });
-}
-
 function extractYear(title) {
   var m = (title || '').match(/\((\d{4})\)\s*$/);
   return m ? m[1] : '';
 }
 function cleanTitle(title) {
   return (title || '').replace(/\s*\(\d{4}\)\s*$/, '').trim();
-}
-
-function normalizeTitle(t) {
-  return (t || "").toLowerCase().replace(/[^a-zа-я0-9]/gi, "").trim();
-}
-function fetchPoster(title, year) {
-  var key = title + "_" + year;
-  if (posterCache[key]) return Promise.resolve(posterCache[key]);
-  var url = BASE + "?query=" + encodeURIComponent(title) + "&limit=10";
-  return fetchWithTimeout(url, 10000)
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (!data || !data.docs || !data.docs.length) return null;
-      var normTitle = normalizeTitle(title), best = null;
-      for (var i = 0; i < data.docs.length; i++) {
-        var d = data.docs[i];
-        var names = [d.name, d.alternativeName].concat((d.names || []).map(function(n) { return n.name; }));
-        var match = names.some(function(n) { return normalizeTitle(n) === normTitle; });
-        var yearMatch = !year || String(d.year) === String(year);
-        if (match && yearMatch) { best = d; break; }
-        if (match && !best) best = d;
-      }
-      if (!best) best = data.docs[0];
-      var posterUrl = best.poster ? (best.poster.previewUrl || best.poster.url) : null;
-      if (posterUrl) { posterCache[key] = posterUrl; savePosterCache(); }
-      return posterUrl;
-    })
-    .catch(function() { return null; });
 }
 
 function fetchKinopoisk(title) {
@@ -301,17 +259,6 @@ function buildGenres(g) {
 }
 
 var RENDER_LIMIT = 20;
-
-function sortMovies(res) {
-  res.sort(function(a, b) {
-    var ya = parseInt(extractYear(a.title) || 0, 10);
-    var yb = parseInt(extractYear(b.title) || 0, 10);
-    if (yb !== ya) return yb - ya;
-    return (a.movie_id || 0) - (b.movie_id || 0);
-  });
-  return res;
-}
-
 function render(movies, append) {
   var el = $("results"); if (!el) return;
   if (!append) el.innerHTML = '<p class="empty">Загрузка...</p>';
@@ -329,115 +276,27 @@ function render(movies, append) {
     currentMovies = movies;
   }
 
-  var promises = toRender.map(function(m) {
-    var rawTitle = m.title || "";
-    var title = cleanTitle(rawTitle);
-    var year = extractYear(rawTitle);
-    if (m.poster) {
-      return Promise.resolve({ movie: m, title: title, year: year, poster: m.poster });
+  var h = "";
+  toRender.forEach(function(m) {
+    var title = cleanTitle(m.title || "");
+    var year = m.year || extractYear(m.title || "");
+    var poster = m.poster || null;
+    var rating = m.rating || (m.imdbRating ? parseFloat(m.imdbRating) : 0);
+    var w = isWatched(title);
+    h += '<div class="card">';
+    if (poster) {
+      h += '<img src="' + poster + '" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">';
+    } else {
+      h += '<div class="no-poster" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')" style="aspect-ratio:2/3;background:var(--bg-input);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.8rem;text-align:center;padding:10px;">' + title + '</div>';
     }
-    return fetchPoster(title, year).then(function(url) {
-      return { movie: m, title: title, year: year, poster: url };
-    });
+    h += '<div class="info"><div class="title" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">' + title + (w ? ' ✓' : '') + '</div>';
+    h += '<div class="meta">' + year + (rating > 0 ? ' · ' + buildStars(rating) : "") + '</div>' + buildGenres(m.genres);
+    h += '<button class="card-add" onclick="addMovieToPlaylist({title:\'' + title.replace(/'/g, "\\'") + '\',year:\'' + year + '\',poster:\'' + (poster || '') + '\'})">＋ В плейлист</button></div></div>';
   });
 
-  Promise.all(promises).then(function(results) {
-    var h = "";
-    results.forEach(function(r) {
-      var m = r.movie, title = r.title, year = r.year, poster = r.poster;
-      var rating = m.imdbRating ? parseFloat(m.imdbRating) : 0;
-      var w = isWatched(title);
-      h += '<div class="card">';
-      if (poster) {
-        h += '<img src="' + poster + '" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">';
-      } else {
-        h += '<div class="no-poster" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')" style="aspect-ratio:2/3;background:var(--bg-input);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.8rem;text-align:center;padding:10px;">' + title + '</div>';
-      }
-      h += '<div class="info"><div class="title" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">' + title + (w ? ' ✓' : '') + '</div>';
-      h += '<div class="meta">' + year + (rating > 0 ? ' · ' + buildStars(rating) : "") + '</div>' + buildGenres(m.genres);
-      h += '<button class="card-add" onclick="addMovieToPlaylist({title:\'' + title.replace(/'/g, "\\'") + '\',year:\'' + year + '\',poster:\'' + (poster || '') + '\'})">＋ В плейлист</button></div></div>';
-    });
-
-    if (append) el.innerHTML += h; else el.innerHTML = h;
-    var lm = $("load-more");
-    if (lm) lm.style.display = (currentMood || lastSearchQuery) ? "block" : "none";
-  });
-}
-
-function applyClientFilters(movies) {
-  var rEl = $("rating-filter"), yEl = $("year-filter"), uEl = $("filter-unwatched"), nEl = $("filter-new");
-  var minRating = rEl ? parseFloat(rEl.value) || 0 : 0;
-  var minYear = yEl ? parseInt(yEl.value, 10) || 1900 : 1900;
-  var onlyUnwatched = uEl ? uEl.checked : false;
-  var onlyNew = nEl ? nEl.checked : false;
-  var currentYear = new Date().getFullYear();
-  return movies.filter(function (m) {
-    var rawTitle = m.title || "";
-    var title = cleanTitle(rawTitle);
-    if (isHidden(title)) return false;
-    var rating = m.imdbRating ? parseFloat(m.imdbRating) : 0;
-    if (rating < minRating) return false;
-    var ym = (rawTitle || "").match(/\((\d{4})\)\s*$/);
-    var year = ym ? parseInt(ym[1], 10) : 0;
-    if (year && year < minYear) return false;
-    if (onlyNew && year && year < currentYear - 1) return false;
-    if (onlyUnwatched && isWatched(title)) return false;
-    return true;
-  });
-}
-function filterByMood(movies, mood) {
-  var wanted = moodGenres[mood] || [];
-  if (!wanted.length) return movies;
-  return movies.filter(function (m) {
-    var genres = Array.isArray(m.genres) ? m.genres : [];
-    return genres.some(function (g) { return wanted.indexOf(g) !== -1; });
-  });
-}
-
-function loadMovies(mood, type, append) {
-  var el = $("results"); if (!el) return;
-  if (!append) {
-    currentMood = mood; currentType = type; lastSearchQuery = null;
-    updateActiveMoodBar(mood);
-  }
-  if (!allMovies.length) {
-    el.innerHTML = '<p class="empty">Данные ещё загружаются, подожди...</p>';
-    return;
-  }
-  var res = filterByMood(allMovies, mood);
-  res = applyClientFilters(res);
-  res = sortMovies(res);
-  if (!append) currentMovies = res;
-  render(res, append);
-}
-
-function updateActiveMoodBar(mood) {
-  var bar = $("active-mood-bar"), label = $("active-mood-label");
-  if (!bar || !label) return;
-  if (!mood) { bar.style.display = "none"; return; }
-  var btn = document.querySelector('#moods-list button[data-mood="' + mood + '"]');
-  label.textContent = btn ? "Настроение: " + btn.textContent.trim() : "Настроение: " + mood;
-  bar.style.display = "flex";
-}
-
-function searchMovies(q, type, append) {
-  var el = $("results"); if (!el) return;
-  if (!append) {
-    lastSearchQuery = q; currentType = type; currentMood = null;
-    updateActiveMoodBar(null);
-  }
-  if (!allMovies.length) {
-    el.innerHTML = '<p class="empty">Данные ещё загружаются, подожди...</p>';
-    return;
-  }
-  var query = q.toLowerCase();
-  var res = allMovies.filter(function(m) {
-    return (m.title || '').toLowerCase().indexOf(query) !== -1;
-  });
-  res = applyClientFilters(res);
-  res = sortMovies(res);
-  if (!append) currentMovies = res;
-  render(res, append);
+  if (append) el.innerHTML += h; else el.innerHTML = h;
+  var lm = $("load-more");
+  if (lm) lm.style.display = (currentMood || lastSearchQuery) ? "block" : "none";
 }
 
 function openMovieModal(title) {
@@ -446,15 +305,14 @@ function openMovieModal(title) {
     if (cleanTitle(currentMovies[i].title) === title) { m = currentMovies[i]; break; }
   }
   if (!m) return;
-  var rawTitle = m.title || "";
-  var year = extractYear(rawTitle);
-  var rating = m.imdbRating ? parseFloat(m.imdbRating) : 0;
-  var desc = m.plot_summary || "Описание отсутствует.";
+  var year = m.year || extractYear(m.title || "");
+  var rating = m.rating || (m.imdbRating ? parseFloat(m.imdbRating) : 0);
+  var desc = m.description || m.plot_summary || "Описание отсутствует.";
   var w = isWatched(title);
-  var cachedPoster = posterCache[title + "_" + year] || "";
+  var poster = m.poster || "";
   var h = '<div class="movie-header">';
-  if (cachedPoster) {
-    h += '<img src="' + cachedPoster + '">';
+  if (poster) {
+    h += '<img src="' + poster + '">';
   }
   h += '<div><h2>' + title + '</h2><p>' + year + (rating ? ' · ★ ' + rating.toFixed(1) : '') + '</p></div></div>';
   h += '<p style="font-size:0.9rem;line-height:1.5;margin-bottom:20px;">' + desc + '</p>';
@@ -482,10 +340,13 @@ function initAI() {
     }
 
     aiButton.disabled = true;
-    aiStatus.textContent = "Нейросеть подбирает фильмы...";
+    aiStatus.textContent = "Нейросеть анализирует запрос...";
 
-    var prompt = 'Пользователь хочет найти фильм по описанию: "' + text + '".\n' +
-      'Придумай 5 реальных существующих фильмов, которые подходят под это описание. ' +
+    var prompt = 'Пользователь ищет фильм. Запрос: "' + text + '".\n' +
+      'Определи, это КОНКРЕТНЫЙ СЮЖЕТ (например, "побег из Шоушенка", "фильм где герой застревает во времени") ' +
+      'или ОБЩАЯ ТЕМА (например, "фильм про животных", "хочу комедию", "что-то про космос").\n' +
+      'Если это КОНКРЕТНЫЙ СЮЖЕТ — верни ТОЛЬКО 1 наиболее подходящий реальный фильм.\n' +
+      'Если это ОБЩАЯ ТЕМА — верни 5 реальных фильмов, подходящих под тему.\n' +
       'Ответь ТОЛЬКО названиями на русском языке, каждое с новой строки. Без нумерации, без пояснений.';
 
     puter.ai.chat(prompt).then(function (response) {
@@ -505,7 +366,8 @@ function initAI() {
         return;
       }
 
-      aiStatus.textContent = "Проверяем фильмы в Кинопоиске...";
+      var isSpecific = titles.length === 1;
+      aiStatus.textContent = isSpecific ? "Ищем конкретный фильм..." : "Проверяем фильмы в Кинопоиске...";
 
       var promises = titles.map(function (title) {
         return fetchKinopoisk(title);
@@ -515,20 +377,29 @@ function initAI() {
         var movies = results.filter(function (r) {
           if (!r) return false;
           if (!r.poster) return false;
-          if (!r.rating || r.rating < 6.5) return false;
-          if (!r.votes || r.votes < 500) return false;
+          if (isSpecific) {
+            if (!r.rating || r.rating < 5.0) return false;
+            if (!r.votes || r.votes < 50) return false;
+          } else {
+            if (!r.rating || r.rating < 6.5) return false;
+            if (!r.votes || r.votes < 500) return false;
+          }
           return true;
         });
 
         if (!movies.length) {
-          aiStatus.textContent = "Кинопоиск не нашёл подходящих популярных фильмов (рейтинг 6.5+, 500+ голосов). Попробуйте иначе.";
+          aiStatus.textContent = "Кинопоиск не нашёл подходящих фильмов. Попробуйте иначе.";
           aiButton.disabled = false;
           return;
         }
 
-        movies.sort(function (a, b) {
-          return (b.votes || 0) - (a.votes || 0);
-        });
+        if (isSpecific) {
+          movies = [movies[0]];
+        } else {
+          movies.sort(function (a, b) {
+            return (b.votes || 0) - (a.votes || 0);
+          });
+        }
 
         currentMovies = movies;
         render(movies, false);
@@ -542,9 +413,57 @@ function initAI() {
   };
 }
 
-function init() {
-  loadMovieLens();
+function loadMoviesByMood(mood) {
+  var el = $("results"); if (!el) return;
+  currentMood = mood; lastSearchQuery = null;
+  el.innerHTML = '<p class="empty">Подбираем фильмы...</p>';
 
+  var theme = moodGenres[mood] || mood;
+  var prompt = 'Пользователь хочет фильмы на тему: "' + theme + '".\n' +
+    'Верни 5 реальных существующих фильмов, которые подходят под эту тему. ' +
+    'Ответь ТОЛЬКО названиями на русском языке, каждое с новой строки. Без нумерации, без пояснений.';
+
+  puter.ai.chat(prompt).then(function (response) {
+    var answer = "";
+    if (typeof response === "string") answer = response;
+    else if (response && response.message && response.message.content) answer = response.message.content;
+    else if (response && response.text) answer = response.text;
+
+    var titles = answer.split("\n")
+      .map(function (s) { return s.replace(/^\d+[\.\)]\s*/, "").trim(); })
+      .filter(function (s) { return s.length > 0; })
+      .slice(0, 5);
+
+    if (!titles.length) {
+      el.innerHTML = '<p class="empty">Ничего не найдено.</p>';
+      return;
+    }
+
+    var promises = titles.map(function (title) { return fetchKinopoisk(title); });
+    Promise.all(promises).then(function (results) {
+      var movies = results.filter(function (r) {
+        if (!r) return false;
+        if (!r.poster) return false;
+        if (!r.rating || r.rating < 6.5) return false;
+        if (!r.votes || r.votes < 500) return false;
+        return true;
+      });
+
+      if (!movies.length) {
+        el.innerHTML = '<p class="empty">Ничего не найдено.</p>';
+        return;
+      }
+
+      movies.sort(function (a, b) { return (b.votes || 0) - (a.votes || 0); });
+      currentMovies = movies;
+      render(movies, false);
+    });
+  }).catch(function () {
+    el.innerHTML = '<p class="empty">Ошибка подбора.</p>';
+  });
+}
+
+function init() {
   var settingsToggle = $("settings-toggle");
   var settingsPanel = $("settings-panel");
   var settingsClose = $("settings-close");
@@ -569,7 +488,13 @@ function init() {
 
   if ($("search-btn")) $("search-btn").onclick = function () {
     var q = $("search-input").value.trim();
-    if (q) searchMovies(q, currentType);
+    if (!q) return;
+    $("results").innerHTML = '<p class="empty">Поиск...</p>';
+    fetchKinopoisk(q).then(function (r) {
+      if (!r) { $("results").innerHTML = '<p class="empty">Не найдено.</p>'; return; }
+      currentMovies = [r];
+      render([r], false);
+    });
   };
   if ($("search-input")) $("search-input").onkeydown = function (e) {
     if (e.key === "Enter") $("search-btn").click();
@@ -577,44 +502,33 @@ function init() {
 
   if ($("random-btn")) $("random-btn").onclick = function () {
     var keys = Object.keys(moodGenres);
-    loadMovies(keys[Math.floor(Math.random() * keys.length)], currentType);
+    loadMoviesByMood(keys[Math.floor(Math.random() * keys.length)]);
   };
-  if ($("masterpiece-btn")) $("masterpiece-btn").onclick = function () { searchMovies("шедевр", "movie"); };
+  if ($("masterpiece-btn")) $("masterpiece-btn").onclick = function () {
+    loadMoviesByMood("inspire");
+  };
+
+  document.querySelectorAll("#moods button").forEach(function (b) {
+    b.onclick = function () {
+      document.querySelectorAll("#moods button").forEach(function (x) { x.classList.remove("active"); });
+      this.classList.add("active");
+      loadMoviesByMood(this.dataset.mood);
+    };
+  });
 
   document.querySelectorAll("#type-switch button").forEach(function (b) {
     b.onclick = function () {
       document.querySelectorAll("#type-switch button").forEach(function (x) { x.classList.remove("active"); });
       this.classList.add("active");
       currentType = this.dataset.type;
-      if (currentMood) loadMovies(currentMood, currentType);
-      else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType);
     };
   });
 
   if ($("load-more")) $("load-more").onclick = function () {
-    if (!currentMood && !lastSearchQuery) return;
     var already = document.querySelectorAll("#results .card").length;
     var next = currentMovies.slice(already, already + RENDER_LIMIT);
     if (!next.length) { showToast("Больше нет"); return; }
     render(next, true);
-  };
-
-  ["rating-filter", "year-filter", "filter-unwatched", "filter-new"].forEach(function (id) {
-    var el = $(id);
-    if (!el) return;
-    el.addEventListener("change", function () {
-      if (currentMood) loadMovies(currentMood, currentType);
-      else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType);
-    });
-  });
-  if ($("rating-filter")) $("rating-filter").addEventListener("input", function () { $("rating-value").textContent = this.value; });
-  if ($("filters-reset")) $("filters-reset").onclick = function () {
-    if ($("rating-filter")) { $("rating-filter").value = 0; $("rating-value").textContent = "0"; }
-    if ($("year-filter")) $("year-filter").value = 1900;
-    if ($("filter-unwatched")) $("filter-unwatched").checked = false;
-    if ($("filter-new")) $("filter-new").checked = false;
-    if (currentMood) loadMovies(currentMood, currentType);
-    else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType);
   };
 
   if ($("playlist-create-btn")) $("playlist-create-btn").onclick = function () {
@@ -645,6 +559,9 @@ function init() {
     localStorage.removeItem("mood_theme");
     document.querySelectorAll(".color-dot, .theme-btn").forEach(function (el) { el.classList.remove("active"); });
   };
+
+  if ($("movie-modal-close")) $("movie-modal-close").onclick = function () { $("movie-modal").classList.remove("open"); };
+  if ($("profile-modal-close")) $("profile-modal-close").onclick = function () { $("profile-modal").classList.remove("open"); };
 
   if (window.firebaseAuth) initFirebase(); else window.addEventListener("firebase-ready", initFirebase);
   initGoogleLogin(); initProfile(); initAI();
