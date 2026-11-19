@@ -249,6 +249,12 @@ function filterByMoodConfig(movies, cfg) {
   });
 }
 
+function popularitySort(a, b) {
+  var sa = Math.log10((a.votes || 0) + 1) * 3 + (a.rating || 0);
+  var sb = Math.log10((b.votes || 0) + 1) * 3 + (b.rating || 0);
+  return sb - sa;
+}
+
 // ---------- Firebase ----------
 function initFirebase() {
   if (window.firebaseAuth) {
@@ -488,6 +494,82 @@ function openMovieModal(title) {
   $("movie-modal").classList.add("open");
 }
 
+// ---------- AI: ветки поиска ----------
+function searchByFilm(query) {
+  return fetchKinopoisk(query).then(function (found) {
+    if (!found) {
+      return searchByTopic(query, query);
+    }
+    currentMovies = [found];
+    currentMood = null; lastSearchQuery = query;
+    render([found], false);
+    $("ai-status").textContent = "Найдено: " + found.title + " (" + found.year + ")";
+  });
+}
+
+function searchByGenre(query) {
+  return fetchCandidatesFromKinopoisk(query, 40, currentType).then(function (candidates) {
+    if (!candidates.length) throw new Error("По жанру «" + query + "» ничего не нашлось");
+
+    var byGenre = candidates.filter(function (m) {
+      return m.genres.some(function (g) {
+        var tr = genreTranslations[g] || g;
+        return normalize(tr) === normalize(query) || normalize(g) === normalize(query);
+      });
+    });
+    if (byGenre.length) candidates = byGenre;
+
+    candidates = candidates.filter(passUserFilters);
+    candidates.sort(popularitySort);
+
+    if (!candidates.length) throw new Error("По фильтрам ничего не осталось");
+
+    var movies = candidates.slice(0, 5);
+    currentMood = null; lastSearchQuery = query;
+    currentMovies = movies;
+    render(movies, false);
+    $("ai-status").textContent = "Найдено: " + movies.length + " популярных по жанру «" + query + "»";
+  });
+}
+
+function searchByTopic(topic, userText) {
+  var cleaned = (userText || "").replace(/(хочу|фильм|про|где|о|об|как|мне|найди|покажи|посмотреть)/gi, " ")
+    .replace(/\s+/g, " ").trim();
+
+  var queries = [topic];
+  if (cleaned && normalize(cleaned) !== normalize(topic)) queries.push(cleaned);
+  if (userText && normalize(userText) !== normalize(topic) && normalize(userText) !== normalize(cleaned)) {
+    queries.push(userText);
+  }
+  if (!/кино|фильм|movie/i.test(topic)) queries.push(topic + " фильм");
+
+  return Promise.all(queries.map(function (q) {
+    return fetchCandidatesFromKinopoisk(q, 40, currentType);
+  })).then(function (arrays) {
+    var seen = {};
+    var all = [];
+    arrays.forEach(function (arr) {
+      arr.forEach(function (m) {
+        var key = normalize(m.title) + "|" + (m.year || "");
+        if (!seen[key]) { seen[key] = 1; all.push(m); }
+      });
+    });
+
+    if (!all.length) throw new Error("По теме «" + topic + "» ничего не нашлось");
+
+    all = all.filter(passUserFilters);
+    if (!all.length) throw new Error("По фильтрам ничего не осталось");
+
+    all.sort(popularitySort);
+
+    var movies = all.slice(0, 5);
+    currentMood = null; lastSearchQuery = topic;
+    currentMovies = movies;
+    render(movies, false);
+    $("ai-status").textContent = "Найдено: " + movies.length + " популярных по теме «" + topic + "»";
+  });
+}
+
 // ---------- AI ----------
 function initAI() {
   var aiInput = $("ai-input");
@@ -502,73 +584,51 @@ function initAI() {
     aiButton.disabled = true;
     aiStatus.textContent = "Нейросеть думает...";
 
-    var knownGenres = Object.keys(genreTranslations)
-      .map(function (k) { return genreTranslations[k]; })
-      .concat(Object.keys(moodGenres).map(function (k) { return moodGenres[k].genres[0]; }));
-    var genresList = Array.from(new Set(knownGenres)).join(", ");
+    var genresList = "комедия, драма, боевик, ужасы, мелодрама, детектив, фантастика, " +
+      "фэнтези, криминал, триллер, документальный, спорт, военный, вестерн, биография, " +
+      "детский, приключения, мюзикл, семейный, аниме, мистика, история";
 
     var prompt =
       'Ты — эксперт по кино. Пользователь ищет фильм.\n' +
-      'Запрос пользователя: "' + text + '"\n\n' +
-      'Определи, что это: ОПИСАНИЕ СЮЖЕТА конкретного фильма или ЖАНР/ТЕМА.\n' +
-      '- Если это сюжет — назови ОДИН реально существующий фильм, который точно подходит. ' +
-      'Формат строго: Название фильма (год). Пример: Марсианин (2015). ' +
-      'Не выдумывай фильмы. Не пиши пояснений.\n' +
-      '- Если это жанр или общая тема — выбери ОДИН жанр из списка: ' + genresList + '. ' +
-      'Ответ — только слово из списка.\n' +
-      'Ответ (одна строка, без кавычек и markdown):';
+      'Запрос: "' + text + '"\n\n' +
+      'Верни РОВНО одну строку в формате: TYPE|QUERY\n' +
+      'где TYPE — одно из:\n' +
+      '- FILM — если пользователь описал сюжет конкретного реального фильма. QUERY = точное название этого фильма (без года).\n' +
+      '   Пример: "человек застрял на Марсе" → FILM|Марсианин\n' +
+      '   Пример: "фильм где герой один в пустыне" → FILM|Выживший\n' +
+      '- GENRE — если пользователь просит жанр/настроение. QUERY = один жанр из списка: ' + genresList + '.\n' +
+      '   Пример: "хочу посмеяться" → GENRE|комедия\n' +
+      '   Пример: "что-то страшное" → GENRE|ужасы\n' +
+      '- TOPIC — если это тема, а не конкретный фильм и не жанр (животные, космос, школа, ограбление, выживание в лесу и т.п.). QUERY = 1–3 ключевых слова темы.\n' +
+      '   Пример: "фильм про животных" → TOPIC|животные\n' +
+      '   Пример: "фильм про выживание в лесу" → TOPIC|выживание лес\n\n' +
+      'Правила:\n' +
+      '- Для FILM отвечай только если ТОЧНО знаешь реальный фильм. Не выдумывай.\n' +
+      '- Для TOPIC пиши общие слова на русском, без имён собственных.\n' +
+      '- Без пояснений, без кавычек, без markdown. Только одна строка TYPE|QUERY.';
 
-    puter.ai.chat(prompt).then(function (response) {
-      var answer = "";
-      if (typeof response === "string") answer = response;
-      else if (response && response.message && response.message.content) answer = response.message.content;
-      else if (response && response.text) answer = response.text;
+    puter.ai.chat(prompt, { model: "gpt-5.5" }).then(function (response) {
+      var raw = "";
+      if (typeof response === "string") raw = response;
+      else if (response && response.message && response.message.content) raw = response.message.content;
+      else if (response && response.text) raw = response.text;
 
-      answer = (answer || "").replace(/["'«»`*#]/g, "").split("\n")[0].trim();
-      if (!answer) throw new Error("Нейросеть не дала ответ");
+      raw = (raw || "").replace(/["'«»`*#]/g, "").split("\n")[0].trim();
+      if (!raw) throw new Error("Нейросеть не дала ответ");
 
-      var m = answer.match(/^(.*?)\s*\((\d{4})\)\s*$/);
-      var isTitle = !!m;
-      var query = isTitle ? m[1].trim() : answer;
-      var yearHint = isTitle ? m[2] : "";
-
-      aiStatus.textContent = "Ищем: " + query + (yearHint ? " (" + yearHint + ")" : "");
-
-      if (isTitle) {
-        return fetchKinopoisk(query).then(function (found) {
-          if (!found) throw new Error("Фильм «" + query + "» не найден на Кинопоиске");
-          if (yearHint && String(found.year) !== yearHint) {
-            showToast("Год в ответе ИИ не совпал — показываю найденное", true);
-          }
-          currentMovies = [found];
-          currentMood = null; lastSearchQuery = query;
-          render([found], false);
-          aiStatus.textContent = "Найдено: " + found.title + " (" + found.year + ")";
-        });
-      } else {
-        return fetchCandidatesFromKinopoisk(query, 40, currentType).then(function (candidates) {
-          if (!candidates.length) throw new Error("Ничего не нашлось по теме «" + query + "»");
-
-          var byGenre = candidates.filter(function (m) {
-            return m.genres.some(function (g) {
-              var tr = genreTranslations[g] || g;
-              return normalize(tr) === normalize(query) || normalize(g) === normalize(query);
-            });
-          });
-          if (byGenre.length) candidates = byGenre;
-
-          candidates = candidates.filter(passUserFilters);
-          candidates.sort(function (a, b) { return (b.votes || 0) - (a.votes || 0); });
-
-          if (!candidates.length) throw new Error("По фильтрам ничего не осталось");
-
-          var movies = candidates.slice(0, 5);
-          currentMood = null; lastSearchQuery = query;
-          currentMovies = movies;
-          render(movies, false);
-          aiStatus.textContent = "Найдено: " + movies.length + " фильм(ов) по теме «" + query + "»";
-        });
+      var parts = raw.split("|");
+      if (parts.length < 2) {
+        parts = ["TOPIC", raw];
       }
+      var type = parts[0].trim().toUpperCase();
+      var query = parts.slice(1).join("|").trim();
+      if (!query) throw new Error("Нейросеть вернула пустой запрос");
+
+      aiStatus.textContent = "Ищем: " + query;
+
+      if (type === "FILM") return searchByFilm(query);
+      if (type === "GENRE") return searchByGenre(query);
+      return searchByTopic(query, text);
     }).catch(function (err) {
       aiStatus.textContent = "Ошибка: " + (err.message || err);
     }).finally(function () {
