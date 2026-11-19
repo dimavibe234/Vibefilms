@@ -1,16 +1,37 @@
 var BASE = "https://functions.yandexcloud.net/d4e59mril3tsi9p47r09";
 
+// ---------- Категории ----------
 var moodGenres = {
-  happy: "комедия", sad: "драма", action: "боевик",
-  cozy: "семейный фильм", scary: "ужасы", romance: "мелодрама",
-  nostalgia: "приключения", inspire: "драма", mystery: "детектив",
-  scifi: "фантастика", music: "музыка", think: "драма",
-  anime: "аниме", fantasy: "фэнтези", crime: "криминал",
-  thriller: "триллер", documentary: "документальный", sport: "спорт",
-  war: "военный", western: "вестерн", biography: "биография",
-  kids: "детский", adventure: "приключения", comedy_dark: "чёрная комедия",
-  mystic: "мистика", musical: "мюзикл", family: "семейный",
-  heist: "ограбление", survival: "выживание", space: "космос"
+  happy:       { query: "комедия",            genres: ["комедия"],                          type: "movie" },
+  sad:         { query: "драма",              genres: ["драма"],                            type: "movie", excludeGenres: ["комедия", "боевик", "приключения"] },
+  action:      { query: "боевик",             genres: ["боевик", "триллер"],                type: "movie" },
+  cozy:        { query: "семейный",           genres: ["семейный", "комедия"],              type: "movie" },
+  scary:       { query: "ужасы",              genres: ["ужасы", "триллер"],                 type: "movie" },
+  romance:     { query: "мелодрама",          genres: ["мелодрама", "романтика"],           type: "movie" },
+  nostalgia:   { query: "приключения",        genres: ["приключения", "семейный"],          type: "movie", minYear: 1980, maxYear: 2010 },
+  inspire:     { query: "биография",          genres: ["биография", "драма", "история"],    type: "movie", minRating: 8 },
+  mystery:     { query: "детектив",           genres: ["детектив", "криминал", "триллер"],  type: "movie" },
+  scifi:       { query: "фантастика",         genres: ["фантастика"],                       type: "movie" },
+  music:       { query: "музыка",             genres: ["музыка", "мюзикл"],                 type: "movie" },
+  think:       { query: "драма",              genres: ["драма", "история"],                 type: "movie", minRating: 7.5 },
+  anime:       { query: "аниме",              genres: ["анимация", "аниме"],                type: "cartoon" },
+  fantasy:     { query: "фэнтези",            genres: ["фэнтези"],                          type: "movie" },
+  crime:       { query: "криминал",           genres: ["криминал", "детектив"],             type: "movie" },
+  thriller:    { query: "триллер",            genres: ["триллер"],                          type: "movie" },
+  documentary: { query: "документальный",     genres: ["документальный"],                   type: "documentary" },
+  sport:       { query: "спорт",              genres: ["спорт"],                            type: "movie" },
+  war:         { query: "военный",            genres: ["военный", "история"],               type: "movie" },
+  western:     { query: "вестерн",            genres: ["вестерн"],                          type: "movie" },
+  biography:   { query: "биография",          genres: ["биография"],                        type: "movie" },
+  kids:        { query: "детский",            genres: ["детский", "анимация", "семейный"],  type: "cartoon" },
+  adventure:   { query: "приключения",        genres: ["приключения", "фэнтези"],           type: "movie" },
+  comedy_dark: { query: "чёрная комедия",     genres: ["комедия", "криминал", "драма"],     type: "movie", minRating: 6.5 },
+  mystic:      { query: "мистика",            genres: ["мистика", "ужасы", "триллер"],      type: "movie" },
+  musical:     { query: "мюзикл",             genres: ["мюзикл", "музыка"],                 type: "movie" },
+  family:      { query: "семейный",           genres: ["семейный"],                         type: "movie" },
+  heist:       { query: "ограбление",         genres: ["криминал", "боевик", "триллер"],    type: "movie" },
+  survival:    { query: "выживание",          genres: ["триллер", "приключения", "драма"],  type: "movie" },
+  space:       { query: "космос",             genres: ["фантастика", "приключения"],        type: "movie" }
 };
 
 var genreTranslations = {
@@ -170,7 +191,18 @@ function fetchCandidatesFromKinopoisk(query, limit, typeFilter) {
   });
 }
 
-// ---------- Фильтры ----------
+// ---------- Жанры и фильтры ----------
+function genreMatches(movieGenres, targetGenres) {
+  if (!movieGenres || !targetGenres || !targetGenres.length) return false;
+  var normTargets = targetGenres.map(normalize);
+  for (var i = 0; i < movieGenres.length; i++) {
+    var g = normalize(movieGenres[i]);
+    var tr = normalize(genreTranslations[movieGenres[i]] || movieGenres[i]);
+    if (normTargets.indexOf(g) !== -1 || normTargets.indexOf(tr) !== -1) return true;
+  }
+  return false;
+}
+
 function readFilters() {
   return {
     minRating: parseFloat(($("rating-filter") && $("rating-filter").value) || 0),
@@ -180,17 +212,39 @@ function readFilters() {
   };
 }
 
-function applyFilters(movies) {
+function passUserFilters(m) {
   var f = readFilters();
   var nowYear = new Date().getFullYear();
+  var r = m.rating || 0;
+  var y = parseInt(m.year, 10) || 0;
+
+  if (r > 0 && r < f.minRating) return false;
+  if (y && y < f.minYear) return false;
+  if (f.unwatchedOnly && isWatched(cleanTitle(m.title))) return false;
+  if (f.newOnly && y < nowYear - 1) return false;
+  if (isHidden(cleanTitle(m.title))) return false;
+  return true;
+}
+
+function filterByMoodConfig(movies, cfg) {
   return movies.filter(function (m) {
-    var r = m.rating || 0;
+    if (cfg.type && !matchType(m, cfg.type)) return false;
+
+    if (cfg.genres && cfg.genres.length) {
+      if (!genreMatches(m.genres, cfg.genres)) return false;
+    }
+    if (cfg.excludeGenres && cfg.excludeGenres.length) {
+      if (genreMatches(m.genres, cfg.excludeGenres)) return false;
+    }
+
     var y = parseInt(m.year, 10) || 0;
-    if (r > 0 && r < f.minRating) return false;
-    if (y && y < f.minYear) return false;
-    if (f.unwatchedOnly && isWatched(cleanTitle(m.title))) return false;
-    if (f.newOnly && y < nowYear - 1) return false;
-    if (isHidden(cleanTitle(m.title))) return false;
+    if (cfg.minYear && y && y < cfg.minYear) return false;
+    if (cfg.maxYear && y && y > cfg.maxYear) return false;
+
+    var r = m.rating || 0;
+    if (cfg.minRating && r > 0 && r < cfg.minRating) return false;
+
+    if (!passUserFilters(m)) return false;
     return true;
   });
 }
@@ -450,7 +504,7 @@ function initAI() {
 
     var knownGenres = Object.keys(genreTranslations)
       .map(function (k) { return genreTranslations[k]; })
-      .concat(Object.keys(moodGenres).map(function (k) { return moodGenres[k]; }));
+      .concat(Object.keys(moodGenres).map(function (k) { return moodGenres[k].genres[0]; }));
     var genresList = Array.from(new Set(knownGenres)).join(", ");
 
     var prompt =
@@ -503,12 +557,12 @@ function initAI() {
           });
           if (byGenre.length) candidates = byGenre;
 
+          candidates = candidates.filter(passUserFilters);
           candidates.sort(function (a, b) { return (b.votes || 0) - (a.votes || 0); });
-          candidates = applyFilters(candidates);
 
           if (!candidates.length) throw new Error("По фильтрам ничего не осталось");
 
-          var movies = candidates.slice(0, 20);
+          var movies = candidates.slice(0, 5);
           currentMood = null; lastSearchQuery = query;
           currentMovies = movies;
           render(movies, false);
@@ -523,46 +577,64 @@ function initAI() {
   };
 }
 
-// ---------- Mood ----------
+// ---------- Категории ----------
 function loadMoviesByMood(mood) {
   var el = $("results"); if (!el) return;
+  var cfg = moodGenres[mood];
+  if (!cfg) return;
+
   currentMood = mood; lastSearchQuery = null;
   el.innerHTML = '<p class="empty">Подбираем фильмы...</p>';
 
-  var searchQuery = moodGenres[mood] || mood;
+  var queries = [cfg.query];
+  if (cfg.genres && cfg.genres.length && normalize(cfg.genres[0]) !== normalize(cfg.query)) {
+    queries.push(cfg.genres[0]);
+  }
 
-  fetchCandidatesFromKinopoisk(searchQuery, 40, currentType).then(function (candidates) {
-    if (!candidates.length) {
+  Promise.all(queries.map(function (q) {
+    return fetchCandidatesFromKinopoisk(q, 40, cfg.type || currentType);
+  })).then(function (arrays) {
+    var seen = {};
+    var all = [];
+    arrays.forEach(function (arr) {
+      arr.forEach(function (m) {
+        var key = normalize(m.title) + "|" + (m.year || "");
+        if (!seen[key]) { seen[key] = 1; all.push(m); }
+      });
+    });
+
+    if (!all.length) {
       el.innerHTML = '<p class="empty">Ничего не найдено.</p>';
       return;
     }
 
-    if (mood === "documentary") {
-      var docs = candidates.filter(function (m) {
-        return m.genres.indexOf("документальный") !== -1;
+    var filtered = filterByMoodConfig(all, cfg);
+
+    if (!filtered.length) {
+      filtered = all.filter(function (m) {
+        if (cfg.type && !matchType(m, cfg.type)) return false;
+        if (cfg.excludeGenres && genreMatches(m.genres, cfg.excludeGenres)) return false;
+        return passUserFilters(m);
       });
-      if (docs.length) candidates = docs;
     }
 
-    var byGenre = candidates.filter(function (m) {
-      return m.genres.some(function (g) {
-        var tr = genreTranslations[g] || g;
-        return normalize(tr) === normalize(searchQuery);
-      });
-    });
-    if (byGenre.length) candidates = byGenre;
-
-    candidates.sort(function (a, b) { return (b.votes || 0) - (a.votes || 0); });
-    candidates = applyFilters(candidates);
-
-    if (!candidates.length) {
+    if (!filtered.length) {
       el.innerHTML = '<p class="empty">По текущим фильтрам ничего не осталось.</p>';
       return;
     }
 
-    var movies = candidates.slice(0, 20);
+    filtered.sort(function (a, b) {
+      var aMatch = genreMatches(a.genres, cfg.genres) ? 1 : 0;
+      var bMatch = genreMatches(b.genres, cfg.genres) ? 1 : 0;
+      if (bMatch !== aMatch) return bMatch - aMatch;
+      return (b.votes || 0) - (a.votes || 0);
+    });
+
+    var movies = filtered.slice(0, 20);
     currentMovies = movies;
     render(movies, false);
+  }).catch(function () {
+    el.innerHTML = '<p class="empty">Ошибка загрузки.</p>';
   });
 }
 
@@ -675,7 +747,6 @@ function init() {
   if ($("movie-modal-close")) $("movie-modal-close").onclick = function () { $("movie-modal").classList.remove("open"); };
   if ($("profile-modal-close")) $("profile-modal-close").onclick = function () { $("profile-modal").classList.remove("open"); };
 
-  // Восстановление настроек
   var savedAccent = localStorage.getItem("mood_accent");
   if (savedAccent) document.body.setAttribute("data-accent", savedAccent);
   var savedTheme = localStorage.getItem("mood_theme");
