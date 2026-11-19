@@ -107,19 +107,30 @@ function fetchKinopoisk(title) {
   if (kinopoiskCache[key]) {
     return Promise.resolve(kinopoiskCache[key]);
   }
-  var url = BASE + "?query=" + encodeURIComponent(title) + "&limit=1";
+  var url = BASE + "?query=" + encodeURIComponent(title) + "&limit=5";
   return fetchWithTimeout(url, 10000)
     .then(function (r) { return r.json(); })
     .then(function (data) {
       if (!data || !data.docs || !data.docs.length) return null;
-      var d = data.docs[0];
+
+      var sorted = data.docs.slice().sort(function (a, b) {
+        var votesA = (a.votes && a.votes.kp) ? a.votes.kp : 0;
+        var votesB = (b.votes && b.votes.kp) ? b.votes.kp : 0;
+        if (votesB !== votesA) return votesB - votesA;
+        var ratingA = (a.rating && a.rating.kp) ? a.rating.kp : 0;
+        var ratingB = (b.rating && b.rating.kp) ? b.rating.kp : 0;
+        return ratingB - ratingA;
+      });
+
+      var d = sorted[0];
       var result = {
         title: d.name || title,
         year: d.year || "",
         poster: d.poster ? (d.poster.previewUrl || d.poster.url) : null,
         rating: d.rating && d.rating.kp ? d.rating.kp : (d.rating && d.rating.imdb ? d.rating.imdb : null),
         description: d.shortDescription || d.description || "",
-        genres: (d.genres || []).map(function (g) { return g.name; })
+        genres: (d.genres || []).map(function (g) { return g.name; }),
+        votes: d.votes && d.votes.kp ? d.votes.kp : 0
       };
       kinopoiskCache[key] = result;
       saveKinopoiskCache();
@@ -501,12 +512,24 @@ function initAI() {
       });
 
       Promise.all(promises).then(function (results) {
-        var movies = results.filter(function (r) { return r !== null; });
+        var movies = results.filter(function (r) {
+          if (!r) return false;
+          if (!r.poster) return false;
+          if (!r.rating || r.rating < 6.5) return false;
+          if (!r.votes || r.votes < 500) return false;
+          return true;
+        });
+
         if (!movies.length) {
-          aiStatus.textContent = "Кинопоиск не нашёл эти фильмы. Попробуйте иначе.";
+          aiStatus.textContent = "Кинопоиск не нашёл подходящих популярных фильмов (рейтинг 6.5+, 500+ голосов). Попробуйте иначе.";
           aiButton.disabled = false;
           return;
         }
+
+        movies.sort(function (a, b) {
+          return (b.votes || 0) - (a.votes || 0);
+        });
+
         currentMovies = movies;
         render(movies, false);
         aiStatus.textContent = "Найдено: " + movies.length + " фильм(ов)";
@@ -522,7 +545,6 @@ function initAI() {
 function init() {
   loadMovieLens();
 
-  // Панели
   var settingsToggle = $("settings-toggle");
   var settingsPanel = $("settings-panel");
   var settingsClose = $("settings-close");
@@ -535,7 +557,6 @@ function init() {
   if (playlistsToggle && playlistsPanel) playlistsToggle.onclick = function () { playlistsPanel.classList.add("open"); };
   if (playlistsClose && playlistsPanel) playlistsClose.onclick = function () { playlistsPanel.classList.remove("open"); };
 
-  // Табы
   document.querySelectorAll(".tab-btn").forEach(function (btn) {
     btn.onclick = function () {
       document.querySelectorAll(".tab-btn").forEach(function (b) { b.classList.remove("active"); });
@@ -546,7 +567,6 @@ function init() {
     };
   });
 
-  // Поиск
   if ($("search-btn")) $("search-btn").onclick = function () {
     var q = $("search-input").value.trim();
     if (q) searchMovies(q, currentType);
@@ -555,14 +575,12 @@ function init() {
     if (e.key === "Enter") $("search-btn").click();
   };
 
-  // Случайный и шедевр
   if ($("random-btn")) $("random-btn").onclick = function () {
     var keys = Object.keys(moodGenres);
     loadMovies(keys[Math.floor(Math.random() * keys.length)], currentType);
   };
   if ($("masterpiece-btn")) $("masterpiece-btn").onclick = function () { searchMovies("шедевр", "movie"); };
 
-  // Типы
   document.querySelectorAll("#type-switch button").forEach(function (b) {
     b.onclick = function () {
       document.querySelectorAll("#type-switch button").forEach(function (x) { x.classList.remove("active"); });
@@ -573,7 +591,6 @@ function init() {
     };
   });
 
-  // Показать ещё
   if ($("load-more")) $("load-more").onclick = function () {
     if (!currentMood && !lastSearchQuery) return;
     var already = document.querySelectorAll("#results .card").length;
@@ -582,7 +599,6 @@ function init() {
     render(next, true);
   };
 
-  // Фильтры
   ["rating-filter", "year-filter", "filter-unwatched", "filter-new"].forEach(function (id) {
     var el = $(id);
     if (!el) return;
@@ -601,13 +617,11 @@ function init() {
     else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType);
   };
 
-  // Плейлисты
   if ($("playlist-create-btn")) $("playlist-create-btn").onclick = function () {
     var n = $("playlist-name-input").value;
     if (createPlaylist(n)) { $("playlist-name-input").value = ""; renderPlaylists(); }
   };
 
-  // Настройки (цвета, тема)
   document.querySelectorAll(".color-dot").forEach(function (dot) {
     dot.onclick = function () {
       document.querySelectorAll(".color-dot").forEach(function (d) { d.classList.remove("active"); });
@@ -632,7 +646,6 @@ function init() {
     document.querySelectorAll(".color-dot, .theme-btn").forEach(function (el) { el.classList.remove("active"); });
   };
 
-  // Firebase
   if (window.firebaseAuth) initFirebase(); else window.addEventListener("firebase-ready", initFirebase);
   initGoogleLogin(); initProfile(); initAI();
 }
