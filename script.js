@@ -32,6 +32,50 @@ function saveKinopoiskCache() { try { localStorage.setItem("kinopoisk_cache", JS
 
 function $(id) { return document.getElementById(id); }
 
+// ---------- Утилиты ----------
+function esc(s) {
+  return String(s || "").replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+
+function normalize(s) {
+  return (s || "").toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/[^\wа-я0-9\s]/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function levenshtein(a, b) {
+  a = normalize(a); b = normalize(b);
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  var prev = Array(b.length + 1).fill(0).map(function (_, i) { return i; });
+  for (var i = 1; i <= a.length; i++) {
+    var cur = [i];
+    for (var j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(
+        prev[j] + 1,
+        cur[j - 1] + 1,
+        prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+      );
+    }
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+function relevanceScore(query, candidateTitle) {
+  var q = normalize(query), t = normalize(candidateTitle);
+  if (!q || !t) return 0;
+  if (t === q) return 1;
+  if (t.indexOf(q) === 0) return 0.95;
+  if (t.indexOf(q) !== -1) return 0.85;
+  var maxLen = Math.max(q.length, t.length);
+  return Math.max(0, 1 - levenshtein(q, t) / maxLen);
+}
+
 function showToast(text, isError) {
   var toast = $("toast");
   if (!toast) return;
@@ -53,77 +97,105 @@ function cleanTitle(title) {
   return (title || '').replace(/\s*\(\d{4}\)\s*$/, '').trim();
 }
 
-function fetchKinopoisk(title) {
-  var key = title.toLowerCase().trim();
-  if (kinopoiskCache[key]) {
-    return Promise.resolve(kinopoiskCache[key]);
-  }
-  var url = BASE + "?query=" + encodeURIComponent(title) + "&limit=5";
-  return fetchWithTimeout(url, 10000)
+// ---------- Кинопоиск ----------
+function mapDoc(d) {
+  return {
+    title: d.name || d.alternativeName || "",
+    originalTitle: d.alternativeName || d.nameOriginal || "",
+    year: d.year || "",
+    poster: d.poster ? (d.poster.previewUrl || d.poster.url) : null,
+    rating: d.rating && d.rating.kp ? d.rating.kp
+      : (d.rating && d.rating.imdb ? d.rating.imdb : null),
+    description: d.shortDescription || d.description || "",
+    genres: (d.genres || []).map(function (g) { return g.name; }),
+    votes: d.votes && d.votes.kp ? d.votes.kp : 0,
+    type: d.type || ""
+  };
+}
+
+function fetchKinopoiskRaw(query, limit) {
+  var url = BASE + "?query=" + encodeURIComponent(query) + "&limit=" + (limit || 10);
+  return fetchWithTimeout(url, 15000)
     .then(function (r) { return r.json(); })
     .then(function (data) {
-      if (!data || !data.docs || !data.docs.length) return null;
-
-      var sorted = data.docs.slice().sort(function (a, b) {
-        var votesA = (a.votes && a.votes.kp) ? a.votes.kp : 0;
-        var votesB = (b.votes && b.votes.kp) ? b.votes.kp : 0;
-        if (votesB !== votesA) return votesB - votesA;
-        var ratingA = (a.rating && a.rating.kp) ? a.rating.kp : 0;
-        var ratingB = (b.rating && b.rating.kp) ? b.rating.kp : 0;
-        return ratingB - ratingA;
-      });
-
-      var d = sorted[0];
-      var result = {
-        title: d.name || title,
-        year: d.year || "",
-        poster: d.poster ? (d.poster.previewUrl || d.poster.url) : null,
-        rating: d.rating && d.rating.kp ? d.rating.kp : (d.rating && d.rating.imdb ? d.rating.imdb : null),
-        description: d.shortDescription || d.description || "",
-        genres: (d.genres || []).map(function (g) { return g.name; }),
-        votes: d.votes && d.votes.kp ? d.votes.kp : 0,
-        type: d.type || ""
-      };
-      kinopoiskCache[key] = result;
-      saveKinopoiskCache();
-      return result;
-    })
-    .catch(function () { return null; });
-}
-
-// Функция для получения кандидатов с фильтрацией по типу
-function fetchCandidatesFromKinopoisk(query, limit, typeFilter) {
-  var url = BASE + "?query=" + encodeURIComponent(query) + "&limit=" + (limit || 30);
-  return fetchWithTimeout(url, 15000)
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
       if (!data || !data.docs) return [];
-      var movies = data.docs.map(function(d) {
-        return {
-          title: d.name || d.alternativeName || "",
-          year: d.year || "",
-          poster: d.poster ? (d.poster.previewUrl || d.poster.url) : null,
-          rating: d.rating && d.rating.kp ? d.rating.kp : (d.rating && d.rating.imdb ? d.rating.imdb : null),
-          description: d.shortDescription || d.description || "",
-          genres: (d.genres || []).map(function(g) { return g.name; }),
-          votes: d.votes && d.votes.kp ? d.votes.kp : 0,
-          type: d.type || ""
-        };
-      }).filter(function(m) { return m.poster; });
-
-      if (typeFilter) {
-        movies = movies.filter(function(m) {
-          if (typeFilter === "documentary") return m.genres.indexOf("документальный") !== -1 || m.type === "documentary";
-          if (typeFilter === "movie") return m.type === "movie" || m.type === "";
-          return true;
-        });
-      }
-
-      return movies;
+      return data.docs.map(mapDoc).filter(function (m) { return m.poster; });
     })
-    .catch(function() { return []; });
+    .catch(function () { return []; });
 }
 
+function fetchKinopoisk(title) {
+  var key = "v2:" + normalize(title);
+  if (kinopoiskCache[key]) return Promise.resolve(kinopoiskCache[key]);
+
+  return fetchKinopoiskRaw(title, 10).then(function (candidates) {
+    if (!candidates.length) return null;
+
+    var scored = candidates.map(function (m) {
+      var s = Math.max(
+        relevanceScore(title, m.title),
+        relevanceScore(title, m.originalTitle)
+      );
+      return { m: m, s: s };
+    }).filter(function (x) { return x.s >= 0.55; });
+
+    if (!scored.length) return null;
+
+    scored.sort(function (a, b) {
+      if (Math.abs(b.s - a.s) > 0.05) return b.s - a.s;
+      return (b.m.votes || 0) - (a.m.votes || 0);
+    });
+
+    kinopoiskCache[key] = scored[0].m;
+    saveKinopoiskCache();
+    return scored[0].m;
+  });
+}
+
+function matchType(m, type) {
+  if (type === "movie") return m.type === "movie" || m.type === "";
+  if (type === "series") return m.type === "tv-series" || m.type === "mini-series";
+  if (type === "cartoon") return m.genres.indexOf("анимация") !== -1 || m.type === "cartoon";
+  if (type === "documentary")
+    return m.genres.indexOf("документальный") !== -1 || m.type === "documentary";
+  return true;
+}
+
+function fetchCandidatesFromKinopoisk(query, limit, typeFilter) {
+  return fetchKinopoiskRaw(query, limit || 30).then(function (movies) {
+    if (typeFilter) {
+      movies = movies.filter(function (m) { return matchType(m, typeFilter); });
+    }
+    return movies;
+  });
+}
+
+// ---------- Фильтры ----------
+function readFilters() {
+  return {
+    minRating: parseFloat(($("rating-filter") && $("rating-filter").value) || 0),
+    minYear: parseInt(($("year-filter") && $("year-filter").value) || 1900, 10),
+    unwatchedOnly: $("filter-unwatched") ? $("filter-unwatched").checked : false,
+    newOnly: $("filter-new") ? $("filter-new").checked : false
+  };
+}
+
+function applyFilters(movies) {
+  var f = readFilters();
+  var nowYear = new Date().getFullYear();
+  return movies.filter(function (m) {
+    var r = m.rating || 0;
+    var y = parseInt(m.year, 10) || 0;
+    if (r > 0 && r < f.minRating) return false;
+    if (y && y < f.minYear) return false;
+    if (f.unwatchedOnly && isWatched(cleanTitle(m.title))) return false;
+    if (f.newOnly && y < nowYear - 1) return false;
+    if (isHidden(cleanTitle(m.title))) return false;
+    return true;
+  });
+}
+
+// ---------- Firebase ----------
 function initFirebase() {
   if (window.firebaseAuth) {
     fbAuth = window.firebaseAuth; fbDb = window.firebaseDb; fbProvider = window.googleProvider; firebaseReady = true;
@@ -211,6 +283,7 @@ function loadUserData(userId) {
   }).catch(console.error);
 }
 
+// ---------- Скрытые / просмотренные ----------
 function getHidden() { try { return JSON.parse(localStorage.getItem("mood_hidden") || "[]"); } catch (e) { return []; } }
 function hideMovie(title) { var l = getHidden(); if (l.indexOf(title) === -1) { l.push(title); localStorage.setItem("mood_hidden", JSON.stringify(l)); saveUserData(); } }
 function isHidden(title) { return getHidden().indexOf(title) !== -1; }
@@ -222,6 +295,7 @@ function toggleWatched(title, year) {
   localStorage.setItem("mood_watched", JSON.stringify(l)); saveUserData(); return f === -1;
 }
 
+// ---------- Плейлисты ----------
 function getPlaylists() { try { return JSON.parse(localStorage.getItem("mood_movies_playlists") || "{}"); } catch (e) { return {}; } }
 function savePlaylists(p) { localStorage.setItem("mood_movies_playlists", JSON.stringify(p)); saveUserData(); }
 function createPlaylist(name) { var p = getPlaylists(); var k = name.trim(); if (!k) return false; if (!p[k]) { p[k] = []; savePlaylists(p); return true; } return false; }
@@ -255,8 +329,8 @@ function renderPlaylists() {
   var h = "";
   names.forEach(function (n) {
     var items = p[n] || [], nw = items.filter(function (m) { return !m.watched; }), w = items.filter(function (m) { return m.watched; });
-    h += '<div class="playlist"><div class="playlist-title"><span>' + n + ' (' + items.length + ')</span>';
-    h += '<button class="playlist-del" onclick="if(confirm(\'Удалить?\')){deletePlaylist(\''+n+'\');}">✕</button></div>';
+    h += '<div class="playlist"><div class="playlist-title"><span>' + esc(n) + ' (' + items.length + ')</span>';
+    h += '<button class="playlist-del" onclick="if(confirm(\'Удалить?\')){deletePlaylist(\'' + esc(n).replace(/'/g, "\\'") + '\');}">✕</button></div>';
     if (!items.length) h += '<p class="hint">Пусто</p>';
     else {
       if (nw.length) { h += '<div class="playlist-sub">Не просмотрено:</div>'; nw.forEach(function (m) { h += buildPlaylistItem(n, m); }); }
@@ -267,13 +341,16 @@ function renderPlaylists() {
   el.innerHTML = h;
 }
 function buildPlaylistItem(n, m) {
-  return '<div class="playlist-item">' + (m.poster ? '<img src="'+m.poster+'">' : '') + '<div class="pl-title">' + m.title + '</div>' +
-    '<button class="pl-check" onclick="togglePlaylistWatched(\''+n+'\',\''+m.title.replace(/'/g,"\\'")+'\')" style="color:'+(m.watched?'#34d399':'#8f9bab')+'">✓</button>' +
-    '<button class="pl-del" onclick="removeFromPlaylist(\''+n+'\',\''+m.title.replace(/'/g,"\\'")+'\');renderPlaylists();">✕</button></div>';
+  var safeN = esc(n).replace(/'/g, "\\'");
+  var safeT = esc(m.title).replace(/'/g, "\\'");
+  return '<div class="playlist-item">' + (m.poster ? '<img src="' + esc(m.poster) + '">' : '') + '<div class="pl-title">' + esc(m.title) + '</div>' +
+    '<button class="pl-check" onclick="togglePlaylistWatched(\'' + safeN + '\',\'' + safeT + '\')" style="color:' + (m.watched ? '#34d399' : '#8f9bab') + '">✓</button>' +
+    '<button class="pl-del" onclick="removeFromPlaylist(\'' + safeN + '\',\'' + safeT + '\');renderPlaylists();">✕</button></div>';
 }
 function deletePlaylist(name) { var p = getPlaylists(); delete p[name]; savePlaylists(p); renderPlaylists(); }
 function togglePlaylistWatched(n, t) { var p = getPlaylists(); if (!p[n]) return; p[n].forEach(function (x) { if (x.title === t) x.watched = !x.watched; }); savePlaylists(p); renderPlaylists(); }
 
+// ---------- Рендер ----------
 function buildStars(r) {
   var s = "";
   for (var i = 1; i <= 5; i++) s += '<span style="color:' + (r >= i * 2 - 0.5 ? "#fbbf24" : "#3a4552") + '">★</span>';
@@ -282,7 +359,7 @@ function buildStars(r) {
 function buildGenres(g) {
   if (!g || !g.length) return "";
   var h = '<div class="genre-tags">';
-  g.slice(0, 3).forEach(function (x) { h += '<span class="genre-tag">' + (genreTranslations[x] || x) + '</span>'; });
+  g.slice(0, 3).forEach(function (x) { h += '<span class="genre-tag">' + esc(genreTranslations[x] || x) + '</span>'; });
   return h + '</div>';
 }
 var RENDER_LIMIT = 20;
@@ -304,26 +381,31 @@ function render(movies, append) {
   }
 
   var h = "";
-  toRender.forEach(function(m) {
+  toRender.forEach(function (m) {
     var title = cleanTitle(m.title || "");
     var year = m.year || extractYear(m.title || "");
     var poster = m.poster || null;
     var rating = m.rating || 0;
     var w = isWatched(title);
+    var safeT = esc(title).replace(/'/g, "\\'");
     h += '<div class="card">';
     if (poster) {
-      h += '<img src="' + poster + '" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">';
+      h += '<img src="' + esc(poster) + '" onclick="openMovieModal(\'' + safeT + '\')">';
     } else {
-      h += '<div class="no-poster" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')" style="aspect-ratio:2/3;background:var(--bg-input);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.8rem;text-align:center;padding:10px;">' + title + '</div>';
+      h += '<div class="no-poster" onclick="openMovieModal(\'' + safeT + '\')" style="aspect-ratio:2/3;background:var(--bg-input);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.8rem;text-align:center;padding:10px;">' + esc(title) + '</div>';
     }
-    h += '<div class="info"><div class="title" onclick="openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">' + title + (w ? ' ✓' : '') + '</div>';
-    h += '<div class="meta">' + year + (rating > 0 ? ' · ' + buildStars(rating) : "") + '</div>' + buildGenres(m.genres);
-    h += '<button class="card-add" onclick="addMovieToPlaylist({title:\'' + title.replace(/'/g, "\\'") + '\',year:\'' + year + '\',poster:\'' + (poster || '') + '\'})">＋ В плейлист</button></div></div>';
+    h += '<div class="info"><div class="title" onclick="openMovieModal(\'' + safeT + '\')">' + esc(title) + (w ? ' ✓' : '') + '</div>';
+    h += '<div class="meta">' + esc(year) + (rating > 0 ? ' · ' + buildStars(rating) : "") + '</div>' + buildGenres(m.genres);
+    h += '<button class="card-add" onclick="addMovieToPlaylist({title:\'' + safeT + '\',year:\'' + esc(year) + '\',poster:\'' + esc(poster || '') + '\'})">＋ В плейлист</button></div></div>';
   });
 
   if (append) el.innerHTML += h; else el.innerHTML = h;
+
   var lm = $("load-more");
   if (lm) lm.style.display = (currentMood || lastSearchQuery) ? "block" : "none";
+
+  var ts = $("type-switch");
+  if (ts) ts.style.display = (currentMood || lastSearchQuery) ? "flex" : "none";
 }
 
 function openMovieModal(title) {
@@ -337,14 +419,13 @@ function openMovieModal(title) {
   var desc = m.description || "Описание отсутствует.";
   var w = isWatched(title);
   var poster = m.poster || "";
+  var safeT = esc(title).replace(/'/g, "\\'");
   var h = '<div class="movie-header">';
-  if (poster) {
-    h += '<img src="' + poster + '">';
-  }
-  h += '<div><h2>' + title + '</h2><p>' + year + (rating ? ' · ★ ' + rating.toFixed(1) : '') + '</p></div></div>';
-  h += '<p style="font-size:0.9rem;line-height:1.5;margin-bottom:20px;">' + desc + '</p>';
-  h += '<button class="btn-primary" style="width:100%;margin-bottom:10px;background:' + (w ? '#34d399' : 'var(--accent)') + '" onclick="toggleWatched(\'' + title.replace(/'/g, "\\'") + '\',\'' + year + '\');openMovieModal(\'' + title.replace(/'/g, "\\'") + '\')">' + (w ? '✓ Просмотрено' : '○ Отметить просмотренным') + '</button>';
-  h += '<button class="btn-primary" style="width:100%;margin-bottom:10px;background:#f87171;" onclick="hideMovie(\'' + title.replace(/'/g, "\\'") + '\');document.getElementById(\'movie-modal\').classList.remove(\'open\');showToast(\'Скрыто\')">🚫 Скрыть из выдачи</button>';
+  if (poster) h += '<img src="' + esc(poster) + '">';
+  h += '<div><h2>' + esc(title) + '</h2><p>' + esc(year) + (rating ? ' · ★ ' + rating.toFixed(1) : '') + '</p></div></div>';
+  h += '<p style="font-size:0.9rem;line-height:1.5;margin-bottom:20px;">' + esc(desc) + '</p>';
+  h += '<button class="btn-primary" style="width:100%;margin-bottom:10px;background:' + (w ? '#34d399' : 'var(--accent)') + '" onclick="toggleWatched(\'' + safeT + '\',\'' + esc(year) + '\');openMovieModal(\'' + safeT + '\')">' + (w ? '✓ Просмотрено' : '○ Отметить просмотренным') + '</button>';
+  h += '<button class="btn-primary" style="width:100%;margin-bottom:10px;background:#f87171;" onclick="hideMovie(\'' + safeT + '\');document.getElementById(\'movie-modal\').classList.remove(\'open\');showToast(\'Скрыто\')">🚫 Скрыть из выдачи</button>';
   h += '<div class="social-links">';
   h += '<a class="social-btn kp" href="https://www.kinopoisk.ru/index.php?kp_query=' + encodeURIComponent(title) + '" target="_blank">🍿 Кинопоиск</a>';
   h += '<a class="social-btn rutube" href="https://rutube.ru/search/?query=' + encodeURIComponent(title) + '" target="_blank">📺 Rutube</a>';
@@ -353,7 +434,7 @@ function openMovieModal(title) {
   $("movie-modal").classList.add("open");
 }
 
-// Упрощённая нейросеть: сначала просим название/жанр, потом ищем
+// ---------- AI ----------
 function initAI() {
   var aiInput = $("ai-input");
   var aiButton = $("ai-button");
@@ -362,18 +443,26 @@ function initAI() {
 
   aiButton.onclick = function () {
     var text = aiInput.value.trim();
-    if (!text) {
-      showToast("Введите описание фильма", true);
-      return;
-    }
+    if (!text) { showToast("Введите описание фильма", true); return; }
 
     aiButton.disabled = true;
     aiStatus.textContent = "Нейросеть думает...";
 
-    var prompt = 'Пользователь ищет фильм. Запрос: "' + text + '".\n' +
-      'Если это описание конкретного сюжета (например, "человек застрял на Марсе"), напиши название ОДНОГО реального фильма, который подходит. Например: Марсианин.\n' +
-      'Если это общая тема или жанр (например, "хочу документальный фильм", "комедия"), напиши ОДНО слово — жанр для поиска. Например: документальный, комедия, фантастика.\n' +
-      'Ответь ТОЛЬКО одним названием или жанром, без пояснений и кавычек.';
+    var knownGenres = Object.keys(genreTranslations)
+      .map(function (k) { return genreTranslations[k]; })
+      .concat(Object.keys(moodGenres).map(function (k) { return moodGenres[k]; }));
+    var genresList = Array.from(new Set(knownGenres)).join(", ");
+
+    var prompt =
+      'Ты — эксперт по кино. Пользователь ищет фильм.\n' +
+      'Запрос пользователя: "' + text + '"\n\n' +
+      'Определи, что это: ОПИСАНИЕ СЮЖЕТА конкретного фильма или ЖАНР/ТЕМА.\n' +
+      '- Если это сюжет — назови ОДИН реально существующий фильм, который точно подходит. ' +
+      'Формат строго: Название фильма (год). Пример: Марсианин (2015). ' +
+      'Не выдумывай фильмы. Не пиши пояснений.\n' +
+      '- Если это жанр или общая тема — выбери ОДИН жанр из списка: ' + genresList + '. ' +
+      'Ответ — только слово из списка.\n' +
+      'Ответ (одна строка, без кавычек и markdown):';
 
     puter.ai.chat(prompt).then(function (response) {
       var answer = "";
@@ -381,35 +470,51 @@ function initAI() {
       else if (response && response.message && response.message.content) answer = response.message.content;
       else if (response && response.text) answer = response.text;
 
-      answer = answer.replace(/["'«»]/g, "").trim();
-      answer = answer.split("\n")[0].trim();
-
+      answer = (answer || "").replace(/["'«»`*#]/g, "").split("\n")[0].trim();
       if (!answer) throw new Error("Нейросеть не дала ответ");
 
-      aiStatus.textContent = "Ищем: " + answer;
+      var m = answer.match(/^(.*?)\s*\((\d{4})\)\s*$/);
+      var isTitle = !!m;
+      var query = isTitle ? m[1].trim() : answer;
+      var yearHint = isTitle ? m[2] : "";
 
-      return fetchCandidatesFromKinopoisk(answer, 30, null).then(function (candidates) {
-        if (!candidates.length) {
-          throw new Error("Кинопоиск не нашёл фильмов по запросу «" + answer + "»");
-        }
+      aiStatus.textContent = "Ищем: " + query + (yearHint ? " (" + yearHint + ")" : "");
 
-        if (text.toLowerCase().indexOf("документальн") !== -1) {
-          var docs = candidates.filter(function (m) {
-            return m.genres.indexOf("документальный") !== -1;
+      if (isTitle) {
+        return fetchKinopoisk(query).then(function (found) {
+          if (!found) throw new Error("Фильм «" + query + "» не найден на Кинопоиске");
+          if (yearHint && String(found.year) !== yearHint) {
+            showToast("Год в ответе ИИ не совпал — показываю найденное", true);
+          }
+          currentMovies = [found];
+          currentMood = null; lastSearchQuery = query;
+          render([found], false);
+          aiStatus.textContent = "Найдено: " + found.title + " (" + found.year + ")";
+        });
+      } else {
+        return fetchCandidatesFromKinopoisk(query, 40, currentType).then(function (candidates) {
+          if (!candidates.length) throw new Error("Ничего не нашлось по теме «" + query + "»");
+
+          var byGenre = candidates.filter(function (m) {
+            return m.genres.some(function (g) {
+              var tr = genreTranslations[g] || g;
+              return normalize(tr) === normalize(query) || normalize(g) === normalize(query);
+            });
           });
-          if (docs.length) candidates = docs;
-        }
+          if (byGenre.length) candidates = byGenre;
 
-        candidates.sort(function (a, b) { return (b.votes || 0) - (a.votes || 0); });
+          candidates.sort(function (a, b) { return (b.votes || 0) - (a.votes || 0); });
+          candidates = applyFilters(candidates);
 
-        var isSpecific = candidates.length > 0 && candidates[0].title.toLowerCase().indexOf(answer.toLowerCase().split(" ")[0]) !== -1;
-        var count = isSpecific ? 1 : 5;
+          if (!candidates.length) throw new Error("По фильтрам ничего не осталось");
 
-        var movies = candidates.slice(0, count);
-        currentMovies = movies;
-        render(movies, false);
-        aiStatus.textContent = "Найдено: " + movies.length + " фильм(ов)";
-      });
+          var movies = candidates.slice(0, 20);
+          currentMood = null; lastSearchQuery = query;
+          currentMovies = movies;
+          render(movies, false);
+          aiStatus.textContent = "Найдено: " + movies.length + " фильм(ов) по теме «" + query + "»";
+        });
+      }
     }).catch(function (err) {
       aiStatus.textContent = "Ошибка: " + (err.message || err);
     }).finally(function () {
@@ -418,7 +523,7 @@ function initAI() {
   };
 }
 
-// Поиск по категории — 20 фильмов, с фильтрацией по типу
+// ---------- Mood ----------
 function loadMoviesByMood(mood) {
   var el = $("results"); if (!el) return;
   currentMood = mood; lastSearchQuery = null;
@@ -426,7 +531,7 @@ function loadMoviesByMood(mood) {
 
   var searchQuery = moodGenres[mood] || mood;
 
-  fetchCandidatesFromKinopoisk(searchQuery, 40, null).then(function (candidates) {
+  fetchCandidatesFromKinopoisk(searchQuery, 40, currentType).then(function (candidates) {
     if (!candidates.length) {
       el.innerHTML = '<p class="empty">Ничего не найдено.</p>';
       return;
@@ -439,14 +544,29 @@ function loadMoviesByMood(mood) {
       if (docs.length) candidates = docs;
     }
 
-    candidates.sort(function (a, b) { return (b.votes || 0) - (a.votes || 0); });
-    var movies = candidates.slice(0, 20);
+    var byGenre = candidates.filter(function (m) {
+      return m.genres.some(function (g) {
+        var tr = genreTranslations[g] || g;
+        return normalize(tr) === normalize(searchQuery);
+      });
+    });
+    if (byGenre.length) candidates = byGenre;
 
+    candidates.sort(function (a, b) { return (b.votes || 0) - (a.votes || 0); });
+    candidates = applyFilters(candidates);
+
+    if (!candidates.length) {
+      el.innerHTML = '<p class="empty">По текущим фильтрам ничего не осталось.</p>';
+      return;
+    }
+
+    var movies = candidates.slice(0, 20);
     currentMovies = movies;
     render(movies, false);
   });
 }
 
+// ---------- Init ----------
 function init() {
   var settingsToggle = $("settings-toggle");
   var settingsPanel = $("settings-panel");
@@ -474,8 +594,14 @@ function init() {
     var q = $("search-input").value.trim();
     if (!q) return;
     $("results").innerHTML = '<p class="empty">Поиск...</p>';
+    currentMood = null;
+    lastSearchQuery = q;
+
     fetchKinopoisk(q).then(function (r) {
-      if (!r) { $("results").innerHTML = '<p class="empty">Не найдено.</p>'; return; }
+      if (!r) {
+        $("results").innerHTML = '<p class="empty">Ничего не найдено. Попробуйте другое название.</p>';
+        return;
+      }
       currentMovies = [r];
       render([r], false);
     });
@@ -505,6 +631,8 @@ function init() {
       document.querySelectorAll("#type-switch button").forEach(function (x) { x.classList.remove("active"); });
       this.classList.add("active");
       currentType = this.dataset.type;
+      if (currentMood) loadMoviesByMood(currentMood);
+      else if (lastSearchQuery) $("search-btn").click();
     };
   });
 
@@ -546,6 +674,12 @@ function init() {
 
   if ($("movie-modal-close")) $("movie-modal-close").onclick = function () { $("movie-modal").classList.remove("open"); };
   if ($("profile-modal-close")) $("profile-modal-close").onclick = function () { $("profile-modal").classList.remove("open"); };
+
+  // Восстановление настроек
+  var savedAccent = localStorage.getItem("mood_accent");
+  if (savedAccent) document.body.setAttribute("data-accent", savedAccent);
+  var savedTheme = localStorage.getItem("mood_theme");
+  if (savedTheme === "light") document.body.classList.add("light");
 
   if (window.firebaseAuth) initFirebase(); else window.addEventListener("firebase-ready", initFirebase);
   initGoogleLogin(); initProfile(); initAI();
