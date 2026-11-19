@@ -240,6 +240,21 @@ function openMovieModal(title) {
   document.getElementById("movie-modal").classList.add("open");
 }
 
+// ===== НОВОЕ: разбор JSON из ответа нейросети =====
+function parseAIJson(answer) {
+  if (!answer) return null;
+  var cleaned = answer.replace(/```json/gi, "").replace(/```/g, "").trim();
+  try { return JSON.parse(cleaned); }
+  catch (e) {
+    var start = cleaned.indexOf("{"), end = cleaned.lastIndexOf("}");
+    if (start !== -1 && end !== -1 && end > start) {
+      try { return JSON.parse(cleaned.substring(start, end + 1)); } catch (e2) { return null; }
+    }
+    return null;
+  }
+}
+
+// ===== ИЗМЕНЕНО: initAI теперь просит JSON и зовёт /discover =====
 function initAI() {
   var aiInput = document.getElementById("ai-input");
   var aiButton = document.getElementById("ai-button");
@@ -251,12 +266,14 @@ function initAI() {
     if (!text) return;
 
     aiButton.disabled = true;
-    aiStatus.textContent = "Подбираем фильмы...";
+    aiStatus.textContent = "Анализируем описание...";
 
     var prompt = 'Пользователь хочет найти фильм. Его запрос: "' + text + '". ' +
-      'Подбери 3 известных фильма, которые лучше всего подходят под этот запрос. ' +
-      'Ответь ТОЛЬКО их названиями на русском языке через запятую, без пояснений. ' +
-      'Пример: Зверополис, Мадагаскар, Побег из курятника';
+      'Преобразуй этот запрос в JSON для фильтрации фильмов. ' +
+      'Верни ТОЛЬКО JSON, без пояснений и без markdown. Формат: ' +
+      '{"genres": ["жанр1", "жанр2"], "yearFrom": 2000, "yearTo": 2024, "ratingFrom": 7.0}. ' +
+      'Используй русские названия жанров (комедия, драма, боевик, фантастика, ужасы, мелодрама, детектив, триллер, анимация, приключения, фэнтези, криминал, военный, семейный, документальное, вестерн, биография, музыка, мюзикл). ' +
+      'Если какой-то параметр не указан в запросе, не включай его в JSON.';
 
     puter.ai.chat(prompt).then(function (response) {
       var answer = "";
@@ -264,14 +281,32 @@ function initAI() {
       else if (response && response.message && response.message.content) answer = response.message.content;
       else if (response && response.text) answer = response.text;
 
-      var titles = answer.split(',').map(function (t) { return t.trim().replace(/^[0-9]+[\.\)]\s*/, ''); }).filter(function (t) { return t.length > 1; });
-
-      if (titles.length > 0) {
-        aiStatus.textContent = "Ищем: " + titles[0];
-        searchMovies(titles[0], currentType);
-      } else {
-        aiStatus.textContent = "Не удалось подобрать фильмы. Попробуйте иначе.";
+      var params = parseAIJson(answer);
+      if (!params) {
+        aiStatus.textContent = "Не удалось разобрать ответ нейросети. Попробуйте иначе.";
+        return;
       }
+
+      var qs = [];
+      if (params.genres && params.genres.length) qs.push("genres=" + encodeURIComponent(params.genres.join(",")));
+      if (params.yearFrom) qs.push("yearFrom=" + params.yearFrom);
+      if (params.yearTo) qs.push("yearTo=" + params.yearTo);
+      if (params.ratingFrom) qs.push("ratingFrom=" + params.ratingFrom);
+
+      if (!qs.length) {
+        aiStatus.textContent = "Не удалось выделить параметры из описания. Уточните запрос.";
+        return;
+      }
+
+      aiStatus.textContent = "Ищем фильмы по параметрам...";
+
+      fetchWithTimeout(BASE + "/discover?" + qs.join("&"), 20000)
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          render(d.docs || [], false);
+          aiStatus.textContent = "Готово. Найдено: " + ((d.docs || []).length);
+        })
+        .catch(function (e) { aiStatus.textContent = "Ошибка запроса: " + e.message; });
     }).catch(function (err) {
       aiStatus.textContent = "Ошибка ИИ: " + (err.message || err);
     }).finally(function () {
@@ -324,8 +359,3 @@ function init() {
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
-
-// ==========================================
-// ОБНОВЛЕНИЕ v2.4: Возврат к поиску по названиям
-// Нейросеть снова подбирает конкретные фильмы
-// ==========================================
