@@ -33,24 +33,6 @@ var genreTranslations = {
   "War": "военный", "Western": "вестерн", "Children": "детский"
 };
 
-var ruToEn = {
-  "животные": "animal", "животных": "animal", "животное": "animal",
-  "кот": "cat", "кошка": "cat", "коты": "cat",
-  "собака": "dog", "собаки": "dog", "пёс": "dog",
-  "марс": "mars", "космос": "space", "космический": "space",
-  "любовь": "love", "война": "war", "робот": "robot", "роботы": "robot",
-  "зомби": "zombie", "вампир": "vampire", "вампиры": "vampire",
-  "магия": "magic", "волшебство": "magic", "дракон": "dragon",
-  "школа": "school", "школьники": "school", "студенты": "college",
-  "полиция": "police", "полицейский": "police", "детектив": "detective",
-  "ограбление": "heist", "побег": "escape", "выживание": "survival",
-  "путешествие": "travel", "приключения": "adventure", "дружба": "friendship",
-  "семья": "family", "дети": "children", "ребёнок": "child",
-  "музыка": "music", "музыкант": "musician", "певец": "singer",
-  "спорт": "sport", "футбол": "football", "бокс": "boxing",
-  "будущее": "future", "прошлое": "past", "время": "time"
-};
-
 var allMovies = [];
 var currentMood = null, currentType = "movie", lastSearchQuery = null, currentMovies = [], currentUser = null;
 var currentProfile = { name: "", avatar: "", color: "#e8eaed" };
@@ -537,77 +519,61 @@ function initAI() {
   };
 }
 
-function initMoodSearch() {
-  var input = $("mood-search");
-  var clearBtn = $("mood-search-clear");
-  var noResults = $("mood-no-results");
-  if (!input) return;
-  function applyFilter() {
-    var q = input.value.toLowerCase().trim();
-    var totalVisible = 0;
-    document.querySelectorAll("#moods-list .mood-group").forEach(function (grp) {
-      var groupName = (grp.dataset.group || "").toLowerCase();
-      var groupVisible = 0;
-      grp.querySelectorAll("button").forEach(function (btn) {
-        var text = btn.textContent.toLowerCase();
-        var moodKey = (btn.dataset.mood || "").toLowerCase();
-        var match = !q || text.indexOf(q) !== -1 || moodKey.indexOf(q) !== -1 || groupName.indexOf(q) !== -1;
-        btn.style.display = match ? "" : "none";
-        if (match) groupVisible++;
-      });
-      grp.style.display = groupVisible ? "" : "none";
-      totalVisible += groupVisible;
-    });
-    if (noResults) noResults.style.display = (q && totalVisible === 0) ? "block" : "none";
-    if (clearBtn) clearBtn.classList.toggle("visible", !!q);
-  }
-  input.addEventListener("input", applyFilter);
-  input.addEventListener("keydown", function (e) { if (e.key === "Escape") { input.value = ""; applyFilter(); } });
-  if (clearBtn) clearBtn.onclick = function () { input.value = ""; applyFilter(); input.focus(); };
-}
-
 function init() {
   loadMovieLens();
-  var openers = [
-    ["moods-toggle", "moods-panel", "moods-close"],
-    ["filters-toggle", "filters-panel", "filters-close"],
-    ["playlists-toggle", "playlists-panel", "playlists-close"]
-  ];
-  openers.forEach(function (o) {
-    var open = $(o[0]), panel = $(o[1]), close = $(o[2]);
-    if (open && panel) open.onclick = function () { panel.classList.add("open"); };
-    if (close && panel) close.onclick = function () { panel.classList.remove("open"); };
-  });
-  initMoodSearch();
-  document.querySelectorAll("#moods-list button").forEach(function (b) {
-    b.onclick = function () {
-      document.querySelectorAll("#moods-list button").forEach(function (x) { x.classList.remove("active"); });
+
+  // Панели
+  var settingsToggle = $("settings-toggle");
+  var settingsPanel = $("settings-panel");
+  var settingsClose = $("settings-close");
+  if (settingsToggle && settingsPanel) settingsToggle.onclick = function () { settingsPanel.classList.add("open"); };
+  if (settingsClose && settingsPanel) settingsClose.onclick = function () { settingsPanel.classList.remove("open"); };
+
+  var playlistsToggle = $("playlists-toggle");
+  var playlistsPanel = $("playlists-panel");
+  var playlistsClose = $("playlists-close");
+  if (playlistsToggle && playlistsPanel) playlistsToggle.onclick = function () { playlistsPanel.classList.add("open"); };
+  if (playlistsClose && playlistsPanel) playlistsClose.onclick = function () { playlistsPanel.classList.remove("open"); };
+
+  // Табы
+  document.querySelectorAll(".tab-btn").forEach(function (btn) {
+    btn.onclick = function () {
+      document.querySelectorAll(".tab-btn").forEach(function (b) { b.classList.remove("active"); });
+      document.querySelectorAll(".tab-content").forEach(function (c) { c.classList.remove("active"); });
       this.classList.add("active");
-      loadMovies(this.dataset.mood, currentType);
-      $("moods-panel").classList.remove("open");
+      var target = $(this.dataset.target);
+      if (target) target.classList.add("active");
     };
   });
-  document.querySelectorAll("#type-switch button").forEach(function (b) {
-    b.onclick = function () {
-      document.querySelectorAll("#type-switch button").forEach(function (x) { x.classList.remove("active"); });
-      this.classList.add("active"); currentType = this.dataset.type;
-      if (currentMood) loadMovies(currentMood, currentType);
-      else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType);
-    };
-  });
+
+  // Поиск
   if ($("search-btn")) $("search-btn").onclick = function () {
-    var q = $("search-input").value.trim(); if (q) searchMovies(q, currentType);
+    var q = $("search-input").value.trim();
+    if (q) searchMovies(q, currentType);
   };
   if ($("search-input")) $("search-input").onkeydown = function (e) {
     if (e.key === "Enter") $("search-btn").click();
   };
+
+  // Случайный и шедевр
   if ($("random-btn")) $("random-btn").onclick = function () {
-    var keys = Object.keys(moodGenres); loadMovies(keys[Math.floor(Math.random() * keys.length)], currentType);
+    var keys = Object.keys(moodGenres);
+    loadMovies(keys[Math.floor(Math.random() * keys.length)], currentType);
   };
   if ($("masterpiece-btn")) $("masterpiece-btn").onclick = function () { searchMovies("шедевр", "movie"); };
-  if ($("ai-open-btn")) $("ai-open-btn").onclick = function () { $("ai-modal").classList.add("open"); };
-  if ($("ai-close")) $("ai-close").onclick = function () { $("ai-modal").classList.remove("open"); };
 
+  // Типы
+  document.querySelectorAll("#type-switch button").forEach(function (b) {
+    b.onclick = function () {
+      document.querySelectorAll("#type-switch button").forEach(function (x) { x.classList.remove("active"); });
+      this.classList.add("active");
+      currentType = this.dataset.type;
+      if (currentMood) loadMovies(currentMood, currentType);
+      else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType);
+    };
+  });
+
+  // Показать ещё
   if ($("load-more")) $("load-more").onclick = function () {
     if (!currentMood && !lastSearchQuery) return;
     var already = document.querySelectorAll("#results .card").length;
@@ -616,14 +582,10 @@ function init() {
     render(next, true);
   };
 
-  if ($("clear-mood-btn")) $("clear-mood-btn").onclick = function () {
-    currentMood = null; updateActiveMoodBar(null);
-    document.querySelectorAll("#moods-list button").forEach(function (x) { x.classList.remove("active"); });
-    $("results").innerHTML = "";
-    $("load-more").style.display = "none";
-  };
+  // Фильтры
   ["rating-filter", "year-filter", "filter-unwatched", "filter-new"].forEach(function (id) {
-    var el = $(id); if (!el) return;
+    var el = $(id);
+    if (!el) return;
     el.addEventListener("change", function () {
       if (currentMood) loadMovies(currentMood, currentType);
       else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType);
@@ -631,22 +593,46 @@ function init() {
   });
   if ($("rating-filter")) $("rating-filter").addEventListener("input", function () { $("rating-value").textContent = this.value; });
   if ($("filters-reset")) $("filters-reset").onclick = function () {
-    $("rating-filter").value = 0; $("rating-value").textContent = "0";
-    $("year-filter").value = 1900;
-    $("filter-unwatched").checked = false;
-    $("filter-new").checked = false;
+    if ($("rating-filter")) { $("rating-filter").value = 0; $("rating-value").textContent = "0"; }
+    if ($("year-filter")) $("year-filter").value = 1900;
+    if ($("filter-unwatched")) $("filter-unwatched").checked = false;
+    if ($("filter-new")) $("filter-new").checked = false;
     if (currentMood) loadMovies(currentMood, currentType);
     else if (lastSearchQuery) searchMovies(lastSearchQuery, currentType);
   };
+
+  // Плейлисты
   if ($("playlist-create-btn")) $("playlist-create-btn").onclick = function () {
     var n = $("playlist-name-input").value;
     if (createPlaylist(n)) { $("playlist-name-input").value = ""; renderPlaylists(); }
   };
-  if ($("theme-toggle")) $("theme-toggle").onclick = function () {
-    document.body.classList.toggle("light");
-    localStorage.setItem("mood_theme", document.body.classList.contains("light") ? "light" : "dark");
-    saveUserData();
+
+  // Настройки (цвета, тема)
+  document.querySelectorAll(".color-dot").forEach(function (dot) {
+    dot.onclick = function () {
+      document.querySelectorAll(".color-dot").forEach(function (d) { d.classList.remove("active"); });
+      this.classList.add("active");
+      document.body.setAttribute("data-accent", this.dataset.accent);
+      localStorage.setItem("mood_accent", this.dataset.accent);
+    };
+  });
+  document.querySelectorAll(".theme-btn").forEach(function (btn) {
+    btn.onclick = function () {
+      document.querySelectorAll(".theme-btn").forEach(function (b) { b.classList.remove("active"); });
+      this.classList.add("active");
+      document.body.classList.toggle("light", this.dataset.theme === "light");
+      localStorage.setItem("mood_theme", this.dataset.theme);
+    };
+  });
+  if ($("settings-reset")) $("settings-reset").onclick = function () {
+    document.body.removeAttribute("data-accent");
+    document.body.classList.remove("light");
+    localStorage.removeItem("mood_accent");
+    localStorage.removeItem("mood_theme");
+    document.querySelectorAll(".color-dot, .theme-btn").forEach(function (el) { el.classList.remove("active"); });
   };
+
+  // Firebase
   if (window.firebaseAuth) initFirebase(); else window.addEventListener("firebase-ready", initFirebase);
   initGoogleLogin(); initProfile(); initAI();
 }
