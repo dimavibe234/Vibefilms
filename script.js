@@ -240,21 +240,7 @@ function openMovieModal(title) {
   document.getElementById("movie-modal").classList.add("open");
 }
 
-// ===== НОВОЕ: разбор JSON из ответа нейросети =====
-function parseAIJson(answer) {
-  if (!answer) return null;
-  var cleaned = answer.replace(/```json/gi, "").replace(/```/g, "").trim();
-  try { return JSON.parse(cleaned); }
-  catch (e) {
-    var start = cleaned.indexOf("{"), end = cleaned.lastIndexOf("}");
-    if (start !== -1 && end !== -1 && end > start) {
-      try { return JSON.parse(cleaned.substring(start, end + 1)); } catch (e2) { return null; }
-    }
-    return null;
-  }
-}
-
-// ===== ИЗМЕНЕНО: initAI теперь просит JSON и зовёт /discover =====
+// ===== НОВОЕ: нейросеть возвращает английские названия, ищем по очереди =====
 function initAI() {
   var aiInput = document.getElementById("ai-input");
   var aiButton = document.getElementById("ai-button");
@@ -266,14 +252,12 @@ function initAI() {
     if (!text) return;
 
     aiButton.disabled = true;
-    aiStatus.textContent = "Анализируем описание...";
+    aiStatus.textContent = "Подбираем фильмы...";
 
     var prompt = 'Пользователь хочет найти фильм. Его запрос: "' + text + '". ' +
-      'Преобразуй этот запрос в JSON для фильтрации фильмов. ' +
-      'Верни ТОЛЬКО JSON, без пояснений и без markdown. Формат: ' +
-      '{"genres": ["жанр1", "жанр2"], "yearFrom": 2000, "yearTo": 2024, "ratingFrom": 7.0}. ' +
-      'Используй русские названия жанров (комедия, драма, боевик, фантастика, ужасы, мелодрама, детектив, триллер, анимация, приключения, фэнтези, криминал, военный, семейный, документальное, вестерн, биография, музыка, мюзикл). ' +
-      'Если какой-то параметр не указан в запросе, не включай его в JSON.';
+      'Подбери 5 известных фильмов, которые лучше всего подходят под этот запрос. ' +
+      'Верни ТОЛЬКО их названия на АНГЛИЙСКОМ языке через запятую, без пояснений и без нумерации. ' +
+      'Пример: The Martian, Mission to Mars, Red Planet, Interstellar, Gravity';
 
     puter.ai.chat(prompt).then(function (response) {
       var answer = "";
@@ -281,35 +265,49 @@ function initAI() {
       else if (response && response.message && response.message.content) answer = response.message.content;
       else if (response && response.text) answer = response.text;
 
-      var params = parseAIJson(answer);
-      if (!params) {
-        aiStatus.textContent = "Не удалось разобрать ответ нейросети. Попробуйте иначе.";
+      var titles = answer.split(',')
+        .map(function (t) { return t.trim().replace(/^[0-9]+[\.\)]\s*/, '').replace(/^["']|["']$/g, ''); })
+        .filter(function (t) { return t.length > 1; });
+
+      if (!titles.length) {
+        aiStatus.textContent = "Не удалось подобрать фильмы. Попробуйте иначе.";
+        aiButton.disabled = false;
         return;
       }
 
-      var qs = [];
-      if (params.genres && params.genres.length) qs.push("genres=" + encodeURIComponent(params.genres.join(",")));
-      if (params.yearFrom) qs.push("yearFrom=" + params.yearFrom);
-      if (params.yearTo) qs.push("yearTo=" + params.yearTo);
-      if (params.ratingFrom) qs.push("ratingFrom=" + params.ratingFrom);
+      var idx = 0;
+      function tryNext() {
+        if (idx >= titles.length) {
+          aiStatus.textContent = "Ничего не найдено. Попробуйте описать иначе.";
+          aiButton.disabled = false;
+          return;
+        }
+        var title = titles[idx++];
+        aiStatus.textContent = "Ищем: " + title + " (" + idx + "/" + titles.length + ")";
 
-      if (!qs.length) {
-        aiStatus.textContent = "Не удалось выделить параметры из описания. Уточните запрос.";
-        return;
+        var p = ["query=" + encodeURIComponent(title)];
+        if (currentType === "series") p.push("typeNumber=2");
+        else if (currentType === "cartoon") p.push("typeNumber=3");
+        else p.push("typeNumber=1");
+        p.push("page=1", "limit=24");
+
+        fetchWithTimeout(BASE + "?" + p.join("&"), 20000)
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            var docs = d.docs || [];
+            if (docs.length > 0) {
+              render(docs, false);
+              aiStatus.textContent = "Готово. Найдено по запросу: " + title;
+              aiButton.disabled = false;
+            } else {
+              tryNext();
+            }
+          })
+          .catch(function () { tryNext(); });
       }
-
-      aiStatus.textContent = "Ищем фильмы по параметрам...";
-
-      fetchWithTimeout(BASE + "/discover?" + qs.join("&"), 20000)
-        .then(function (r) { return r.json(); })
-        .then(function (d) {
-          render(d.docs || [], false);
-          aiStatus.textContent = "Готово. Найдено: " + ((d.docs || []).length);
-        })
-        .catch(function (e) { aiStatus.textContent = "Ошибка запроса: " + e.message; });
+      tryNext();
     }).catch(function (err) {
       aiStatus.textContent = "Ошибка ИИ: " + (err.message || err);
-    }).finally(function () {
       aiButton.disabled = false;
     });
   };
