@@ -1,3 +1,8 @@
+// ============================================================
+// ВСТАВЬТЕ СЮДА ВАШ НОВЫЙ КЛЮЧ АВТОРИЗАЦИИ GIGACHAT
+// ============================================================
+var GIGACHAT_AUTH_KEY = "MDFhMWY3NTMtY2QwMC03MWEzLTg2ODQtNGVhOTcwYzZhNzA2OmI1NjVmNjI2LTA3YTEtNDhkNi05NTkwLWFjZDFlYWVlZGZiMg==";
+
 var BASE = "https://functions.yandexcloud.net/d4e59mril3tsi9p47r09";
 
 // ---------- Категории ----------
@@ -50,6 +55,42 @@ var firebaseReady = false, fbAuth = null, fbDb = null, fbProvider = null;
 
 var kinopoiskCache = JSON.parse(localStorage.getItem("kinopoisk_cache") || "{}");
 function saveKinopoiskCache() { try { localStorage.setItem("kinopoisk_cache", JSON.stringify(kinopoiskCache)); } catch (e) {} }
+
+// ---------- GigaChat token ----------
+var gigaToken = null;
+var gigaTokenExpiry = 0;
+
+function getGigaToken() {
+  if (gigaToken && Date.now() < gigaTokenExpiry - 60000) {
+    return Promise.resolve(gigaToken);
+  }
+  var rqUid = (typeof crypto !== 'undefined' && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+
+  return fetch("https://ngw.devices.sberbank.ru:9443/api/v2/oauth", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Accept": "application/json",
+      "RqUID": rqUid,
+      "Authorization": "Basic " + GIGACHAT_AUTH_KEY
+    },
+    body: "scope=GIGACHAT_API_PERS"
+  })
+  .then(function(res) {
+    if (!res.ok) throw new Error("Ошибка получения токена GigaChat (проверьте ключ)");
+    return res.json();
+  })
+  .then(function(data) {
+    gigaToken = data.access_token;
+    gigaTokenExpiry = data.expires_at || (Date.now() + 30 * 60 * 1000);
+    return gigaToken;
+  });
+}
 
 function $(id) { return document.getElementById(id); }
 
@@ -570,7 +611,7 @@ function searchByTopic(topic, userText) {
   });
 }
 
-// ---------- AI ----------
+// ---------- AI: GigaChat ----------
 function initAI() {
   var aiInput = $("ai-input");
   var aiButton = $("ai-button");
@@ -582,6 +623,7 @@ function initAI() {
     if (!text) { showToast("Введите описание фильма", true); return; }
 
     aiButton.disabled = true;
+    setTimeout(function () { aiButton.disabled = false; }, 2000);
     aiStatus.textContent = "Нейросеть думает...";
 
     var genresList = "комедия, драма, боевик, ужасы, мелодрама, детектив, фантастика, " +
@@ -595,44 +637,59 @@ function initAI() {
       'где TYPE — одно из:\n' +
       '- FILM — если пользователь описал сюжет конкретного реального фильма. QUERY = точное название этого фильма (без года).\n' +
       '   Пример: "человек застрял на Марсе" → FILM|Марсианин\n' +
-      '   Пример: "фильм где герой один в пустыне" → FILM|Выживший\n' +
       '- GENRE — если пользователь просит жанр/настроение. QUERY = один жанр из списка: ' + genresList + '.\n' +
       '   Пример: "хочу посмеяться" → GENRE|комедия\n' +
-      '   Пример: "что-то страшное" → GENRE|ужасы\n' +
-      '- TOPIC — если это тема, а не конкретный фильм и не жанр (животные, космос, школа, ограбление, выживание в лесу и т.п.). QUERY = 1–3 ключевых слова темы.\n' +
-      '   Пример: "фильм про животных" → TOPIC|животные\n' +
-      '   Пример: "фильм про выживание в лесу" → TOPIC|выживание лес\n\n' +
-      'Правила:\n' +
-      '- Для FILM отвечай только если ТОЧНО знаешь реальный фильм. Не выдумывай.\n' +
-      '- Для TOPIC пиши общие слова на русском, без имён собственных.\n' +
-      '- Без пояснений, без кавычек, без markdown. Только одна строка TYPE|QUERY.';
+      '- TOPIC — если это тема, а не конкретный фильм и не жанр (животные, космос, школа, ограбление). QUERY = 1–3 ключевых слова темы.\n' +
+      '   Пример: "фильм про животных" → TOPIC|животные\n\n' +
+      'Правила: Для FILM отвечай только если ТОЧНО знаешь реальный фильм. Не выдумывай. Только одна строка TYPE|QUERY.';
 
-    puter.ai.chat(prompt, { model: "gpt-5.5" }).then(function (response) {
+    getGigaToken()
+    .then(function (token) {
+      return fetch("https://api.giga.chat/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({
+          model: "GigaChat-2",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.1,
+          max_tokens: 100
+        })
+      });
+    })
+    .then(function (res) {
+      if (!res.ok) {
+        if (res.status === 401) { gigaToken = null; }
+        throw new Error("Ошибка запроса к GigaChat (статус " + res.status + ")");
+      }
+      return res.json();
+    })
+    .then(function (data) {
       var raw = "";
-      if (typeof response === "string") raw = response;
-      else if (response && response.message && response.message.content) raw = response.message.content;
-      else if (response && response.text) raw = response.text;
+      if (data.choices && data.choices[0] && data.choices[0].message) {
+        raw = data.choices[0].message.content || "";
+      }
 
-      raw = (raw || "").replace(/["'«»`*#]/g, "").split("\n")[0].trim();
+      raw = raw.replace(/["'«»`*#]/g, "").split("\n")[0].trim();
       if (!raw) throw new Error("Нейросеть не дала ответ");
 
       var parts = raw.split("|");
-      if (parts.length < 2) {
-        parts = ["TOPIC", raw];
-      }
+      if (parts.length < 2) parts = ["TOPIC", raw];
       var type = parts[0].trim().toUpperCase();
       var query = parts.slice(1).join("|").trim();
-      if (!query) throw new Error("Нейросеть вернула пустой запрос");
+      if (!query) throw new Error("Пустой запрос");
 
       aiStatus.textContent = "Ищем: " + query;
 
       if (type === "FILM") return searchByFilm(query);
       if (type === "GENRE") return searchByGenre(query);
       return searchByTopic(query, text);
-    }).catch(function (err) {
+    })
+    .catch(function (err) {
       aiStatus.textContent = "Ошибка: " + (err.message || err);
-    }).finally(function () {
-      aiButton.disabled = false;
     });
   };
 }
