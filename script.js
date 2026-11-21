@@ -2,6 +2,7 @@
 // SuperHeroFilms — script.js  
 // AI_FN — YandexGPT (нейросеть)  
 // BASE  — прокси Кинопоиска  
+// Трейлер открывается в отдельной вкладке: trailer.html  
 // ============================================================
 
 var AI_FN = "https://functions.yandexcloud.net/d4edhc3vf41qqntfflsp";
@@ -447,38 +448,40 @@ function buildGenres(g) {
 function trailerLinks(title, year, kpId) {  
   var q = encodeURIComponent(title + " " + (year || "") + " трейлер");  
   return {  
-    youtube: "https://www.youtube.com/results?search_query=" + q,  
-    rutube:  "https://rutube.ru/search/?query=" + q,  
     kp:      kpId ? "https://www.kinopoisk.ru/film/" + kpId + "/video/" :  
                     "https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(title),  
     kpPage:  kpId ? "https://www.kinopoisk.ru/film/" + kpId + "/" :  
-                    "https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(title)  
+                    "https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(title),  
+    rutube:  "https://rutube.ru/search/?query=" + q,  
+    vk:      "https://vk.com/video?q=" + q,  
+    youtube: "https://www.youtube.com/results?search_query=" + q  
   };  
 }
 
-// ---------- Блок трейлера с виджетом Кинопоиска ----------  
-function buildTrailerBlock(kpId, links) {  
+// ---------- Адрес страницы трейлера ----------  
+function trailerPageUrl(title, year, kpId, poster, rating, genres) {  
+  var p = new URLSearchParams();  
+  p.set("title", title || "");  
+  p.set("year", year || "");  
+  if (kpId) p.set("kp", String(kpId));  
+  if (poster) p.set("poster", poster);  
+  if (rating) p.set("rating", String(rating));  
+  if (genres && genres.length) p.set("genres", genres.slice(0, 3).join(","));  
+  return "trailer.html?" + p.toString();  
+}
+
+// ---------- Блок трейлера в модалке ----------  
+function buildTrailerBlock(kpId, links, trailerUrl) {  
   var h = '<div class="trailer-block">';  
   h += '<div class="trailer-title">Трейлер</div>';
 
-  if (kpId) {  
-    var src = "https://widgets.kinopoisk.ru/discovery/trailer/" +  
-              encodeURIComponent(String(kpId)) + "?only-player=1";  
-    h += '<div class="trailer-frame">' +  
-         '<iframe src="' + esc(src) + '" ' +  
-         'frameborder="0" ' +  
-         'allow="autoplay; fullscreen; encrypted-media; picture-in-picture" ' +  
-         'allowfullscreen loading="lazy"></iframe>' +  
-         '</div>';  
-    h += '<p class="trailer-hint">Если окно пустое — у фильма нет трейлера в базе Кинопоиска, откройте любую ссылку ниже.</p>';  
-  } else {  
-    h += '<p class="trailer-hint">Трейлер во встроенном плеере недоступен — нет ID Кинопоиска.</p>';  
-  }
+  h += '<a class="btn-trailer-main" href="' + esc(trailerUrl) +  
+       '" target="_blank" rel="noopener">▶ Открыть трейлер</a>';
 
   h += '<div class="trailer-links">';  
-  h += '<a class="trailer-link yt" href="' + esc(links.youtube) + '" target="_blank" rel="noopener">YouTube</a>';  
+  h += '<a class="trailer-link kp" href="' + esc(links.kp) + '" target="_blank" rel="noopener">Кинопоиск</a>';  
   h += '<a class="trailer-link rt" href="' + esc(links.rutube) + '" target="_blank" rel="noopener">Rutube</a>';  
-  if (kpId) h += '<a class="trailer-link kp" href="' + esc(links.kp) + '" target="_blank" rel="noopener">Кинопоиск</a>';  
+  h += '<a class="trailer-link vk" href="' + esc(links.vk) + '" target="_blank" rel="noopener">VK Видео</a>';  
   h += '</div>';
 
   h += '</div>';  
@@ -513,7 +516,8 @@ function render(movies, append) {
     var w = isWatched(title);  
     var kpId = m.kp_id || null;  
     var safeT = esc(title).replace(/'/g, "\\'");  
-    var links = trailerLinks(title, year, kpId);
+    var links = trailerLinks(title, year, kpId);  
+    var trailerUrl = trailerPageUrl(title, year, kpId, poster, rating, m.genres);
 
     h += '<div class="card">';  
     h += '<div class="card-poster-wrap" onclick="openMovieModal(\'' + safeT + '\')">';  
@@ -527,9 +531,9 @@ function render(movies, append) {
     }  
     h += '<div class="card-overlay">';  
     h += '<div class="card-overlay-actions">';  
-    h += '<a class="card-action" href="' + esc(links.kpPage) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Открыть на Кинопоиске">КП</a>';  
-    h += '<a class="card-action" href="' + esc(links.youtube) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Трейлер на YouTube">▶</a>';  
-    h += '<a class="card-action" href="' + esc(links.rutube) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Трейлер на Rutube">R</a>';  
+    h += '<a class="card-action" href="' + esc(links.kpPage) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Страница на Кинопоиске">КП</a>';  
+    h += '<a class="card-action" href="' + esc(trailerUrl) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Трейлер">▶</a>';  
+    h += '<a class="card-action" href="' + esc(links.rutube) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Rutube">R</a>';  
     h += '</div>';  
     h += '<span class="card-overlay-hint">Подробнее</span>';  
     h += '</div>';  
@@ -565,7 +569,8 @@ function openMovieModal(title) {
   var poster = m.poster || "";  
   var kpId = m.kp_id || null;  
   var safeT = esc(title).replace(/'/g, "\\'");  
-  var links = trailerLinks(title, year, kpId);
+  var links = trailerLinks(title, year, kpId);  
+  var trailerUrl = trailerPageUrl(title, year, kpId, poster, rating, m.genres);
 
   var h = '<div class="movie-header">';  
   if (poster) h += '<img src="' + esc(poster) + '" alt="">';  
@@ -575,7 +580,8 @@ function openMovieModal(title) {
        buildGenres(m.genres) +  
        '</div></div>';
 
-  h += buildTrailerBlock(kpId, links);
+  // ---- Трейлер: своя страница в новой вкладке ----  
+  h += buildTrailerBlock(kpId, links, trailerUrl);
 
   h += '<p class="movie-desc">' + esc(desc) + '</p>';
 

@@ -1,0 +1,274 @@
+<!DOCTYPE html>  
+<html lang="ru">  
+<head>  
+<meta charset="utf-8">  
+<meta name="viewport" content="width=device-width, initial-scale=1">  
+<title>Трейлер — SuperHeroFilms</title>  
+<style>  
+  :root {  
+    --bg: #0b0f14;  
+    --card: #151b23;  
+    --text: #e8eaed;  
+    --muted: #8f9bab;  
+    --accent: #e50914;  
+  }  
+  * { box-sizing: border-box; }  
+  html, body { margin: 0; padding: 0; }  
+  body {  
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;  
+    background: var(--bg);  
+    color: var(--text);  
+    min-height: 100vh;  
+    overflow-x: hidden;  
+  }
+
+  /* Размытый постер на фоне */  
+  #bg {  
+    position: fixed; inset: 0; z-index: 0;  
+    background-size: cover;  
+    background-position: center;  
+    filter: blur(40px) brightness(0.35) saturate(1.2);  
+    transform: scale(1.15);  
+  }  
+  #bg::after {  
+    content: ""; position: absolute; inset: 0;  
+    background: linear-gradient(180deg, rgba(11,15,20,0.5) 0%, rgba(11,15,20,0.95) 70%, var(--bg) 100%);  
+  }
+
+  main {  
+    position: relative; z-index: 1;  
+    max-width: 960px;  
+    margin: 0 auto;  
+    padding: 24px 20px 60px;  
+  }
+
+  .back {  
+    display: inline-flex; align-items: center; gap: 6px;  
+    color: var(--muted); text-decoration: none;  
+    font-size: 0.9rem; margin-bottom: 28px;  
+    transition: color .2s ease;  
+  }  
+  .back:hover { color: var(--text); }
+
+  /* Шапка: постер + информация */  
+  .hero {  
+    display: flex; gap: 28px; align-items: flex-start;  
+    margin-bottom: 32px;  
+  }  
+  .hero img {  
+    width: 200px;  
+    aspect-ratio: 2 / 3;  
+    object-fit: cover;  
+    border-radius: 16px;  
+    box-shadow: 0 20px 60px rgba(0,0,0,.6);  
+    flex-shrink: 0;  
+    background: var(--card);  
+  }  
+  .hero-info { flex: 1; min-width: 0; }  
+  .hero h1 {  
+    margin: 0 0 10px;  
+    font-size: 2rem;  
+    line-height: 1.2;  
+    letter-spacing: -0.02em;  
+  }  
+  .hero .meta {  
+    margin: 0 0 14px;  
+    color: var(--muted);  
+    font-size: 1rem;  
+  }  
+  .hero .meta .star { color: #fbbf24; }  
+  .genres { display: flex; flex-wrap: wrap; gap: 6px; }  
+  .genre {  
+    display: inline-block;  
+    padding: 4px 12px;  
+    border-radius: 999px;  
+    font-size: 0.78rem;  
+    background: rgba(255,255,255,.08);  
+    border: 1px solid rgba(255,255,255,.12);  
+    color: var(--muted);  
+    white-space: nowrap;  
+  }
+
+  /* Блок источников */  
+  .watch {  
+    margin-top: 8px;  
+    padding: 22px;  
+    background: var(--card);  
+    border-radius: 16px;  
+    border: 1px solid rgba(255,255,255,.06);  
+  }  
+  .watch h2 {  
+    margin: 0 0 6px;  
+    font-size: 1.1rem;  
+  }  
+  .watch .hint {  
+    margin: 0 0 16px;  
+    font-size: 0.84rem;  
+    color: var(--muted);  
+    line-height: 1.45;  
+  }  
+  .sources {  
+    display: grid;  
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));  
+    gap: 10px;  
+    margin-bottom: 14px;  
+  }  
+  .source {  
+    display: flex; align-items: center; justify-content: center;  
+    padding: 14px 16px;  
+    border-radius: 12px;  
+    font-weight: 600;  
+    font-size: 0.9rem;  
+    text-decoration: none;  
+    color: #fff;  
+    transition: transform .15s ease, filter .2s ease;  
+    border: 1px solid transparent;  
+  }  
+  .source:hover { transform: translateY(-2px); filter: brightness(1.1); }  
+  .source.kp     { background: linear-gradient(135deg, #ff5500, #cc4400); }  
+  .source.rt     { background: linear-gradient(135deg, #00a6ff, #0077cc); }  
+  .source.vk     { background: linear-gradient(135deg, #0077ff, #0055bb); }  
+  .source.yt     { background: linear-gradient(135deg, #ff0033, #cc0029); opacity: .55; }  
+  .source.yt::after { content: " · медленно в РФ"; font-weight: 400; font-size: .75rem; opacity: .8; }
+
+  .footnote {  
+    margin: 18px 0 0;  
+    font-size: 0.76rem;  
+    color: var(--muted);  
+    text-align: center;  
+  }
+
+  /* Плеер Rutube, если пришёл video_id */  
+  .embed {  
+    margin-top: 24px;  
+    background: var(--card);  
+    border-radius: 16px;  
+    padding: 18px;  
+    border: 1px solid rgba(255,255,255,.06);  
+  }  
+  .embed-title {  
+    font-size: 0.8rem; font-weight: 600;  
+    color: var(--muted);  
+    text-transform: uppercase;  
+    letter-spacing: 0.06em;  
+    margin-bottom: 12px;  
+  }  
+  .embed-frame {  
+    position: relative; width: 100%; padding-top: 56.25%;  
+    border-radius: 12px; overflow: hidden; background: #000;  
+  }  
+  .embed-frame iframe {  
+    position: absolute; inset: 0; width: 100%; height: 100%; border: 0;  
+  }
+
+  /* Мобильная вёрстка */  
+  @media (max-width: 640px) {  
+    main { padding: 18px 14px 40px; }  
+    .hero { flex-direction: column; gap: 18px; align-items: center; text-align: center; }  
+    .hero img { width: 140px; }  
+    .hero h1 { font-size: 1.5rem; }  
+    .genres { justify-content: center; }  
+    .watch { padding: 16px; }  
+  }  
+</style>  
+</head>  
+<body>
+
+<div id="bg"></div>
+
+<main>  
+  <a class="back" href="./">← На главную</a>
+
+  <section class="hero">  
+    <img id="poster" alt="">  
+    <div class="hero-info">  
+      <h1 id="title">Загрузка…</h1>  
+      <p class="meta" id="meta"></p>  
+      <div class="genres" id="genres"></div>  
+    </div>  
+  </section>
+
+  <section class="watch">  
+    <h2>Где смотреть трейлер</h2>  
+    <p class="hint">Трейлеры открываются на выбранном сайте — там официальные видео в лучшем качестве, без пережатия.</p>  
+    <div class="sources">  
+      <a id="src-kp"     class="source kp" target="_blank" rel="noopener">Кинопоиск</a>  
+      <a id="src-rutube" class="source rt" target="_blank" rel="noopener">Rutube</a>  
+      <a id="src-vk"     class="source vk" target="_blank" rel="noopener">VK Видео</a>  
+      <a id="src-yt"     class="source yt" target="_blank" rel="noopener">YouTube</a>  
+    </div>  
+    <p class="footnote">Мы не загружаем видео на своих серверах — только подсказываем, где его смотреть.</p>  
+  </section>
+
+  <section class="embed" id="embed" hidden>  
+    <div class="embed-title">Встроенный плеер</div>  
+    <div class="embed-frame" id="embed-frame"></div>  
+  </section>  
+</main>
+
+<script>  
+(function () {  
+  var q = new URLSearchParams(location.search);  
+  var title  = q.get("title")  || "";  
+  var year   = q.get("year")   || "";  
+  var kp     = q.get("kp")     || "";  
+  var poster = q.get("poster") || "";  
+  var rating = q.get("rating") || "";  
+  var genres = q.get("genres") || "";  
+  var rutubeId = q.get("rutube_id") || "";
+
+  document.title = (title || "Трейлер") + " — SuperHeroFilms";
+
+  // Заголовок и год  
+  document.getElementById("title").textContent = title || "Трейлер";
+
+  var metaParts = [];  
+  if (year) metaParts.push(year);  
+  if (rating) metaParts.push('★ ' + rating);  
+  document.getElementById("meta").textContent = metaParts.join(" · ");
+
+  // Постер и фон  
+  if (poster) {  
+    document.getElementById("poster").src = poster;  
+    document.getElementById("bg").style.backgroundImage = "url('" + poster + "')";  
+  } else {  
+    document.getElementById("poster").style.display = "none";  
+  }
+
+  // Жанры  
+  if (genres) {  
+    var gEl = document.getElementById("genres");  
+    genres.split(",").forEach(function (g) {  
+      if (!g.trim()) return;  
+      var s = document.createElement("span");  
+      s.className = "genre";  
+      s.textContent = g.trim();  
+      gEl.appendChild(s);  
+    });  
+  }
+
+  // Ссылки на источники  
+  var query = encodeURIComponent((title + " " + (year || "") + " трейлер").trim());
+
+  var kpLink = kp  
+    ? "https://www.kinopoisk.ru/film/" + kp + "/video/"  
+    : "https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(title);  
+  document.getElementById("src-kp").href = kpLink;
+
+  document.getElementById("src-rutube").href = "https://rutube.ru/search/?query=" + query;  
+  document.getElementById("src-vk").href     = "https://vk.com/video?q=" + query;  
+  document.getElementById("src-yt").href     = "https://www.youtube.com/results?search_query=" + query;
+
+  // Встроенный Rutube-плеер — если пришёл video_id  
+  if (rutubeId) {  
+    var box = document.getElementById("embed");  
+    box.hidden = false;  
+    document.getElementById("embed-frame").innerHTML =  
+      '<iframe src="https://rutube.ru/play/embed/' + encodeURIComponent(rutubeId) + '" ' +  
+      'frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>';  
+  }  
+})();  
+</script>
+
+</body>  
+</html>  
