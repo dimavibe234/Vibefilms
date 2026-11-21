@@ -54,6 +54,7 @@ var genreTranslations = {
 };
 
 var currentMood = null, currentType = "movie", lastSearchQuery = null, currentMovies = [], currentUser = null;
+var currentAlternatives = [];   // ← НОВОЕ: альтернативы от нейросети  
 var currentProfile = { name: "", avatar: "", color: "#e8eaed" };
 var firebaseReady = false, fbAuth = null, fbDb = null, fbProvider = null;
 
@@ -502,10 +503,10 @@ function openMovieModal(title) {
   h += '<div><h2>' + esc(title) + '</h2><p>' + esc(year) + (rating ? ' · ★ ' + rating.toFixed(1) : '') + '</p></div></div>';
   h += '<p style="font-size:0.9rem;line-height:1.5;margin-bottom:20px;">' + esc(desc) + '</p>';
   h += '<button class="btn-primary" style="width:100%;margin-bottom:10px;background:' + (w ? '#34d399' : 'var(--accent)') + '" onclick="toggleWatched(\'' + safeT + '\',\'' + esc(year) + '\');openMovieModal(\'' + safeT + '\')">' + (w ? '✓ Просмотрено' : '○ Отметить просмотренным') + '</button>';
-  h += '<button class="btn-primary" style="width:100%;margin-bottom:10px;background:#f87171;" onclick="hideMovie(\'' + safeT + '\');document.getElementById(\'movie-modal\').classList.remove(\'open\');showToast(\'Скрыто\')"> Скрыть из выдачи</button>';
+  h += '<button class="btn-primary" style="width:100%;margin-bottom:10px;background:#f87171;" onclick="hideMovie(\'' + safeT + '\');document.getElementById(\'movie-modal\').classList.remove(\'open\');showToast(\'Скрыто\')">Скрыть из выдачи</button>';
   h += '<div class="social-links">';
-  h += '<a class="social-btn kp" href="https://www.kinopoisk.ru/index.php?kp_query=' + encodeURIComponent(title) + '" target="_blank"> Кинопоиск</a>';
-  h += '<a class="social-btn rutube" href="https://rutube.ru/search/?query=' + encodeURIComponent(title) + '" target="_blank"> Rutube</a>';
+  h += '<a class="social-btn kp" href="https://www.kinopoisk.ru/index.php?kp_query=' + encodeURIComponent(title) + '" target="_blank">Кинопоиск</a>';
+  h += '<a class="social-btn rutube" href="https://rutube.ru/search/?query=' + encodeURIComponent(title) + '" target="_blank">Rutube</a>';
   h += '</div>';
   $("movie-modal-body").innerHTML = h;
   $("movie-modal").classList.add("open");
@@ -622,10 +623,25 @@ function fromAiMovie(m) {
   };
 }
 
+// ---------- НОВОЕ: клик по альтернативе ----------
+function showAiAlternative(i) {
+  var m = currentAlternatives[i];
+  if (!m) return;
+  var movie = fromAiMovie(m);
+  currentMovies = [movie];
+  currentMood = null;
+  lastSearchQuery = null;
+  render([movie], false);
+  showToast("Вариант: " + movie.title);
+}
+
+// ---------- Рендер ответа нейросети ----------
 function renderAiPick(data) {
   var el = $("results");
-  var p = data.pick || {};
-  var m = data.movie;
+  if (!el) return;
+
+  var p = (data && data.pick) || {};
+  var m = data && data.movie;
 
   if (m) {
     var movie = fromAiMovie(m);
@@ -634,27 +650,66 @@ function renderAiPick(data) {
     lastSearchQuery = null;
     render([movie], false);
 
+    // ---- Блок «Почему этот фильм» ----
     var block = document.createElement("div");
     block.className = "ai-explain";
     block.innerHTML =
-      '<div class="ai-explain-label"> Почему этот фильм</div>' +
-      '<p>' + esc(p.reason || "") + '</p>' +
-      (p.mood ? '<p class="ai-explain-meta">Настроение: <b>' + esc(p.mood) + '</b></p>' : '') +
-      (p.note ? '<p class="ai-explain-meta">Деталь: ' + esc(p.note) + '</p>' : '') +
-      (m.url ? '<a class="ai-explain-link" href="' + esc(m.url) + '" target="_blank" rel="noopener">Открыть на Кинопоиске →</a>' : '');
+      '<div class="ai-explain-label">Почему этот фильм</div>' +
+      "<p>" + esc(p.reason || "") + "</p>" +
+      (p.mood ? '<p class="ai-explain-meta">Настроение: <b>' + esc(p.mood) + "</b></p>" : "") +
+      (p.note ? '<p class="ai-explain-meta">Деталь: ' + esc(p.note) + "</p>" : "") +
+      (m.url  
+        ? '<a class="ai-explain-link" href="' + esc(m.url) + '" target="_blank" rel="noopener">Открыть на Кинопоиске →</a>'
+        : "");
     el.insertBefore(block, el.firstChild);
+
+    // ---- Блок «Другие варианты» ----
+    if (data.alternatives && data.alternatives.length) {
+      currentAlternatives = data.alternatives;
+
+      var alt = document.createElement("div");
+      alt.className = "ai-explain";
+
+      var html = '<div class="ai-explain-label">Не тот фильм? Другие варианты</div>';
+
+      data.alternatives.forEach(function (a, i) {
+        html +=  
+          '<button type="button" onclick="showAiAlternative(' + i + ')" ' +
+          'style="display:flex;align-items:center;gap:10px;width:100%;' +
+          "margin:6px 0;padding:8px;border:none;border-radius:8px;" +
+          "background:var(--bg-input);color:var(--text);cursor:pointer;" +
+          'text-align:left;font:inherit;">' +
+          (a.poster  
+            ? '<img src="' + esc(a.poster) + '" alt="" ' +
+              'style="width:32px;height:48px;object-fit:cover;border-radius:4px;flex:0 0 auto;">'
+            : "") +
+          "<span>" + esc(a.title || "") +
+          (a.year ? " (" + esc(a.year) + ")" : "") +
+          "</span></button>";
+      });
+
+      alt.innerHTML = html;
+      el.insertBefore(alt, block.nextSibling);
+    } else {
+      currentAlternatives = [];
+    }
   } else {
+    // ---- Карточка не нашлась — показываем только текст модели ----
     currentMovies = [];
+    currentAlternatives = [];
     currentMood = null;
     lastSearchQuery = null;
+
     el.innerHTML =
       '<div class="ai-explain">' +
-      '<div class="ai-explain-label"> Подбор нейросети</div>' +
-      '<h3>' + esc(p.title || "Фильм") + (p.year ? " (" + esc(p.year) + ")" : '') + '</h3>' +
-      '<p>' + esc(p.reason || "") + '</p>' +
-      (p.note ? '<p class="ai-explain-meta">Деталь: ' + esc(p.note) + '</p>' : '') +
-      '<p class="ai-explain-meta">Постер не найден — проверьте название вручную.</p>' +
-      '</div>';
+      '<div class="ai-explain-label">Подбор нейросети</div>' +
+      "<h3>" + esc(p.title || "Фильм") +
+      (p.year ? " (" + esc(p.year) + ")" : "") + "</h3>" +
+      "<p>" + esc(p.reason || "") + "</p>" +
+      (p.mood ? '<p class="ai-explain-meta">Настроение: <b>' + esc(p.mood) + "</b></p>" : "") +
+      (p.note ? '<p class="ai-explain-meta">Деталь: ' + esc(p.note) + "</p>" : "") +
+      '<p class="ai-explain-meta">Карточка в базе не нашлась — проверьте название вручную.</p>' +
+      "</div>";
   }
 }
 
