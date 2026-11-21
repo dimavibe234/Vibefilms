@@ -1,280 +1,298 @@
-<!DOCTYPE html>  
-<html lang="ru">  
-<head>  
-<meta charset="utf-8">  
-<meta name="viewport" content="width=device-width, initial-scale=1">  
-<title>Трейлер — SuperHeroFilms</title>  
-<style>  
-  :root {  
-    --bg: #0b0f14;  
-    --card: #151b23;  
-    --text: #e8eaed;  
-    --muted: #8f9bab;  
-    --accent: #e50914;  
-  }  
-  * { box-sizing: border-box; }  
-  html, body { margin: 0; padding: 0; }  
-  body {  
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;  
-    background: var(--bg);  
-    color: var(--text);  
-    min-height: 100vh;  
-    overflow-x: hidden;  
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="origin">
+<title>Трейлер — SuperHeroFilms</title>
+<style>
+  :root { --bg:#0b0f14; --card:#151b23; --text:#e8eaed; --muted:#8f9bab; --accent:#e50914; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; overflow-x: hidden;
   }
-
-  #bg {  
-    position: fixed; inset: 0; z-index: 0;  
-    background-size: cover; background-position: center;  
-    filter: blur(40px) brightness(0.35) saturate(1.2);  
-    transform: scale(1.15);  
-  }  
-  #bg::after {  
-    content: ""; position: absolute; inset: 0;  
-    background: linear-gradient(180deg, rgba(11,15,20,0.5) 0%, rgba(11,15,20,0.95) 70%, var(--bg) 100%);  
+  #bg {
+    position: fixed; inset: 0; z-index: 0;
+    background-size: cover; background-position: center;
+    filter: blur(40px) brightness(0.35) saturate(1.2);
+    transform: scale(1.15);
   }
-
-  main {  
-    position: relative; z-index: 1;  
-    max-width: 960px; margin: 0 auto;  
-    padding: 24px 20px 60px;  
+  #bg::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(11,15,20,.5) 0%, rgba(11,15,20,.95) 70%, var(--bg) 100%);
   }
-
-  .back {  
-    display: inline-flex; align-items: center; gap: 6px;  
-    color: var(--muted); text-decoration: none;  
-    font-size: 0.9rem; margin-bottom: 28px;  
-    transition: color .2s ease;  
-  }  
+  main { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 24px 20px 60px; }
+  .back { display:inline-flex; align-items:center; gap:6px; color:var(--muted); text-decoration:none; font-size:.9rem; margin-bottom:28px; transition:color .2s; }
   .back:hover { color: var(--text); }
 
-  .hero {  
-    display: flex; gap: 28px; align-items: flex-start;  
-    margin-bottom: 28px;  
-  }  
-  .hero img {  
-    width: 200px; aspect-ratio: 2 / 3; object-fit: cover;  
-    border-radius: 16px;  
-    box-shadow: 0 20px 60px rgba(0,0,0,.6);  
-    flex-shrink: 0; background: var(--card);  
-  }  
-  .hero-info { flex: 1; min-width: 0; }  
-  .hero h1 {  
-    margin: 0 0 10px; font-size: 2rem; line-height: 1.2;  
-    letter-spacing: -0.02em;  
-  }  
-  .hero .meta {  
-    margin: 0 0 14px; color: var(--muted); font-size: 1rem;  
-  }  
-  .genres { display: flex; flex-wrap: wrap; gap: 6px; }  
-  .genre {  
-    display: inline-block; padding: 4px 12px;  
-    border-radius: 999px; font-size: 0.78rem;  
-    background: rgba(255,255,255,.08);  
-    border: 1px solid rgba(255,255,255,.12);  
-    color: var(--muted); white-space: nowrap;  
-  }
+  .hero { display:flex; gap:28px; align-items:flex-start; margin-bottom:28px; }
+  .hero img { width:200px; aspect-ratio:2/3; object-fit:cover; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.6); flex-shrink:0; background:var(--card); }
+  .hero-info { flex:1; min-width:0; }
+  .hero h1 { margin:0 0 10px; font-size:2rem; line-height:1.2; letter-spacing:-.02em; }
+  .hero .meta { margin:0 0 14px; color:var(--muted); font-size:1rem; }
+  .genres { display:flex; flex-wrap:wrap; gap:6px; }
+  .genre { display:inline-block; padding:4px 12px; border-radius:999px; font-size:.78rem; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); color:var(--muted); white-space:nowrap; }
 
-  .player {  
-    background: var(--card); border-radius: 16px;  
-    border: 1px solid rgba(255,255,255,.06);  
-    overflow: hidden; margin-bottom: 16px;  
-  }  
-  .player-frame {  
-    position: relative; width: 100%; padding-top: 56.25%;  
-    background: #000;  
-  }  
-  .player-frame iframe {  
-    position: absolute; inset: 0; width: 100%; height: 100%; border: 0;  
-  }  
-  .player-status {  
-    padding: 24px 20px;  
-    text-align: center; color: var(--muted);  
-    font-size: 0.9rem;  
-  }  
-  .player-status .spinner {  
-    display: inline-block; width: 18px; height: 18px;  
-    border: 2px solid rgba(255,255,255,.15);  
-    border-top-color: var(--accent);  
-    border-radius: 50%;  
-    animation: spin 0.8s linear infinite;  
-    margin-right: 8px; vertical-align: middle;  
-  }  
+  .player { background:var(--card); border-radius:16px; border:1px solid rgba(255,255,255,.06); overflow:hidden; margin-bottom:16px; }
+  .player-frame { position:relative; width:100%; padding-top:56.25%; background:#000; }
+  .player-frame iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
+
+  .poster-play { position:absolute; inset:0; cursor:pointer; }
+  .poster-play img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:brightness(.5); }
+  .poster-play .btn {
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  }
+  .poster-play .btn span {
+    width:84px; height:84px; border-radius:50%;
+    background:rgba(229,9,20,.92);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 12px 44px rgba(0,0,0,.55);
+    transition:transform .15s ease;
+  }
+  .poster-play:hover .btn span { transform:scale(1.08); }
+
+  .player-status { padding:28px 20px; text-align:center; color:var(--muted); font-size:.9rem; line-height:1.5; }
+  .player-status .spinner {
+    display:inline-block; width:18px; height:18px;
+    border:2px solid rgba(255,255,255,.15); border-top-color:var(--accent);
+    border-radius:50%; animation:spin .8s linear infinite;
+    margin-right:8px; vertical-align:middle;
+  }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .servers {  
-    background: var(--card); border-radius: 16px;  
-    border: 1px solid rgba(255,255,255,.06);  
-    padding: 18px 20px; margin-bottom: 16px;  
-  }  
-  .servers h2 { margin: 0 0 6px; font-size: 1rem; }  
-  .servers .hint {  
-    margin: 0 0 14px; font-size: 0.82rem;  
-    color: var(--muted); line-height: 1.45;  
-  }  
-  .source-grid {  
-    display: grid;  
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));  
-    gap: 10px;  
-  }  
-  .source {  
-    display: flex; align-items: center; justify-content: center;  
-    padding: 12px 14px; border-radius: 10px;  
-    font-weight: 600; font-size: 0.85rem;  
-    text-decoration: none; color: #fff;  
-    transition: filter .2s ease, transform .15s ease;  
-  }  
-  .source:hover { filter: brightness(1.1); transform: translateY(-1px); }  
-  .source.kp { background: linear-gradient(135deg, #ff5500, #cc4400); }  
-  .source.rt { background: linear-gradient(135deg, #00a6ff, #0077cc); }  
-  .source.vk { background: linear-gradient(135deg, #0077ff, #0055bb); }
+  .servers { background:var(--card); border-radius:16px; border:1px solid rgba(255,255,255,.06); padding:18px 20px; margin-bottom:16px; }
+  .servers h2 { margin:0 0 6px; font-size:1rem; }
+  .servers .hint { margin:0 0 14px; font-size:.82rem; color:var(--muted); line-height:1.45; }
+  .source-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; }
+  .source { display:flex; align-items:center; justify-content:center; padding:12px 14px; border-radius:10px; font-weight:600; font-size:.85rem; text-decoration:none; color:#fff; transition:filter .2s, transform .15s; }
+  .source:hover { filter:brightness(1.1); transform:translateY(-1px); }
+  .source.kp { background:linear-gradient(135deg,#ff5500,#cc4400); }
+  .source.yt { background:linear-gradient(135deg,#ff0000,#c00); }
+  .source.rt { background:linear-gradient(135deg,#00a6ff,#0077cc); }
+  .source.vk { background:linear-gradient(135deg,#0077ff,#0055bb); }
 
-  .footnote {  
-    margin: 18px 0 0; font-size: 0.76rem;  
-    color: var(--muted); text-align: center;  
+  .footnote { margin:18px 0 0; font-size:.76rem; color:var(--muted); text-align:center; }
+
+  @media (max-width:640px) {
+    main { padding:18px 14px 40px; }
+    .hero { flex-direction:column; gap:18px; align-items:center; text-align:center; }
+    .hero img { width:140px; }
+    .hero h1 { font-size:1.5rem; }
+    .genres { justify-content:center; }
   }
-
-  @media (max-width: 640px) {  
-    main { padding: 18px 14px 40px; }  
-    .hero {  
-      flex-direction: column; gap: 18px;  
-      align-items: center; text-align: center;  
-    }  
-    .hero img { width: 140px; }  
-    .hero h1 { font-size: 1.5rem; }  
-    .genres { justify-content: center; }  
-  }  
-</style>  
-</head>  
+</style>
+</head>
 <body>
 
 <div id="bg"></div>
 
-<main>  
+<main>
   <a class="back" href="./">← На главную</a>
 
-  <section class="hero">  
-    <img id="poster" alt="">  
-    <div class="hero-info">  
-      <h1 id="title">Загрузка…</h1>  
-      <p class="meta" id="meta"></p>  
-      <div class="genres" id="genres"></div>  
-    </div>  
+  <section class="hero">
+    <img id="poster" alt="">
+    <div class="hero-info">
+      <h1 id="title">Загрузка…</h1>
+      <p class="meta" id="meta"></p>
+      <div class="genres" id="genres"></div>
+    </div>
   </section>
 
-  <section class="player">  
-    <div id="player-status" class="player-status">  
-      <span class="spinner"></span>Ищем трейлер на Кинопоиске…  
-    </div>  
-    <div id="player-slot"></div>  
+  <section class="player">
+    <div id="player-status" class="player-status">
+      <span class="spinner"></span>Ищем трейлер…
+    </div>
+    <div id="player-slot"></div>
   </section>
 
-  <section class="servers">  
-    <h2>Если видео выше не играет</h2>  
-    <p class="hint">Откройте трейлер напрямую на удобном источнике.</p>  
-    <div class="source-grid">  
-      <a id="src-kp"     class="source kp" target="_blank" rel="noopener">Кинопоиск</a>  
-      <a id="src-rutube" class="source rt" target="_blank" rel="noopener">Rutube</a>  
-      <a id="src-vk"     class="source vk" target="_blank" rel="noopener">VK Видео</a>  
-    </div>  
+  <section class="servers">
+    <h2>Если видео не играет</h2>
+    <p class="hint">Откройте трейлер напрямую на удобном источнике.</p>
+    <div class="source-grid">
+      <a id="src-kp" class="source kp" target="_blank" rel="noopener">Кинопоиск</a>
+      <a id="src-yt" class="source yt" target="_blank" rel="noopener">YouTube</a>
+      <a id="src-rt" class="source rt" target="_blank" rel="noopener">Rutube</a>
+      <a id="src-vk" class="source vk" target="_blank" rel="noopener">VK Видео</a>
+    </div>
   </section>
 
-  <p class="footnote">Трейлер встраивается с Кинопоиска через официальный виджет.</p>  
+  <p class="footnote">Трейлер вставляется через официальные embed-плееры Кинопоиска и YouTube.</p>
 </main>
 
-<script>  
-(function () {  
-  var BASE = "https://functions.yandexcloud.net/d4e3i0pd816463uq33eu";  
-  var q = new URLSearchParams(location.search);  
-  var title  = q.get("title")  || "";  
-  var year   = q.get("year")   || "";  
-  var kp     = q.get("kp")     || "";  
-  var poster = q.get("poster") || "";  
-  var rating = q.get("rating") || "";  
+<script>
+(function () {
+  var BASE = "https://functions.yandexcloud.net/d4e3i0pd816463uq33eu";
+  var q = new URLSearchParams(location.search);
+  var title  = q.get("title")  || "";
+  var year   = q.get("year")   || "";
+  var kp     = q.get("kp")     || "";
+  var poster = q.get("poster") || "";
+  var rating = q.get("rating") || "";
   var genres = q.get("genres") || "";
 
-  document.title = (title || "Трейлер") + " — SuperHeroFilms";  
+  document.title = (title || "Трейлер") + " — SuperHeroFilms";
   document.getElementById("title").textContent = title || "Трейлер";
 
-  var metaParts = [];  
-  if (year) metaParts.push(year);  
-  if (rating) metaParts.push("★ " + rating);  
+  var metaParts = [];
+  if (year) metaParts.push(year);
+  if (rating) metaParts.push("★ " + rating);
   document.getElementById("meta").textContent = metaParts.join(" · ");
 
-  if (poster) {  
-    document.getElementById("poster").src = poster;  
-    document.getElementById("bg").style.backgroundImage = "url('" + poster + "')";  
-  } else {  
-    document.getElementById("poster").style.display = "none";  
+  if (poster) {
+    document.getElementById("poster").src = poster;
+    document.getElementById("bg").style.backgroundImage = "url('" + poster + "')";
+  } else {
+    document.getElementById("poster").style.display = "none";
   }
 
-  if (genres) {  
-    var gEl = document.getElementById("genres");  
-    genres.split(",").forEach(function (g) {  
-      if (!g.trim()) return;  
-      var s = document.createElement("span");  
-      s.className = "genre";  
-      s.textContent = g.trim();  
-      gEl.appendChild(s);  
-    });  
+  if (genres) {
+    var gEl = document.getElementById("genres");
+    genres.split(",").forEach(function (g) {
+      if (!g.trim()) return;
+      var s = document.createElement("span");
+      s.className = "genre";
+      s.textContent = g.trim();
+      gEl.appendChild(s);
+    });
   }
 
-  var query = encodeURIComponent((title + " " + (year || "") + " трейлер").trim());  
-  var kpLink = kp  
-    ? "https://www.kinopoisk.ru/film/" + kp + "/video/"  
-    : "https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(title);  
-  document.getElementById("src-kp").href = kpLink;  
-  document.getElementById("src-rutube").href = "https://rutube.ru/search/?query=" + query;  
-  document.getElementById("src-vk").href     = "https://vk.com/video?q=" + query;
+  var searchQuery = encodeURIComponent((title + " " + (year || "") + " трейлер").trim());
+  document.getElementById("src-kp").href = kp  
+    ? "https://www.kinopoisk.ru/film/" + kp + "/video/"
+    : "https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(title);
+  document.getElementById("src-yt").href = "https://www.youtube.com/results?search_query=" + searchQuery;
+  document.getElementById("src-rt").href = "https://rutube.ru/search/?query=" + searchQuery;
+  document.getElementById("src-vk").href = "https://vk.com/video?q=" + searchQuery;
 
-  var statusEl = document.getElementById("player-status");  
+  var statusEl = document.getElementById("player-status");
   var slotEl   = document.getElementById("player-slot");
 
-  function showError(msg) {  
-    statusEl.style.display = "block";  
-    statusEl.innerHTML = msg;  
-    slotEl.innerHTML = "";  
+  function showError(msg) {
+    statusEl.style.display = "block";
+    statusEl.innerHTML = msg;
+    slotEl.innerHTML = "";
   }
 
-  function embedWidget(url) {  
-    statusEl.style.display = "none";  
-    slotEl.innerHTML =  
-      '<div class="player-frame">' +  
-      '<iframe src="' + url + '" ' +  
-      'referrerpolicy="no-referrer" ' +  
-      'frameborder="0" ' +  
-      'allow="autoplay; fullscreen; encrypted-media; picture-in-picture" ' +  
-      'allowfullscreen></iframe>' +  
-      '</div>';  
+  // ---------- Встраивание виджета Кинопоиска ----------
+  function embedDirect(src) {
+    statusEl.style.display = "none";
+    slotEl.innerHTML =
+      '<div class="player-frame">' +
+        '<iframe src="' + src + '" frameborder="0" ' +
+        'referrerpolicy="origin" ' +
+        'allow="autoplay; fullscreen; encrypted-media; picture-in-picture; web-share" ' +
+        'allowfullscreen></iframe>' +
+      '</div>';
   }
 
-  if (!kp) {  
-    showError("Нет ID Кинопоиска — откройте источник вручную ниже.");  
-    return;  
+  // ---------- Клик по постеру → запуск YouTube ----------
+  function embedClickToPlay(src, posterUrl) {
+    statusEl.style.display = "none";
+    slotEl.innerHTML =
+      '<div class="player-frame">' +
+        '<div class="poster-play">' +
+          '<img src="' + (posterUrl || "") + '" alt="">' +
+          '<div class="btn"><span>' +
+            '<svg width="38" height="38" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>' +
+          '</span></div>' +
+        '</div>' +
+      '</div>';
+
+    var wrap = slotEl.querySelector(".poster-play");
+    wrap.addEventListener("click", function () {
+      slotEl.innerHTML =
+        '<div class="player-frame">' +
+          '<iframe src="' + src + '" frameborder="0" ' +
+          'referrerpolicy="origin" ' +
+          'allow="autoplay; fullscreen; encrypted-media; picture-in-picture; web-share" ' +
+          'allowfullscreen></iframe>' +
+        '</div>';
+    });
   }
 
-  fetch(BASE + "?videos=" + encodeURIComponent(kp))  
-    .then(function (r) { return r.json(); })  
-    .then(function (d) {  
-      var items = (d && d.items) || [];  
-      var widget = null;  
-      for (var i = 0; i < items.length; i++) {  
-        var it = items[i];  
-        if (it && it.site === "kinopoisk" && it.url && it.url.indexOf("widgets.kinopoisk.ru") !== -1) {  
-          widget = it;  
-          break;  
-        }  
-      }  
-      if (widget) {  
-        embedWidget(widget.url);  
-      } else {  
-        showError("Трейлера на Кинопоиске нет — откройте источник вручную ниже.");  
-      }  
-    })  
-    .catch(function (e) {  
-      showError("Ошибка загрузки: " + (e && e.message || e));  
-    });  
-})();  
+  // ---------- Вытащить 11-символьный ID YouTube ----------
+  function ytId(url) {
+    if (!url) return null;
+    var m = String(url).match(
+      /(?:youtube\.com\/(?:watch\?(?:[^#]*&)?v=|embed\/|shorts\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/
+    );
+    return m ? m[1] : null;
+  }
+
+  // ---------- Сборка YouTube-ссылки ----------
+  function ytEmbedSrc(id) {
+    var origin = (location.origin && location.origin !== "null")
+      ? location.origin  
+      : "";
+    var s = "https://www.youtube-nocookie.com/embed/" + id +
+            "?rel=0&modestbranding=1&playsinline=1&enablejsapi=1";
+    if (origin) s += "&origin=" + encodeURIComponent(origin);
+    return s;
+  }
+
+  if (!kp) {
+    showError("Нет ID Кинопоиска — откройте источник вручную ниже.");
+    return;
+  }
+
+  fetch(BASE + "?videos=" + encodeURIComponent(kp))
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      console.log("[trailer] location.origin =", location.origin);
+      console.log("[trailer] kp =", kp);
+      console.log("[trailer] ответ API =", d);
+
+      if (d && d.error) {
+        showError("Ошибка API: " + d.error);
+        return;
+      }
+
+      var items = (d && d.items) || [];
+      console.log("[trailer] найдено видео:", items.length);
+
+      // 1) Виджет Кинопоиска  
+      for (var i = 0; i < items.length; i++) {
+        var u1 = (items[i] || {}).url || "";
+        if (u1.indexOf("widgets.kinopoisk.ru") !== -1) {
+          console.log("[trailer] выбираю виджет Кинопоиска:", u1);
+          embedDirect(u1);
+          return;
+        }
+      }
+
+      // 2) YouTube  
+      for (var j = 0; j < items.length; j++) {
+        var u2 = (items[j] || {}).url || "";
+        var vid = ytId(u2);
+        if (vid) {
+          var src = ytEmbedSrc(vid);
+          console.log("[trailer] выбираю YouTube:", src);
+          embedClickToPlay(src, poster);
+          return;
+        }
+      }
+
+      // 3) Ничего не подошло  
+      if (!items.length) {
+        showError("У фильма нет трейлеров в базе. Откройте источник вручную ниже.");
+      } else {
+        var sites = {};
+        items.forEach(function (x) {
+          sites[(x.site || "?") + "·" + (x.type || "?")] = 1;
+        });
+        showError("Встроить нечего — доступно только: " +
+                  Object.keys(sites).join(", ") +
+                  ". Откройте источник вручную ниже.");
+      }
+    })
+    .catch(function (e) {
+      showError("Ошибка загрузки: " + ((e && e.message) || e));
+    });
+})();
 </script>
 
-</body>  
-</html>  
+</body>
+</html>
