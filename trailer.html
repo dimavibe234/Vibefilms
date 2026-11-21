@@ -49,14 +49,13 @@
 
   .hero {  
     display: flex; gap: 28px; align-items: flex-start;  
-    margin-bottom: 32px;  
+    margin-bottom: 28px;  
   }  
   .hero img {  
     width: 200px; aspect-ratio: 2 / 3; object-fit: cover;  
     border-radius: 16px;  
     box-shadow: 0 20px 60px rgba(0,0,0,.6);  
-    flex-shrink: 0;  
-    background: var(--card);  
+    flex-shrink: 0; background: var(--card);  
   }  
   .hero-info { flex: 1; min-width: 0; }  
   .hero h1 {  
@@ -75,94 +74,59 @@
     color: var(--muted); white-space: nowrap;  
   }
 
-  /* ===== СЕРВЕРЫ ===== */  
-  .servers {  
-    margin-top: 8px;  
-    background: var(--card);  
-    border-radius: 16px;  
+  .player {  
+    background: var(--card); border-radius: 16px;  
     border: 1px solid rgba(255,255,255,.06);  
-    overflow: hidden;  
+    overflow: hidden; margin-bottom: 16px;  
   }  
-  .servers-header {  
-    padding: 18px 20px 12px;  
+  .player-frame {  
+    position: relative; width: 100%; padding-top: 56.25%;  
+    background: #000;  
   }  
-  .servers-header h2 {  
-    margin: 0 0 4px; font-size: 1.1rem;  
+  .player-frame iframe {  
+    position: absolute; inset: 0; width: 100%; height: 100%; border: 0;  
   }  
-  .servers-header .hint {  
-    margin: 0; font-size: 0.84rem; color: var(--muted);  
-    line-height: 1.45;  
-  }
+  .player-status {  
+    padding: 24px 20px;  
+    text-align: center; color: var(--muted);  
+    font-size: 0.9rem;  
+  }  
+  .player-status .spinner {  
+    display: inline-block; width: 18px; height: 18px;  
+    border: 2px solid rgba(255,255,255,.15);  
+    border-top-color: var(--accent);  
+    border-radius: 50%;  
+    animation: spin 0.8s linear infinite;  
+    margin-right: 8px; vertical-align: middle;  
+  }  
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-  .server-tabs {  
-    display: flex; gap: 0;  
-    border-bottom: 1px solid rgba(255,255,255,.06);  
-    overflow-x: auto;  
-    scrollbar-width: thin;  
+  .servers {  
+    background: var(--card); border-radius: 16px;  
+    border: 1px solid rgba(255,255,255,.06);  
+    padding: 18px 20px; margin-bottom: 16px;  
   }  
-  .server-tab {  
-    flex: 1; min-width: 120px;  
-    padding: 12px 16px;  
-    background: transparent;  
-    border: none;  
-    border-bottom: 2px solid transparent;  
-    color: var(--muted);  
-    font-size: 0.85rem;  
-    font-weight: 600;  
-    cursor: pointer;  
-    transition: color .2s ease, border-color .2s ease, background .2s ease;  
-    white-space: nowrap;  
-  }  
-  .server-tab:hover { color: var(--text); background: rgba(255,255,255,.03); }  
-  .server-tab.active {  
-    color: var(--text);  
-    border-bottom-color: var(--accent);  
-    background: rgba(255,255,255,.04);  
-  }  
-  .server-tab .dot {  
-    display: inline-block; width: 6px; height: 6px;  
-    border-radius: 50%; margin-right: 6px; vertical-align: middle;  
-  }  
-  .server-tab[data-server="rutube"] .dot { background: #00a6ff; }  
-  .server-tab[data-server="vk"]     .dot { background: #0077ff; }  
-  .server-tab[data-server="kp"]     .dot { background: #ff5500; }
-
-  .server-body {  
-    padding: 20px;  
-    min-height: 140px;  
-  }  
-  .server-pane { display: none; }  
-  .server-pane.active { display: block; }
-
-  .server-pane h3 {  
-    margin: 0 0 6px; font-size: 0.95rem;  
-  }  
-  .server-pane .desc {  
+  .servers h2 { margin: 0 0 6px; font-size: 1rem; }  
+  .servers .hint {  
     margin: 0 0 14px; font-size: 0.82rem;  
     color: var(--muted); line-height: 1.45;  
-  }
-
-  .btn-server {  
+  }  
+  .source-grid {  
+    display: grid;  
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));  
+    gap: 10px;  
+  }  
+  .source {  
     display: flex; align-items: center; justify-content: center;  
-    gap: 8px; width: 100%;  
-    padding: 14px; border-radius: 12px;  
-    color: #fff; font-weight: 700; font-size: 0.95rem;  
-    text-decoration: none;  
+    padding: 12px 14px; border-radius: 10px;  
+    font-weight: 600; font-size: 0.85rem;  
+    text-decoration: none; color: #fff;  
     transition: filter .2s ease, transform .15s ease;  
   }  
-  .btn-server:hover { filter: brightness(1.1); transform: translateY(-1px); }  
-  .btn-server.rutube { background: linear-gradient(135deg, #00a6ff, #0077cc); }  
-  .btn-server.vk     { background: linear-gradient(135deg, #0077ff, #0055bb); }  
-  .btn-server.kp     { background: linear-gradient(135deg, #ff5500, #cc4400); }
-
-  .embed-slot { margin-top: 14px; }  
-  .embed-frame {  
-    position: relative; width: 100%; padding-top: 56.25%;  
-    border-radius: 12px; overflow: hidden; background: #000;  
-  }  
-  .embed-frame iframe {  
-    position: absolute; inset: 0; width: 100%; height: 100%; border: 0;  
-  }
+  .source:hover { filter: brightness(1.1); transform: translateY(-1px); }  
+  .source.kp { background: linear-gradient(135deg, #ff5500, #cc4400); }  
+  .source.rt { background: linear-gradient(135deg, #00a6ff, #0077cc); }  
+  .source.vk { background: linear-gradient(135deg, #0077ff, #0055bb); }
 
   .footnote {  
     margin: 18px 0 0; font-size: 0.76rem;  
@@ -171,12 +135,13 @@
 
   @media (max-width: 640px) {  
     main { padding: 18px 14px 40px; }  
-    .hero { flex-direction: column; gap: 18px; align-items: center; text-align: center; }  
+    .hero {  
+      flex-direction: column; gap: 18px;  
+      align-items: center; text-align: center;  
+    }  
     .hero img { width: 140px; }  
     .hero h1 { font-size: 1.5rem; }  
     .genres { justify-content: center; }  
-    .server-tab { min-width: 90px; font-size: 0.78rem; padding: 10px 8px; }  
-    .server-body { padding: 16px; }  
   }  
 </style>  
 </head>  
@@ -196,65 +161,43 @@
     </div>  
   </section>
 
+  <section class="player">  
+    <div id="player-status" class="player-status">  
+      <span class="spinner"></span>Ищем трейлер на Кинопоиске…  
+    </div>  
+    <div id="player-slot"></div>  
+  </section>
+
   <section class="servers">  
-    <div class="servers-header">  
-      <h2>Где смотреть трейлер</h2>  
-      <p class="hint">Выберите сервер — откроется официальная страница с трейлером в лучшем качестве. Все источники работают в России.</p>  
-    </div>
-
-    <div class="server-tabs" role="tablist">  
-      <button class="server-tab active" data-server="rutube" role="tab"><span class="dot"></span>Сервер 1 · Rutube</button>  
-      <button class="server-tab" data-server="vk" role="tab"><span class="dot"></span>Сервер 2 · VK Видео</button>  
-      <button class="server-tab" data-server="kp" role="tab"><span class="dot"></span>Сервер 3 · Кинопоиск</button>  
-    </div>
-
-    <div class="server-body">  
-      <!-- Rutube -->  
-      <div class="server-pane active" data-server="rutube">  
-        <h3>Rutube</h3>  
-        <p class="desc">Официальные трейлеры российских и зарубежных фильмов. Не замедлен, работает без VPN.</p>  
-        <a id="btn-rutube" class="btn-server rutube" target="_blank" rel="noopener">▶ Смотреть на Rutube</a>  
-        <div class="embed-slot" id="embed-rutube"></div>  
-      </div>
-
-      <!-- VK Видео -->  
-      <div class="server-pane" data-server="vk">  
-        <h3>VK Видео</h3>  
-        <p class="desc">Крупнейший видеохостинг рунета. Часто есть полные версии трейлеров и дублированные ролики.</p>  
-        <a id="btn-vk" class="btn-server vk" target="_blank" rel="noopener">▶ Смотреть на VK Видео</a>  
-        <div class="embed-slot" id="embed-vk"></div>  
-      </div>
-
-      <!-- Кинопоиск -->  
-      <div class="server-pane" data-server="kp">  
-        <h3>Кинопоиск</h3>  
-        <p class="desc">Официальные трейлеры прямо на странице фильма. Лучшее качество и полные версии роликов.</p>  
-        <a id="btn-kp" class="btn-server kp" target="_blank" rel="noopener">▶ Смотреть на Кинопоиске</a>  
-        <div class="embed-slot" id="embed-kp"></div>  
-      </div>  
+    <h2>Если видео выше не играет</h2>  
+    <p class="hint">Откройте трейлер напрямую на удобном источнике.</p>  
+    <div class="source-grid">  
+      <a id="src-kp"     class="source kp" target="_blank" rel="noopener">Кинопоиск</a>  
+      <a id="src-rutube" class="source rt" target="_blank" rel="noopener">Rutube</a>  
+      <a id="src-vk"     class="source vk" target="_blank" rel="noopener">VK Видео</a>  
     </div>  
   </section>
 
-  <p class="footnote">Мы не храним видео на своих серверах — только помогаем найти официальный трейлер на удобном источнике.</p>  
+  <p class="footnote">Трейлер встраивается с Кинопоиска через официальный виджет.</p>  
 </main>
 
 <script>  
 (function () {  
+  var BASE = "https://functions.yandexcloud.net/d4e3i0pd816463uq33eu";  
   var q = new URLSearchParams(location.search);  
   var title  = q.get("title")  || "";  
   var year   = q.get("year")   || "";  
   var kp     = q.get("kp")     || "";  
   var poster = q.get("poster") || "";  
   var rating = q.get("rating") || "";  
-  var genres = q.get("genres") || "";  
-  var rutubeId = q.get("rutube_id") || "";
+  var genres = q.get("genres") || "";
 
   document.title = (title || "Трейлер") + " — SuperHeroFilms";  
   document.getElementById("title").textContent = title || "Трейлер";
 
   var metaParts = [];  
   if (year) metaParts.push(year);  
-  if (rating) metaParts.push('★ ' + rating);  
+  if (rating) metaParts.push("★ " + rating);  
   document.getElementById("meta").textContent = metaParts.join(" · ");
 
   if (poster) {  
@@ -275,37 +218,61 @@
     });  
   }
 
-  // Ссылки серверов  
-  var query = encodeURIComponent((title + " " + (year || "") + " трейлер").trim());
-
+  var query = encodeURIComponent((title + " " + (year || "") + " трейлер").trim());  
   var kpLink = kp  
     ? "https://www.kinopoisk.ru/film/" + kp + "/video/"  
     : "https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(title);  
-  document.getElementById("btn-kp").href = kpLink;  
-  document.getElementById("btn-rutube").href = "https://rutube.ru/search/?query=" + query;  
-  document.getElementById("btn-vk").href     = "https://vk.com/video?q=" + query;
+  document.getElementById("src-kp").href = kpLink;  
+  document.getElementById("src-rutube").href = "https://rutube.ru/search/?query=" + query;  
+  document.getElementById("src-vk").href     = "https://vk.com/video?q=" + query;
 
-  // Переключение вкладок  
-  document.querySelectorAll(".server-tab").forEach(function (tab) {  
-    tab.onclick = function () {  
-      var server = tab.dataset.server;  
-      document.querySelectorAll(".server-tab").forEach(function (t) {  
-        t.classList.toggle("active", t === tab);  
-      });  
-      document.querySelectorAll(".server-pane").forEach(function (p) {  
-        p.classList.toggle("active", p.dataset.server === server);  
-      });  
-    };  
-  });
+  var statusEl = document.getElementById("player-status");  
+  var slotEl   = document.getElementById("player-slot");
 
-  // Встроенный Rutube-плеер — если пришёл video_id  
-  if (rutubeId) {  
-    document.getElementById("embed-rutube").innerHTML =  
-      '<div class="embed-frame">' +  
-      '<iframe src="https://rutube.ru/play/embed/' + encodeURIComponent(rutubeId) + '" ' +  
-      'frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>' +  
+  function showError(msg) {  
+    statusEl.style.display = "block";  
+    statusEl.innerHTML = msg;  
+    slotEl.innerHTML = "";  
+  }
+
+  function embedWidget(url) {  
+    statusEl.style.display = "none";  
+    slotEl.innerHTML =  
+      '<div class="player-frame">' +  
+      '<iframe src="' + url + '" ' +  
+      'referrerpolicy="no-referrer" ' +  
+      'frameborder="0" ' +  
+      'allow="autoplay; fullscreen; encrypted-media; picture-in-picture" ' +  
+      'allowfullscreen></iframe>' +  
       '</div>';  
-  }  
+  }
+
+  if (!kp) {  
+    showError("Нет ID Кинопоиска — откройте источник вручную ниже.");  
+    return;  
+  }
+
+  fetch(BASE + "?videos=" + encodeURIComponent(kp))  
+    .then(function (r) { return r.json(); })  
+    .then(function (d) {  
+      var items = (d && d.items) || [];  
+      var widget = null;  
+      for (var i = 0; i < items.length; i++) {  
+        var it = items[i];  
+        if (it && it.site === "kinopoisk" && it.url && it.url.indexOf("widgets.kinopoisk.ru") !== -1) {  
+          widget = it;  
+          break;  
+        }  
+      }  
+      if (widget) {  
+        embedWidget(widget.url);  
+      } else {  
+        showError("Трейлера на Кинопоиске нет — откройте источник вручную ниже.");  
+      }  
+    })  
+    .catch(function (e) {  
+      showError("Ошибка загрузки: " + (e && e.message || e));  
+    });  
 })();  
 </script>
 
