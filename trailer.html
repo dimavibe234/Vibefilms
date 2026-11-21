@@ -6,28 +6,15 @@
 <meta name="referrer" content="origin">
 <title>Трейлер — SuperHeroFilms</title>
 <style>
-  :root { --bg:#0b0f14; --card:#151b23; --text:#e8eaed; --muted:#8f9bab; --accent:#e50914; }
+  :root { --bg:#0b0f14; --card:#151b23; --text:#e8eaed; --muted:#8f9bab; }
   * { box-sizing: border-box; }
   html, body { margin:0; padding:0; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: var(--bg); color: var(--text);
-    min-height: 100vh; overflow-x: hidden;
-  }
-  #bg {
-    position: fixed; inset: 0; z-index: 0;
-    background-size: cover; background-position: center;
-    filter: blur(40px) brightness(0.35) saturate(1.2);
-    transform: scale(1.15);
-  }
-  #bg::after {
-    content: ""; position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(11,15,20,.5) 0%, rgba(11,15,20,.95) 70%, var(--bg) 100%);
-  }
-  main { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 24px 20px 60px; }
-  .back { display:inline-flex; align-items:center; gap:6px; color:var(--muted); text-decoration:none; font-size:.9rem; margin-bottom:28px; transition:color .2s; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; }
+  #bg { position:fixed; inset:0; z-index:0; background-size:cover; background-position:center; filter:blur(40px) brightness(.35) saturate(1.2); transform:scale(1.15); }
+  #bg::after { content:""; position:absolute; inset:0; background:linear-gradient(180deg,rgba(11,15,20,.5) 0%,rgba(11,15,20,.95) 70%,var(--bg) 100%); }
+  main { position:relative; z-index:1; max-width:960px; margin:0 auto; padding:24px 20px 60px; }
+  .back { display:inline-flex; align-items:center; gap:6px; color:var(--muted); text-decoration:none; font-size:.9rem; margin-bottom:28px; }
   .back:hover { color: var(--text); }
-
   .hero { display:flex; gap:28px; align-items:flex-start; margin-bottom:28px; }
   .hero img { width:200px; aspect-ratio:2/3; object-fit:cover; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.6); flex-shrink:0; background:var(--card); }
   .hero-info { flex:1; min-width:0; }
@@ -39,29 +26,15 @@
   .player { background:var(--card); border-radius:16px; border:1px solid rgba(255,255,255,.06); overflow:hidden; margin-bottom:16px; }
   .player-frame { position:relative; width:100%; padding-top:56.25%; background:#000; }
   .player-frame iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
-
-  .poster-play { position:absolute; inset:0; cursor:pointer; }
-  .poster-play img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:brightness(.5); }
-  .poster-play .btn {
-    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-  }
-  .poster-play .btn span {
-    width:84px; height:84px; border-radius:50%;
-    background:rgba(229,9,20,.92);
-    display:flex; align-items:center; justify-content:center;
-    box-shadow:0 12px 44px rgba(0,0,0,.55);
-    transition:transform .15s ease;
-  }
-  .poster-play:hover .btn span { transform:scale(1.08); }
-
   .player-status { padding:28px 20px; text-align:center; color:var(--muted); font-size:.9rem; line-height:1.5; }
-  .player-status .spinner {
-    display:inline-block; width:18px; height:18px;
-    border:2px solid rgba(255,255,255,.15); border-top-color:var(--accent);
-    border-radius:50%; animation:spin .8s linear infinite;
-    margin-right:8px; vertical-align:middle;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .alt-results { padding:14px 18px; border-top:1px solid rgba(255,255,255,.06); }
+  .alt-results h3 { margin:0 0 10px; font-size:.85rem; color:var(--muted); font-weight:600; }
+  .alt-results .item { display:flex; align-items:center; gap:10px; padding:8px 0; text-decoration:none; color:var(--text); font-size:.85rem; border-bottom:1px solid rgba(255,255,255,.04); }
+  .alt-results .item:last-child { border-bottom:0; }
+  .alt-results .item:hover { color:#fff; }
+  .alt-results .item img { width:80px; height:45px; object-fit:cover; border-radius:6px; flex-shrink:0; background:#000; }
+  .alt-results .item .t { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
   .servers { background:var(--card); border-radius:16px; border:1px solid rgba(255,255,255,.06); padding:18px 20px; margin-bottom:16px; }
   .servers h2 { margin:0 0 6px; font-size:1rem; }
@@ -73,7 +46,6 @@
   .source.yt { background:linear-gradient(135deg,#ff0000,#c00); }
   .source.rt { background:linear-gradient(135deg,#00a6ff,#0077cc); }
   .source.vk { background:linear-gradient(135deg,#0077ff,#0055bb); }
-
   .footnote { margin:18px 0 0; font-size:.76rem; color:var(--muted); text-align:center; }
 
   @media (max-width:640px) {
@@ -102,15 +74,12 @@
   </section>
 
   <section class="player">
-    <div id="player-status" class="player-status">
-      <span class="spinner"></span>Ищем трейлер…
-    </div>
-    <div id="player-slot"></div>
+    <div id="player-slot"><div class="player-status">Ищем трейлер…</div></div>
   </section>
 
   <section class="servers">
-    <h2>Если видео не играет</h2>
-    <p class="hint">Откройте трейлер напрямую на удобном источнике.</p>
+    <h2>Если трейлер не играет</h2>
+    <p class="hint">Откройте источник напрямую — там точно есть видео.</p>
     <div class="source-grid">
       <a id="src-kp" class="source kp" target="_blank" rel="noopener">Кинопоиск</a>
       <a id="src-yt" class="source yt" target="_blank" rel="noopener">YouTube</a>
@@ -119,7 +88,7 @@
     </div>
   </section>
 
-  <p class="footnote">Трейлер вставляется через официальные embed-плееры Кинопоиска и YouTube.</p>
+  <p class="footnote">Трейлер встраивается через Rutube / YouTube.</p>
 </main>
 
 <script>
@@ -160,6 +129,7 @@
   }
 
   var searchQuery = encodeURIComponent((title + " " + (year || "") + " трейлер").trim());
+
   document.getElementById("src-kp").href = kp  
     ? "https://www.kinopoisk.ru/film/" + kp + "/video/"
     : "https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(title);
@@ -167,53 +137,14 @@
   document.getElementById("src-rt").href = "https://rutube.ru/search/?query=" + searchQuery;
   document.getElementById("src-vk").href = "https://vk.com/video?q=" + searchQuery;
 
-  var statusEl = document.getElementById("player-status");
-  var slotEl   = document.getElementById("player-slot");
+  var slotEl = document.getElementById("player-slot");
 
-  function showError(msg) {
-    statusEl.style.display = "block";
-    statusEl.innerHTML = msg;
-    slotEl.innerHTML = "";
+  function iframeHtml(src) {
+    return '<div class="player-frame"><iframe src="' + src + '" frameborder="0" ' +
+      'referrerpolicy="origin" allowfullscreen ' +
+      'allow="autoplay; fullscreen; encrypted-media; picture-in-picture; web-share"></iframe></div>';
   }
 
-  // ---------- Встраивание виджета Кинопоиска ----------
-  function embedDirect(src) {
-    statusEl.style.display = "none";
-    slotEl.innerHTML =
-      '<div class="player-frame">' +
-        '<iframe src="' + src + '" frameborder="0" ' +
-        'referrerpolicy="origin" ' +
-        'allow="autoplay; fullscreen; encrypted-media; picture-in-picture; web-share" ' +
-        'allowfullscreen></iframe>' +
-      '</div>';
-  }
-
-  // ---------- Клик по постеру → запуск YouTube ----------
-  function embedClickToPlay(src, posterUrl) {
-    statusEl.style.display = "none";
-    slotEl.innerHTML =
-      '<div class="player-frame">' +
-        '<div class="poster-play">' +
-          '<img src="' + (posterUrl || "") + '" alt="">' +
-          '<div class="btn"><span>' +
-            '<svg width="38" height="38" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>' +
-          '</span></div>' +
-        '</div>' +
-      '</div>';
-
-    var wrap = slotEl.querySelector(".poster-play");
-    wrap.addEventListener("click", function () {
-      slotEl.innerHTML =
-        '<div class="player-frame">' +
-          '<iframe src="' + src + '" frameborder="0" ' +
-          'referrerpolicy="origin" ' +
-          'allow="autoplay; fullscreen; encrypted-media; picture-in-picture; web-share" ' +
-          'allowfullscreen></iframe>' +
-        '</div>';
-    });
-  }
-
-  // ---------- Вытащить 11-символьный ID YouTube ----------
   function ytId(url) {
     if (!url) return null;
     var m = String(url).match(
@@ -222,74 +153,95 @@
     return m ? m[1] : null;
   }
 
-  // ---------- Сборка YouTube-ссылки ----------
   function ytEmbedSrc(id) {
-    var origin = (location.origin && location.origin !== "null")
-      ? location.origin  
-      : "";
-    var s = "https://www.youtube-nocookie.com/embed/" + id +
-            "?rel=0&modestbranding=1&playsinline=1&enablejsapi=1";
+    var origin = (location.origin && location.origin !== "null") ? location.origin : "";
+    var s = "https://www.youtube-nocookie.com/embed/" + id + "?rel=0&modestbranding=1&playsinline=1";
     if (origin) s += "&origin=" + encodeURIComponent(origin);
     return s;
   }
 
-  if (!kp) {
-    showError("Нет ID Кинопоиска — откройте источник вручную ниже.");
-    return;
+  function renderAlt(items, currentUrl) {
+    var alt = (items || []).filter(function (it) {
+      return it && it.url && it.url !== currentUrl;
+    }).slice(0, 4);
+    if (!alt.length) return "";
+    var html = '<div class="alt-results"><h3>Другие варианты:</h3>';
+    alt.forEach(function (it) {
+      html += '<a class="item" href="' + it.url + '" target="_blank" rel="noopener">' +
+              (it.thumb ? '<img src="' + it.thumb + '" alt="">' : '') +
+              '<span class="t">' + (it.title || "Без названия") + '</span>' +
+              '</a>';
+    });
+    html += '</div>';
+    return html;
   }
+
+  function tryEmbed(items) {
+    if (!Array.isArray(items) || !items.length) return false;
+
+    for (var j = 0; j < items.length; j++) {
+      var u2 = (items[j] && items[j].url) || "";
+      if (u2.indexOf("rutube.ru/play/embed") !== -1) {
+        slotEl.innerHTML = iframeHtml(u2) + renderAlt(items, u2);
+        return true;
+      }
+    }
+
+    for (var i = 0; i < items.length; i++) {
+      var u = (items[i] && items[i].url) || "";
+      if (u.indexOf("widgets.kinopoisk.ru") !== -1) {
+        slotEl.innerHTML = iframeHtml(u);
+        return true;
+      }
+    }
+
+    for (var k = 0; k < items.length; k++) {
+      var vid = ytId(items[k] && items[k].url);
+      if (vid) {
+        slotEl.innerHTML = iframeHtml(ytEmbedSrc(vid));
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function showFallback(msg) {
+    slotEl.innerHTML = '<div class="player-status">' +
+      (msg || "Трейлер не найден.") +
+      '<br>Откройте источник вручную ниже — YouTube, Кинопоиск, Rutube или VK.</div>';
+  }
+
+  function tryRutube() {
+    if (!title) { showFallback("Нет названия — откройте источник вручную ниже."); return; }
+    var rq = (title + " " + (year || "") + " трейлер").trim();
+    fetch(BASE + "?rutube=" + encodeURIComponent(rq))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        console.log("[trailer] rutube =", d);
+        var items = (d && d.items) || [];
+        if (tryEmbed(items)) return;
+        showFallback("Трейлер не найден на Rutube.");
+      })
+      .catch(function (e) {
+        console.log("[trailer] rutube error:", e);
+        showFallback("Ошибка загрузки: " + ((e && e.message) || e));
+      });
+  }
+
+  if (!kp) { tryRutube(); return; }
 
   fetch(BASE + "?videos=" + encodeURIComponent(kp))
     .then(function (r) { return r.json(); })
     .then(function (d) {
-      console.log("[trailer] location.origin =", location.origin);
-      console.log("[trailer] kp =", kp);
-      console.log("[trailer] ответ API =", d);
-
-      if (d && d.error) {
-        showError("Ошибка API: " + d.error);
-        return;
-      }
-
+      console.log("[trailer] videos =", d);
       var items = (d && d.items) || [];
-      console.log("[trailer] найдено видео:", items.length);
-
-      // 1) Виджет Кинопоиска  
-      for (var i = 0; i < items.length; i++) {
-        var u1 = (items[i] || {}).url || "";
-        if (u1.indexOf("widgets.kinopoisk.ru") !== -1) {
-          console.log("[trailer] выбираю виджет Кинопоиска:", u1);
-          embedDirect(u1);
-          return;
-        }
-      }
-
-      // 2) YouTube  
-      for (var j = 0; j < items.length; j++) {
-        var u2 = (items[j] || {}).url || "";
-        var vid = ytId(u2);
-        if (vid) {
-          var src = ytEmbedSrc(vid);
-          console.log("[trailer] выбираю YouTube:", src);
-          embedClickToPlay(src, poster);
-          return;
-        }
-      }
-
-      // 3) Ничего не подошло  
-      if (!items.length) {
-        showError("У фильма нет трейлеров в базе. Откройте источник вручную ниже.");
-      } else {
-        var sites = {};
-        items.forEach(function (x) {
-          sites[(x.site || "?") + "·" + (x.type || "?")] = 1;
-        });
-        showError("Встроить нечего — доступно только: " +
-                  Object.keys(sites).join(", ") +
-                  ". Откройте источник вручную ниже.");
-      }
+      if (tryEmbed(items)) return;
+      tryRutube();
     })
     .catch(function (e) {
-      showError("Ошибка загрузки: " + ((e && e.message) || e));
+      console.log("[trailer] videos error:", e);
+      tryRutube();
     });
 })();
 </script>
