@@ -243,3 +243,54 @@ body.light .top-bar { background: rgba(242, 245, 249, 0.9); }
 .trailer-link.yt { background: rgba(255,0,51,.18);  border-color: rgba(255,0,51,.35); }  
 .trailer-link.rt { background: rgba(0,166,255,.18); border-color: rgba(0,166,255,.35); }  
 .trailer-link.kp { background: rgba(255,85,0,.18);  border-color: rgba(255,85,0,.35); }  
+/* ===== Жанры на карточке ===== */
+.genre-tags {  
+  display: flex;  
+  flex-wrap: wrap;  
+  gap: 4px;  
+  margin: 6px 0 8px;  
+  max-height: 46px;      /* не больше двух строк — карточка не «прыгает» */  
+  overflow: hidden;  
+}
+
+.genre-tag {  
+  display: inline-block;  
+  padding: 2px 8px;  
+  border-radius: 999px;  
+  font-size: 0.68rem;  
+  font-weight: 500;  
+  line-height: 1.5;  
+  letter-spacing: 0.01em;  
+  white-space: nowrap;  
+  color: var(--text-muted, #8f9bab);  
+  background: rgba(255, 255, 255, 0.06);  
+  border: 1px solid rgba(255, 255, 255, 0.10);  
+  transition: color .18s ease, background .18s ease;  
+}
+
+.card:hover .genre-tag {  
+  color: var(--text, #e8eaed);  
+  background: rgba(255, 255, 255, 0.10);  
+}
+
+/* Светлая тема */  
+body.light .genre-tag {  
+  color: #4a5568;  
+  background: rgba(0, 0, 0, 0.05);  
+  border-color: rgba(0, 0, 0, 0.09);  
+}  
+body.light .card:hover .genre-tag {  
+  color: #1a202c;  
+  background: rgba(0, 0, 0, 0.09);  
+}
+
+/* В модалке жанры чуть крупнее */  
+.movie-headline .genre-tags,  
+.movie-modal .genre-tags {  
+  margin-top: 8px;  
+  max-height: none;  
+}  
+.movie-modal .genre-tag {  
+  font-size: 0.75rem;  
+  padding: 3px 10px;  
+}  
