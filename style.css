@@ -142,3 +142,104 @@ body.light .top-bar { background: rgba(242, 245, 249, 0.9); }
   .input-row button { padding: 12px; }  
   .results { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }  
 }  
+/* ===== Улучшенные карточки ===== */
+.card { position: relative; }
+
+.card-poster-wrap {  
+  position: relative;  
+  aspect-ratio: 2 / 3;  
+  overflow: hidden;  
+  border-radius: 14px;  
+  cursor: pointer;  
+  background: var(--bg-input, #1b222a);  
+}  
+.card-poster-wrap img {  
+  width: 100%; height: 100%;  
+  object-fit: cover; display: block;  
+  transition: transform .4s ease;  
+}  
+.card-poster-wrap:hover img { transform: scale(1.05); }
+
+.card-rating {  
+  position: absolute; top: 10px; left: 10px;  
+  background: rgba(0,0,0,.7); color: #fbbf24;  
+  font-size: .78rem; font-weight: 700;  
+  padding: 3px 8px; border-radius: 8px;  
+  backdrop-filter: blur(4px); letter-spacing: .02em;  
+}
+
+.card-overlay {  
+  position: absolute; inset: 0;  
+  display: flex; flex-direction: column;  
+  justify-content: flex-end; align-items: center;  
+  gap: 8px; padding: 12px;  
+  background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,.82) 100%);  
+  opacity: 0; transition: opacity .25s ease;  
+  pointer-events: none;  
+}  
+.card-poster-wrap:hover .card-overlay { opacity: 1; }
+
+.card-overlay-actions {  
+  display: flex; gap: 8px;  
+  pointer-events: auto;  
+}  
+.card-action {  
+  display: inline-flex; align-items: center; justify-content: center;  
+  min-width: 40px; height: 40px; padding: 0 10px;  
+  border-radius: 999px;  
+  background: rgba(255,255,255,.15);  
+  border: 1px solid rgba(255,255,255,.25);  
+  color: #fff; font-size: .78rem; font-weight: 600;  
+  text-decoration: none; backdrop-filter: blur(6px);  
+  transition: background .2s ease, transform .15s ease;  
+}  
+.card-action:hover { background: rgba(255,255,255,.3); transform: translateY(-2px); }  
+.card-overlay-hint { color: rgba(255,255,255,.85); font-size: .78rem; }
+
+/* ===== Модалка: трейлер ===== */
+.movie-headline h2 { margin: 0 0 4px; }  
+.movie-desc { font-size: .9rem; line-height: 1.55; margin: 14px 0; color: var(--text); }
+
+.trailer-block {  
+  margin: 16px 0; padding: 12px;  
+  border-radius: 12px;  
+  background: var(--bg-input, #1b222a);  
+}  
+.trailer-title {  
+  font-size: .8rem; font-weight: 600;  
+  color: var(--text-muted, #8f9bab);  
+  margin-bottom: 8px; letter-spacing: .05em; text-transform: uppercase;  
+}  
+.btn-trailer {  
+  width: 100%; padding: 10px 14px;  
+  border-radius: 10px; border: none; cursor: pointer;  
+  background: var(--accent, #e50914);  
+  color: #fff; font-weight: 600; font-size: .9rem;  
+  transition: filter .2s ease;  
+}  
+.btn-trailer:hover { filter: brightness(1.1); }
+
+#trailer-embed { margin-top: 10px; }  
+.trailer-frame {  
+  position: relative; width: 100%; padding-top: 56.25%;  
+  border-radius: 10px; overflow: hidden; background: #000;  
+}  
+.trailer-frame iframe {  
+  position: absolute; inset: 0;  
+  width: 100%; height: 100%; border: 0;  
+}
+
+.trailer-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }  
+.trailer-link {  
+  display: inline-flex; align-items: center; justify-content: center;  
+  padding: 8px 14px; border-radius: 999px;  
+  font-size: .82rem; font-weight: 500;  
+  text-decoration: none; color: #fff;  
+  background: rgba(255,255,255,.08);  
+  border: 1px solid rgba(255,255,255,.14);  
+  transition: background .2s ease;  
+}  
+.trailer-link:hover { background: rgba(255,255,255,.18); }  
+.trailer-link.yt { background: rgba(255,0,51,.18);  border-color: rgba(255,0,51,.35); }  
+.trailer-link.rt { background: rgba(0,166,255,.18); border-color: rgba(0,166,255,.35); }  
+.trailer-link.kp { background: rgba(255,85,0,.18);  border-color: rgba(255,85,0,.35); }  
