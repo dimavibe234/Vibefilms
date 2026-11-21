@@ -1,294 +1,362 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SuperHeroFilms — фильмы и трейлеры</title>
-<style>
-  :root { --bg:#0b0f14; --card:#151b23; --text:#e8eaed; --muted:#8f9bab; --accent:#ff5500; }
-  * { box-sizing: border-box; }
-  html, body { margin:0; padding:0; }
-  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
-
-  header { position:sticky; top:0; z-index:10; background:rgba(11,15,20,.85); backdrop-filter:blur(10px); border-bottom:1px solid rgba(255,255,255,.06); }
-  .header-in { max-width:1240px; margin:0 auto; padding:14px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
-  .logo { font-size:1.15rem; font-weight:800; letter-spacing:-.02em; color:var(--text); text-decoration:none; white-space:nowrap; }
-  .logo span { color:var(--accent); }
-  .search { flex:1; min-width:200px; display:flex; gap:8px; }
-  .search input { flex:1; padding:10px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.04); color:var(--text); font-size:.95rem; outline:none; }
-  .search input:focus { border-color:var(--accent); }
-  .search button { padding:10px 18px; border-radius:10px; border:0; background:var(--accent); color:#fff; font-weight:700; font-size:.9rem; cursor:pointer; }
-  .search button:hover { filter:brightness(1.1); }
-
-  main { max-width:1240px; margin:0 auto; padding:24px 20px 80px; }
-  h1#section-title { margin:0 0 16px; font-size:1.5rem; letter-spacing:-.02em; }
-
-  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:22px; }
-  .chip { padding:8px 14px; border-radius:999px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:var(--muted); font-size:.85rem; font-weight:600; cursor:pointer; white-space:nowrap; transition:all .15s; }
-  .chip:hover { color:var(--text); border-color:rgba(255,255,255,.25); }
-  .chip.active { background:var(--accent); border-color:var(--accent); color:#fff; }
-  .chip.best { background:linear-gradient(135deg,#ffb400,#ff5500); border-color:transparent; color:#fff; }
-  .chip.best.active { filter:brightness(1.15); }
-
-  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:18px; }
-  .card { position:relative; cursor:pointer; text-decoration:none; color:var(--text); display:block; }
-  .card .poster { position:relative; aspect-ratio:2/3; border-radius:12px; overflow:hidden; background:var(--card); }
-  .card .poster img { width:100%; height:100%; object-fit:cover; display:block; transition:transform .25s; }
-  .card:hover .poster img { transform:scale(1.04); }
-  .card .rating { position:absolute; top:8px; left:8px; padding:3px 8px; border-radius:8px; font-size:.78rem; font-weight:800; background:rgba(11,15,20,.85); color:#ffd84d; }
-  .card .play { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .2s; background:rgba(0,0,0,.35); }
-  .card:hover .play { opacity:1; }
-  .card .play::before { content:"▶"; font-size:2rem; color:#fff; text-shadow:0 2px 10px rgba(0,0,0,.6); }
-  .card .name { margin-top:8px; font-size:.9rem; font-weight:600; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-  .card .year { margin-top:2px; font-size:.8rem; color:var(--muted); }
-
-  .status { margin:30px 0; text-align:center; color:var(--muted); font-size:.9rem; }
-  .spinner { display:inline-block; width:22px; height:22px; border:2px solid rgba(255,255,255,.2); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; margin-right:8px; }
-  @keyframes spin { to { transform:rotate(360deg); } }
-
-  .more { display:block; margin:30px auto 0; padding:12px 28px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:var(--text); font-weight:700; font-size:.9rem; cursor:pointer; }
-  .more:hover { background:rgba(255,255,255,.08); }
-  .more[hidden] { display:none; }
-
-  @media (max-width:640px) {
-    .header-in { padding:12px 14px; }
-    main { padding:18px 14px 60px; }
-    .grid { grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:14px; }
-    h1#section-title { font-size:1.2rem; }
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SuperHeroFilms</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'></text></svg>">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<header>
-  <div class="header-in">
-    <a class="logo" href="./">Super<span>Hero</span>Films</a>
-    <form class="search" id="search-form">
-      <input id="search-input" type="search" placeholder="Поиск фильма…" autocomplete="off">
-      <button type="submit">Найти</button>
-    </form>
+  <header class="top-bar">
+    <div class="logo">SuperHeroFilms</div>
+    <div class="actions">
+      <button id="settings-toggle" class="btn-icon" title="Настройки"></button>
+      <button id="playlists-toggle" class="btn-text" title="Плейлисты"> Плейлисты</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="auth-block">
+      <button id="google-login-btn" class="google-btn">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18">
+        Войти через Google  
+      </button>
+      <div id="user-info" class="user-info" style="display: none;"></div>
+    </div>
+
+    <div class="control-panel">
+      <div class="tabs">
+        <button class="tab-btn active" data-target="tab-name"> Поиск</button>
+        <button class="tab-btn" data-target="tab-ai"> Нейросеть</button>
+      </div>
+
+      <div id="tab-name" class="tab-content active">
+        <div class="input-row">
+          <input type="text" id="search-input" placeholder="Введите название фильма...">
+          <button id="search-btn">Найти</button>
+        </div>
+        <div class="quick-actions">
+          <button id="random-btn" class="chip"> Удиви меня</button>
+          <button id="masterpiece-btn" class="chip gold"> Шедевр</button>
+        </div>
+      </div>
+
+      <div id="tab-ai" class="tab-content">
+        <div class="input-row">
+          <input type="text" id="ai-input" placeholder="Опиши, что хочется: «грустное про океан», «как Марсианин»">
+          <button id="ai-button">Подобрать</button>
+        </div>
+        <p id="ai-status" class="status"></p>
+      </div>
+
+      <details class="dropdown">
+        <summary> Фильтры</summary>
+        <div class="dropdown-content">
+          <div class="filter-row">
+            <label>Рейтинг от</label>
+            <input type="range" id="rating-filter" min="0" max="10" step="0.5" value="0">
+            <span id="rating-value">0</span>
+          </div>
+          <div class="filter-row">
+            <label>Год от</label>
+            <input type="number" id="year-filter" min="1900" max="2026" value="1900">
+          </div>
+          <label class="check-row"><input type="checkbox" id="filter-unwatched"> Только непросмотренные</label>
+          <label class="check-row"><input type="checkbox" id="filter-new"> Только новинки</label>
+        </div>
+      </details>
+
+      <details class="dropdown">
+        <summary> Выбрать настроение</summary>
+        <div class="dropdown-content moods" id="moods">
+          <button data-mood="happy"> Весело</button>
+          <button data-mood="sad"> Грустно</button>
+          <button data-mood="action"> Адреналин</button>
+          <button data-mood="cozy"> Уютно</button>
+          <button data-mood="scary"> Страшно</button>
+          <button data-mood="romance"> Романтика</button>
+          <button data-mood="nostalgia"> Ностальгия</button>
+          <button data-mood="inspire"> Вдохновение</button>
+          <button data-mood="mystery">🕵️ Детектив</button>
+          <button data-mood="scifi"> Фантастика</button>
+          <button data-mood="music"> Музыка</button>
+          <button data-mood="think"> Подумать</button>
+          <button data-mood="anime"> Аниме</button>
+          <button data-mood="fantasy"> Фэнтези</button>
+          <button data-mood="crime"> Криминал</button>
+          <button data-mood="thriller"> Триллер</button>
+          <button data-mood="documentary"> Документальное</button>
+          <button data-mood="sport"> Спорт</button>
+          <button data-mood="war"> Военное</button>
+          <button data-mood="western"> Вестерн</button>
+          <button data-mood="biography"> Биография</button>
+          <button data-mood="kids"> Для детей</button>
+          <button data-mood="adventure"> Приключения</button>
+          <button data-mood="comedy_dark"> Чёрная комедия</button>
+          <button data-mood="mystic"> Мистика</button>
+          <button data-mood="musical"> Мюзикл</button>
+          <button data-mood="family"> Семейное</button>
+          <button data-mood="heist"> Ограбление</button>
+          <button data-mood="survival"> Выживание</button>
+          <button data-mood="space"> Космос</button>
+        </div>
+      </details>
+    </div>
+
+    <div class="type-switch" id="type-switch" style="display: none;">
+      <button data-type="movie" class="active"> Фильмы</button>
+      <button data-type="series"> Сериалы</button>
+      <button data-type="cartoon"> Мультики</button>
+    </div>
+
+    <div id="results" class="results"></div>
+    <button id="load-more" class="load-more" style="display: none;">Показать ещё</button>
+  </main>
+
+  <aside id="settings-panel" class="side-panel">
+    <div class="panel-header"><h2>Настройки</h2><button id="settings-close" class="btn-icon">✕</button></div>
+    <div class="setting-group">
+      <label>Цвет акцента</label>
+      <div class="color-row">
+        <button class="color-dot" data-accent="blue" style="background:#3a7bd5"></button>
+        <button class="color-dot" data-accent="purple" style="background:#8b5cf6"></button>
+        <button class="color-dot" data-accent="pink" style="background:#ec4899"></button>
+        <button class="color-dot" data-accent="green" style="background:#10b981"></button>
+        <button class="color-dot" data-accent="orange" style="background:#f59e0b"></button>
+        <button class="color-dot" data-accent="red" style="background:#ef4444"></button>
+        <button class="color-dot" data-accent="cyan" style="background:#06b6d4"></button>
+      </div>
+    </div>
+    <div class="setting-group">
+      <label>Тема</label>
+      <div class="row">
+        <button class="theme-btn active" data-theme="dark">Тёмная</button>
+        <button class="theme-btn" data-theme="light">Светлая</button>
+      </div>
+    </div>
+    <button id="settings-reset" class="reset-btn">Сбросить</button>
+  </aside>
+
+  <aside id="playlists-panel" class="side-panel">
+    <div class="panel-header"><h2>Плейлисты</h2><button id="playlists-close" class="btn-icon">✕</button></div>
+    <div class="playlist-create">
+      <input type="text" id="playlist-name-input" placeholder="Название...">
+      <button id="playlist-create-btn">Создать</button>
+    </div>
+    <div id="playlists-list" class="playlists-list"></div>
+  </aside>
+
+  <div id="movie-modal" class="modal">
+    <div class="modal-content">
+      <button id="movie-modal-close" class="btn-icon" style="position:absolute; top:10px; right:10px; z-index:10;">✕</button>
+      <div id="movie-modal-body"></div>
+    </div>
   </div>
-</header>
 
-<main>
-  <h1 id="section-title">Шедевры</h1>
-  <div class="chips" id="chips"></div>
-  <div class="grid" id="grid"></div>
-  <div class="status" id="status"></div>
-  <button class="more" id="more" hidden>Показать ещё</button>
-</main>
+  <div id="profile-modal" class="modal">
+    <div class="modal-content" style="max-width:400px;">
+      <button id="profile-modal-close" class="btn-icon" style="position:absolute; top:10px; right:10px;">✕</button>
+      <div style="padding:20px;">
+        <h2>Профиль</h2>
+        <div style="text-align:center; margin:15px 0;"><img id="profile-avatar-img" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid var(--accent);"></div>
+        <label class="setting-label">Имя</label>
+        <input type="text" id="profile-name-input" class="input">
+        <label class="setting-label">Аватарка (URL)</label>
+        <input type="text" id="profile-avatar-input" class="input">
+        <label class="setting-label">Цвет ника</label>
+        <div class="color-row" style="margin-bottom:20px;">
+          <button class="profile-color-dot" data-color="#e8eaed" style="background:#e8eaed"></button>
+          <button class="profile-color-dot" data-color="#ff6b6b" style="background:#ff6b6b"></button>
+          <button class="profile-color-dot" data-color="#ffd76e" style="background:#ffd76e"></button>
+          <button class="profile-color-dot" data-color="#10b981" style="background:#10b981"></button>
+          <button class="profile-color-dot" data-color="#3a7bd5" style="background:#3a7bd5"></button>
+          <button class="profile-color-dot" data-color="#8b5cf6" style="background:#8b5cf6"></button>
+        </div>
+        <div id="profile-stats" class="stats-box"></div>
+        <button id="profile-save-btn" class="btn-primary" style="width:100%; margin-top:20px;">Сохранить</button>
+      </div>
+    </div>
+  </div>
 
-<script>
-(function () {
-  var BASE = "https://functions.yandexcloud.net/d4e3i0pd816463uq33eu";
-  var TRAILER = "./trailer.html";
+  <div id="toast" class="toast"></div>
 
-  var CATEGORIES = [
-    { id: "best",      title: " Шедевры",     isBest: true },
-    { id: "action",    title: " Боевики",     params: { genre: "боевик",      minRating: "6.5", minVotes: "20000" } },
-    { id: "comedy",    title: " Комедии",     params: { genre: "комедия",     minRating: "6.5", minVotes: "20000" } },
-    { id: "scifi",     title: " Фантастика",  params: { genre: "фантастика",  minRating: "6.5", minVotes: "20000" } },
-    { id: "thriller",  title: " Триллеры",    params: { genre: "триллер",     minRating: "7",   minVotes: "20000" } },
-    { id: "horror",    title: " Ужасы",       params: { genre: "ужасы",       minRating: "6",   minVotes: "10000" } },
-    { id: "drama",     title: " Драмы",       params: { genre: "драма",       minRating: "7.5", minVotes: "50000" } },
-    { id: "adventure", title: " Приключения", params: { genre: "приключения", minRating: "7",   minVotes: "20000" } },
-    { id: "crime",     title: "🕵️ Криминал",    params: { genre: "криминал",    minRating: "7",   minVotes: "30000" } },
-    { id: "cartoon",   title: " Мультфильмы", params: { type: "cartoon",      minRating: "6.5", minVotes: "10000" } },
-    { id: "melodrama", title: " Мелодрамы",   params: { genre: "мелодрама",   minRating: "6.5", minVotes: "20000" } }
-  ];
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  var state = {
-    mode: "best",      // "best" | "category" | "search"
-    cat: null,         // объект категории  
-    query: "",
-    page: 0,
-    pages: 1,
-    docs: [],
-    loading: false  
-  };
+    const firebaseConfig = {
+      apiKey: "AIzaSyBd7a0IJ_54SacowpCs4EZF5BIFKy-3qxw",
+      authDomain: "movie-a9fdf.firebaseapp.com",
+      projectId: "movie-a9fdf",
+      storageBucket: "movie-a9fdf.firebasestorage.app",
+      messagingSenderId: "398219529169",
+      appId: "1:398219529169:web:8cf9008857598dc8032ef0"
+    };
 
-  var chipsEl  = document.getElementById("chips");
-  var gridEl   = document.getElementById("grid");
-  var statusEl = document.getElementById("status");
-  var moreEl   = document.getElementById("more");
-  var titleEl  = document.getElementById("section-title");
-  var formEl   = document.getElementById("search-form");
-  var inputEl  = document.getElementById("search-input");
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-  // ---------- построение URL ----------
-  function catalogUrl(cat, page) {
-    if (cat.isBest) {
-      return BASE + "?catalog=1&best=1&page=" + page + "&limit=30";
-    }
-    var p = Object.assign({ catalog: "1", page: String(page), limit: "30" }, cat.params || {});
-    return BASE + "?" + Object.keys(p).map(function (k) {
-      return k + "=" + encodeURIComponent(p[k]);
-    }).join("&");
-  }
+    window.firebaseAuth = auth;
+    window.firebaseDb = db;
+    window.googleProvider = new GoogleAuthProvider();
+    window.firebaseSignIn = signInWithPopup;
+    window.firebaseSignOut = signOut;
+    window.firebaseOnAuth = onAuthStateChanged;
+    window.firebaseDoc = doc;
+    window.firebaseSetDoc = setDoc;
+    window.firebaseGetDoc = getDoc;
 
-  function searchUrl(q, page) {
-    return BASE + "?query=" + encodeURIComponent(q) + "&page=" + page + "&limit=30";
-  }
+    window.dispatchEvent(new Event('firebase-ready'));
+  </script>
 
-  // ---------- чипы категорий ----------
-  function renderChips() {
-    chipsEl.innerHTML = "";
-    CATEGORIES.forEach(function (cat) {
-      var b = document.createElement("button");
-      b.type = "button";
-      b.className = "chip" + (cat.isBest ? " best" : "");
-      b.dataset.id = cat.id;
-      b.textContent = cat.title;
-      b.addEventListener("click", function () {
-        if (state.mode === "category" && state.cat && state.cat.id === cat.id) return;
-        if (state.mode === "best" && cat.isBest) return;
-        state.mode = cat.isBest ? "best" : "category";
-        state.cat = cat;
-        state.query = "";
-        inputEl.value = "";
-        load(true);
-      });
-      chipsEl.appendChild(b);
-    });
-    updateChips();
-  }
+  <script src="script.js"></script>
 
-  function updateChips() {
-    Array.prototype.forEach.call(chipsEl.children, function (b) {
-      var active = false;
-      if (state.mode === "best") active = b.dataset.id === "best";
-      else if (state.mode === "category") active = state.cat && b.dataset.id === state.cat.id;
-      b.classList.toggle("active", !!active);
-    });
-  }
+  <!-- ============================================================
+       ПАТЧ: 10 категорий + фикс кнопки «Шедевр»
+       Не трогает script.js, не затрагивает регистрацию/плейлисты/профиль  
+       ============================================================ -->
+  <script>
+  (function () {
+    var BASE = "https://functions.yandexcloud.net/d4e3i0pd816463uq33eu";
+    var TRAILER = "./trailer.html";
 
-  // ---------- карточка ----------
-  function posterUrl(doc) {
-    if (!doc || !doc.poster) return "";
-    return doc.poster.url || doc.poster.previewUrl || "";
-  }
+    // ---- 10 основных категорий ----
+    var CATEGORIES = [
+      { key: "action",    label: " Боевики",     params: { genre: "боевик",      minRating: "6.5", minVotes: "20000" } },
+      { key: "comedy",    label: " Комедии",     params: { genre: "комедия",     minRating: "6.5", minVotes: "20000" } },
+      { key: "scifi",     label: " Фантастика",  params: { genre: "фантастика",  minRating: "6.5", minVotes: "20000" } },
+      { key: "fantasy",   label: " Фэнтези",     params: { genre: "фэнтези",     minRating: "6.5", minVotes: "20000" } },
+      { key: "thriller",  label: " Триллеры",    params: { genre: "триллер",     minRating: "7",   minVotes: "20000" } },
+      { key: "crime",     label: "🕵️ Криминал",    params: { genre: "криминал",    minRating: "7",   minVotes: "30000" } },
+      { key: "romance",   label: " Мелодрамы",   params: { genre: "мелодрама",   minRating: "6.5", minVotes: "20000" } },
+      { key: "cartoon",   label: " Мультфильмы", params: { type:  "cartoon",     minRating: "6.5", minVotes: "10000" } },
+      { key: "horror",    label: " Ужасы",       params: { genre: "ужасы",       minRating: "6",   minVotes: "10000" } },
+      { key: "adventure", label: " Приключения", params: { genre: "приключения", minRating: "7",   minVotes: "20000" } }
+    ];
 
-  function ratingOf(doc) {
-    if (!doc || !doc.rating) return "";
-    var r = doc.rating.kp;
-    if (!r || r < 1) r = doc.rating.imdb;
-    return r && r >= 1 ? (Math.round(r * 10) / 10).toFixed(1) : "";
-  }
-
-  function cardHtml(doc) {
-    var p = posterUrl(doc);
-    var r = ratingOf(doc);
-    var genres = (doc.genres || []).slice(0, 3).map(function (g) { return g.name; }).join(", ");
-    var title = doc.name || doc.alternativeName || "Без названия";
-    var year = doc.year || "";
-    return '' +
-      '<a class="card" href="' + TRAILER +
-        '?kp=' + encodeURIComponent(doc.id) +
-        '&title=' + encodeURIComponent(title) +
-        '&year=' + encodeURIComponent(year) +
-        '&rating=' + encodeURIComponent(r) +
-        '&genres=' + encodeURIComponent(genres) +
-        '&poster=' + encodeURIComponent(p) +
-      '">' +
-        '<div class="poster">' +
-          (p ? '<img src="' + p + '" alt="" loading="lazy">' : '') +
-          (r ? '<span class="rating">★ ' + r + '</span>' : '') +
-          '<span class="play"></span>' +
-        '</div>' +
-        '<div class="name">' + title + '</div>' +
-        (year ? '<div class="year">' + year + (genres ? " · " + genres : "") + '</div>' : '') +
-      '</a>';
-  }
-
-  function renderDocs() {
-    gridEl.innerHTML = state.docs.map(cardHtml).join("");
-  }
-
-  // ---------- загрузка ----------
-  function currentUrl(page) {
-    if (state.mode === "search") return searchUrl(state.query, page);
-    if (state.mode === "best")   return catalogUrl(CATEGORIES[0], page);
-    return catalogUrl(state.cat, page);
-  }
-
-  function setStatus(text, spin) {
-    statusEl.innerHTML = text  
-      ? (spin ? '<span class="spinner"></span>' : "") + text  
-      : "";
-  }
-
-  function load(reset) {
-    if (state.loading) return;
-    state.loading = true;
-    moreEl.hidden = true;
-
-    if (reset) {
-      state.page = 0;
-      state.pages = 1;
-      state.docs = [];
-      gridEl.innerHTML = "";
+    function buildUrl(params) {
+      var p = Object.assign({ catalog: "1", page: "1", limit: "30" }, params || {});
+      return BASE + "?" + Object.keys(p).map(function (k) {
+        return k + "=" + encodeURIComponent(p[k]);
+      }).join("&");
     }
 
-    var page = state.page + 1;
-    var url = currentUrl(page);
+    function posterOf(d) {
+      return (d && d.poster && (d.poster.url || d.poster.previewUrl)) || "";
+    }
 
-    // заголовок  
-    if (state.mode === "best") titleEl.textContent = "Шедевры";
-    else if (state.mode === "search") titleEl.textContent = 'Поиск: «' + state.query + '»';
-    else titleEl.textContent = state.cat ? state.cat.title.replace(/^\S+\s/, "") : "Каталог";
+    function ratingOf(d) {
+      if (!d || !d.rating) return "";
+      var r = d.rating.kp || d.rating.imdb || 0;
+      return r >= 1 ? (Math.round(r * 10) / 10).toFixed(1) : "";
+    }
 
-    updateChips();
-    setStatus("Загружаем…", true);
+    function hideLoadMore() {
+      var lm = document.getElementById("load-more");
+      if (lm) lm.style.display = "none";
+    }
 
-    fetch(url)
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        console.log("[catalog]", url, d);
-        var docs = (d && d.docs) || [];
-        var total = (d && d.total) || 0;
-        state.page = page;
-        state.pages = (d && d.pages) || 1;
-        state.docs = reset ? docs : state.docs.concat(docs);
-        renderDocs();
-        state.loading = false;
+    function render(docs) {
+      var results = document.getElementById("results");
+      if (!results) return;
+      hideLoadMore();
 
-        if (!state.docs.length) {
-          setStatus("Ничего не найдено. Попробуйте другую категорию или запрос.");
-        } else {
-          setStatus("Найдено: " + total + " · показано " + state.docs.length);
-        }
+      if (!docs || !docs.length) {
+        results.innerHTML = '<p style="grid-column:1/-1;text-align:center;opacity:.6;padding:30px">Ничего не найдено</p>';
+        return;
+      }
 
-        moreEl.hidden = !(state.docs.length < total && state.page < state.pages);
+      results.innerHTML = docs.map(function (d) {
+        var poster = posterOf(d);
+        var rating = ratingOf(d);
+        var name = d.name || d.alternativeName || "Без названия";
+        var year = d.year || "";
+        var genres = (d.genres || []).slice(0, 2).map(function (g) { return g.name; }).join(", ");
+        var href = TRAILER +
+          "?kp=" + encodeURIComponent(d.id) +
+          "&title=" + encodeURIComponent(name) +
+          "&year=" + encodeURIComponent(year) +
+          "&rating=" + encodeURIComponent(rating) +
+          "&genres=" + encodeURIComponent(genres) +
+          "&poster=" + encodeURIComponent(poster);
 
-        if (d && d._err) {
-          console.warn("[catalog] error:", d._err, d._text || "");
-        }
-      })
-      .catch(function (e) {
-        state.loading = false;
-        console.log("[catalog] fetch error:", e);
-        setStatus("Ошибка загрузки: " + ((e && e.message) || e));
+        return '<a href="' + href + '" style="display:flex;flex-direction:column;background:#151b23;border-radius:10px;overflow:hidden;text-decoration:none;color:inherit;border:1px solid rgba(255,255,255,.06)">' +
+          '<div style="position:relative;aspect-ratio:2/3;background:#222">' +
+            (poster ? '<img src="' + poster + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block" alt="">' : '') +
+            (rating ? '<span style="position:absolute;top:8px;left:8px;background:rgba(0,0,0,.8);color:#ffd84d;padding:2px 8px;border-radius:6px;font-size:.78rem;font-weight:700">★ ' + rating + '</span>' : '') +
+          '</div>' +
+          '<div style="padding:8px 10px">' +
+            '<div style="font-size:.88rem;font-weight:600;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">' + name + '</div>' +
+            (year ? '<div style="font-size:.76rem;opacity:.6;margin-top:3px">' + year + (genres ? " · " + genres : "") + '</div>' : '') +
+          '</div>' +
+        '</a>';
+      }).join("");
+    }
+
+    function load(params) {
+      var results = document.getElementById("results");
+      if (results) results.innerHTML = '<p style="grid-column:1/-1;text-align:center;opacity:.6;padding:30px">Загружаем…</p>';
+
+      fetch(buildUrl(params))
+        .then(function (r) { return r.json(); })
+        .then(function (d) { render(d.docs || []); })
+        .catch(function (e) {
+          console.error("[categories] error:", e);
+          if (results) results.innerHTML = '<p style="grid-column:1/-1;text-align:center;opacity:.6;padding:30px">Ошибка загрузки</p>';
+        });
+    }
+
+    // ---- перерисовать блок «Настроение» в 10 категорий ----
+    function rebuildMoods() {
+      var moods = document.getElementById("moods");
+      if (!moods) return;
+
+      moods.innerHTML = CATEGORIES.map(function (c) {
+        return '<button data-category="' + c.key + '">' + c.label + '</button>';
+      }).join("");
+
+      moods.addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-category]");
+        if (!btn) return;
+        var cat = CATEGORIES.filter(function (c) { return c.key === btn.dataset.category; })[0];
+        if (!cat) return;
+        load(cat.params);
       });
-  }
 
-  // ---------- обработчики ----------
-  moreEl.addEventListener("click", function () { load(false); });
+      var details = moods.closest("details");
+      if (details) {
+        var sum = details.querySelector("summary");
+        if (sum) sum.textContent = " Категории";
+      }
+    }
 
-  formEl.addEventListener("submit", function (e) {
-    e.preventDefault();
-    var q = inputEl.value.trim();
-    if (!q) return;
-    state.mode = "search";
-    state.query = q;
-    state.cat = null;
-    load(true);
-  });
+    // ---- кнопка «Шедевр» — перехват, жёсткие фильтры ----
+    function fixMasterpiece() {
+      var btn = document.getElementById("masterpiece-btn");
+      if (!btn) return;
+      btn.addEventListener("click", function (e) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        load({ best: "1" });
+      }, true); // capture: срабатывает раньше обработчика script.js  
+    }
 
-  // ---------- старт ----------
-  renderChips();
-  load(true);
-})();
-</script>
+    function init() {
+      rebuildMoods();
+      fixMasterpiece();
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", init);
+    } else {
+      init();
+    }
+  })();
+  </script>
 
 </body>
 </html>
