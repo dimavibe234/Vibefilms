@@ -37,6 +37,12 @@ var currentAlternatives = [];
 var currentProfile = { name: "", avatar: "", color: "#e8eaed" };
 var firebaseReady = false, fbAuth = null, fbDb = null, fbProvider = null;
 
+// ---------- Нейросеть: состояние ----------  
+var aiLastQuery = "";       // текст последнего запроса к нейросети  
+var aiLastVague = true;     // был ли запрос «расплывчатым»  
+var aiRetryUsed = false;    // уже нажимали «Переделать» для этого запроса?  
+var aiBusy = false;         // идёт запрос (обычный или переделка)
+
 var kinopoiskCache = JSON.parse(localStorage.getItem("kinopoisk_cache") || "{}");
 function saveKinopoiskCache() { try { localStorage.setItem("kinopoisk_cache", JSON.stringify(kinopoiskCache)); } catch (e) {} }
 
@@ -65,11 +71,7 @@ function levenshtein(a, b) {
   for (var i = 1; i <= a.length; i++) {
     var cur = [i];
     for (var j = 1; j <= b.length; j++) {
-      cur[j] = Math.min(
-        prev[j] + 1,
-        cur[j - 1] + 1,
-        prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
-      );
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
     }
     prev = cur;
   }
@@ -99,10 +101,10 @@ function isVagueQuery(text) {
   return score < 2;
 }
 
-// ---------- Ключевые слова для добора ----------  
+// ---------- Ключевые слова ----------  
 var STOPWORDS = [
   "хочу", "хотел", "хотела", "хотелось", "хочется",
-  "фильм", "фильмы", "фильма", "кино", "киношка",
+  "фильм", "фильмы", "фильма", "кино",
   "про", "о", "об", "обо", "мне", "меня", "нам", "тебе", "вам",
   "покажи", "покажите", "найди", "найдите", "подбери", "подберите",
   "посмотреть", "смотреть", "глянуть", "включить",
@@ -145,15 +147,9 @@ function extractKeywords(text) {
   return out;
 }
 function keywordMatch(movie, stems) {
-  var text = [
-    movie.title || "",
-    movie.originalTitle || "",
-    movie.description || "",
-    (movie.genres || []).join(" ")
-  ].join(" ").toLowerCase().replace(/ё/g, "е");
-  for (var i = 0; i < stems.length; i++) {
-    if (text.indexOf(stems[i]) !== -1) return true;
-  }
+  var text = [movie.title || "", movie.originalTitle || "", movie.description || "", (movie.genres || []).join(" ")]
+    .join(" ").toLowerCase().replace(/ё/g, "е");
+  for (var i = 0; i < stems.length; i++) if (text.indexOf(stems[i]) !== -1) return true;
   return false;
 }
 function fillFromKeywords(keywordPairs, limit) {
@@ -206,8 +202,7 @@ function mapDoc(d) {
     originalTitle: d.alternativeName || d.nameOriginal || "",
     year: d.year || "",
     poster: d.poster ? (d.poster.previewUrl || d.poster.url) : null,
-    rating: d.rating && d.rating.kp ? d.rating.kp  
-      : (d.rating && d.rating.imdb ? d.rating.imdb : null),
+    rating: d.rating && d.rating.kp ? d.rating.kp : (d.rating && d.rating.imdb ? d.rating.imdb : null),
     description: d.shortDescription || d.description || "",
     genres: (d.genres || []).map(function (g) { return g.name; }),
     votes: d.votes && d.votes.kp ? d.votes.kp : 0,
@@ -221,9 +216,7 @@ function fetchKinopoiskRaw(query, limit) {
     .then(function (r) { return r.json(); })
     .then(function (data) {
       if (!data || !data.docs) return [];
-      var docs = data.docs.map(mapDoc).filter(function (m) { return m.poster; });
-      console.log("[BASE] «" + query + "» → " + docs.length);
-      return docs;
+      return data.docs.map(mapDoc).filter(function (m) { return m.poster; });
     })
     .catch(function (e) {
       console.log("[BASE] ошибка:", e && e.message ? e.message : e);
@@ -244,16 +237,12 @@ function fetchCategoryDocs(params) {
         return m.poster && passUserFilters(m);
       });
     })
-    .catch(function (e) {
-      console.error("[fetchCategoryDocs]", e);
-      return [];
-    });
+    .catch(function (e) { console.error("[fetchCategoryDocs]", e); return []; });
 }
 
 function fetchKinopoisk(title) {
   var key = "v2:" + normalize(title);
   if (kinopoiskCache[key]) return Promise.resolve(kinopoiskCache[key]);
-
   return fetchKinopoiskRaw(title, 10).then(function (candidates) {
     if (!candidates.length) return null;
     var scored = candidates.map(function (m) {
@@ -491,9 +480,7 @@ function buildStars(r) {
 function buildGenres(g) {
   if (!g || !g.length) return "";
   var h = '<div class="genre-tags">';
-  g.slice(0, 3).forEach(function (x) {
-    h += '<span class="genre-tag">' + esc(genreTranslations[x] || x) + '</span>';
-  });
+  g.slice(0, 3).forEach(function (x) { h += '<span class="genre-tag">' + esc(genreTranslations[x] || x) + '</span>'; });
   return h + '</div>';
 }
 
@@ -501,10 +488,8 @@ function buildGenres(g) {
 function trailerLinks(title, year, kpId) {
   var q = encodeURIComponent(title + " " + (year || "") + " трейлер");
   return {
-    kp:      kpId ? "https://www.kinopoisk.ru/film/" + kpId + "/video/" :
-                    "https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(title),
-    kpPage:  kpId ? "https://www.kinopoisk.ru/film/" + kpId + "/" :
-                    "https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(title),
+    kp:      kpId ? "https://www.kinopoisk.ru/film/" + kpId + "/video/" : "https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(title),
+    kpPage:  kpId ? "https://www.kinopoisk.ru/film/" + kpId + "/" : "https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(title),
     rutube:  "https://rutube.ru/search/?query=" + q,
     vk:      "https://vk.com/video?q=" + q,
     youtube: "https://www.youtube.com/results?search_query=" + q  
@@ -536,8 +521,6 @@ function buildTrailerBlock(kpId, links, trailerUrl) {
 
 var RENDER_LIMIT = 20;
 
-// firstLimit — сколько показать сразу при !append.  
-// Обычно RENDER_LIMIT (20). Для AI-режима передаём 5.
 function render(movies, append, firstLimit) {
   var el = $("results"); if (!el) return;
   if (!append) el.innerHTML = '<p class="empty">Загрузка...</p>';
@@ -785,9 +768,68 @@ function renderSimpleAiFallback(el, p) {
   if (lm) lm.style.display = "none";
 }
 
+// ---- Шапка AI с кнопкой «Переделать» ----
+function buildAiHeader(text, withRetry) {
+  var head = document.createElement("div");
+  head.className = "ai-header";
+
+  var span = document.createElement("span");
+  span.className = "ai-header-text";
+  span.textContent = text;
+  head.appendChild(span);
+
+  if (withRetry) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "ai-retry-btn";
+    btn.className = "ai-retry-btn";
+    if (aiRetryUsed) {
+      btn.disabled = true;
+      btn.textContent = " Переделать (использовано)";
+    } else {
+      btn.textContent = " Переделать";
+      btn.onclick = retryAi;
+    }
+    head.appendChild(btn);
+  }
+  return head;
+}
+
+function retryAi() {
+  if (aiRetryUsed || aiBusy) return;
+  if (!aiLastQuery) { showToast("Нет запроса", true); return; }
+
+  aiRetryUsed = true;
+  aiBusy = true;
+
+  var btn = $("ai-retry-btn");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = " Переделать (использовано)";
+    btn.onclick = null;
+  }
+
+  var aiStatus = $("ai-status");
+  if (aiStatus) aiStatus.textContent = "Переделываем… 5–10 секунд";
+
+  $("results").innerHTML = '<p class="empty">Переделываем подбор…</p>';
+
+  askAI(aiLastQuery)
+    .then(function (data) {
+      aiBusy = false;
+      if (aiStatus) aiStatus.textContent = "Готово (переделано)";
+      renderAiPick(data, aiLastVague);
+    })
+    .catch(function (err) {
+      aiBusy = false;
+      if (aiStatus) aiStatus.textContent = "Ошибка: " + (err.message || err);
+      $("results").innerHTML = '<p class="empty">Не получилось переделать. ' + esc(err.message || "") + '</p>';
+    });
+}
+
 // AI-режим:
-// vague=false → ровно 1 фильм, без кнопки.
-// vague=true  → ровно 5 карточек, под ними «Показать ещё» на остальные релевантные.
+// vague=false → ровно 1 фильм + кнопка «Переделать» (но активна не всегда).
+// vague=true  → ровно 5 карточек + «Показать ещё» + «Переделать».
 function renderAiPick(data, vague) {
   var el = $("results");
   if (!el) return;
@@ -819,32 +861,28 @@ function renderAiPick(data, vague) {
     return;
   }
 
-  // Точный сюжет → 1 фильм  
+  // Точно → 1 фильм + кнопка «Переделать»  
   if (!vague) {
     currentMovies = primary;
     currentMood = null;
     lastSearchQuery = null;
     render(primary, false);
-    var headExact = document.createElement("div");
-    headExact.className = "ai-header";
-    headExact.textContent = "Точный сюжет — нашли 1 фильм";
+    var headExact = buildAiHeader(" Точный сюжет — нашли 1 фильм", true);
     el.insertBefore(headExact, el.firstChild);
     if (isPickExplainable(p, m)) el.insertBefore(buildExplainNode(p, m), headExact.nextSibling);
     return;
   }
 
-  // Расплывчатый запрос: 5 карточек + кнопка «Показать ещё»  
-  var userQuery = ($("ai-input") && $("ai-input").value) || "";
+  // Расплывчато → до 5 + «Показать ещё» + «Переделать»  
+  var userQuery = aiLastQuery || ($("ai-input") && $("ai-input").value) || "";
   var keywordPairs = extractKeywords(userQuery);
 
   function finishWithHeader(list, headerText) {
     currentMovies = list;
     currentMood = null;
     lastSearchQuery = null;
-    render(list, false, 5);           // ← показываем ровно 5 карточек  
-    var head = document.createElement("div");
-    head.className = "ai-header";
-    head.textContent = headerText;
+    render(list, false, 5);
+    var head = buildAiHeader(headerText, true);
     el.insertBefore(head, el.firstChild);
     if (isPickExplainable(p, m)) el.insertBefore(buildExplainNode(p, m), head.nextSibling);
   }
@@ -853,7 +891,7 @@ function renderAiPick(data, vague) {
 
   if (!keywordPairs.length) {
     var totalOnlyAi = primary.length;
-    var headText1 = "Рекомендаций: " + Math.min(totalOnlyAi, AI_SHOW) +
+    var headText1 = " Рекомендаций: " + Math.min(totalOnlyAi, AI_SHOW) +
       (totalOnlyAi > AI_SHOW ? " · ещё " + (totalOnlyAi - AI_SHOW) + " по кнопке ниже" : "");
     if (totalOnlyAi < AI_SHOW) headText1 += " · больше подходящего не нашлось";
     finishWithHeader(primary, headText1);
@@ -876,32 +914,26 @@ function renderAiPick(data, vague) {
     });
 
     var list = primary.slice();
-
-    // добиваем до 5 обязательно (чтобы было «пять»)
     for (var i = 0; i < add.length && list.length < AI_SHOW; i++) list.push(add[i]);
-
-    // добиваем остаток до 40 (чтобы у «Показать ещё» был запас)
     for (var j = 0; j < add.length && list.length < 40; j++) {
       if (list.indexOf(add[j]) !== -1) continue;
       list.push(add[j]);
     }
 
-    var headText;
     var shown = Math.min(AI_SHOW, list.length);
     var rest = Math.max(0, list.length - shown);
-
+    var headText;
     if (list.length >= AI_SHOW) {
-      headText = "Подобрали " + shown + " вариантов" + (rest > 0 ? " · ещё " + rest + " по кнопке ниже" : "");
+      headText = " Подобрали " + shown + " вариантов" + (rest > 0 ? " · ещё " + rest + " по кнопке ниже" : "");
     } else {
-      headText = "Подобрали " + list.length + " вариантов · больше подходящего не нашли";
+      headText = " Подобрали " + list.length + " вариантов · больше подходящего не нашли";
     }
-
     finishWithHeader(list, headText);
   }).catch(function (e) {
     console.error("[renderAiPick fill]", e);
     var count = primary.length;
     finishWithHeader(primary,
-      "Рекомендаций: " + Math.min(count, AI_SHOW) +
+      " Рекомендаций: " + Math.min(count, AI_SHOW) +
       (count < AI_SHOW ? " · больше подходящего не нашли" : "")
     );
   });
@@ -927,23 +959,34 @@ function initAI() {
   aiButton.onclick = function () {
     var text = aiInput.value.trim();
     if (!text) { showToast("Введите описание фильма", true); return; }
-    if (aiButton.disabled) return;
+    if (aiButton.disabled || aiBusy) return;
 
-    var vague = isVagueQuery(text);
+    // Новый запрос → сбрасываем счётчик переделок  
+    aiLastQuery = text;
+    aiLastVague = isVagueQuery(text);
+    aiRetryUsed = false;
+    aiBusy = true;
+
     aiButton.disabled = true;
     aiStatus.textContent = "Нейросеть думает… 5–10 секунд";
     $("results").innerHTML = '<p class="empty">Подбираем фильм…</p>';
 
+    var vague = aiLastVague;
+
     askAI(text)
       .then(function (data) {
+        aiBusy = false;
         aiStatus.textContent = "Готово";
         renderAiPick(data, vague);
       })
       .catch(function (err) {
+        aiBusy = false;
         aiStatus.textContent = "Ошибка: " + (err.message || err);
         $("results").innerHTML = '<p class="empty">Не получилось подобрать. ' + esc(err.message || "") + '</p>';
       })
-      .then(function () { aiButton.disabled = false; });
+      .then(function () {
+        aiButton.disabled = false;
+      });
   };
 }
 
