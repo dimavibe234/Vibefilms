@@ -3,14 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SuperHeroFilms</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'></text></svg>">
+  <title>GamerRift</title>
   <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 </head>
 <body>
+  <div class="bg-glow"></div>
+  <canvas id="bg-canvas"></canvas>
 
-  <header class="top-bar">
-    <div class="logo">SuperHeroFilms</div>
+  <header class="top-bar glass-panel">
+    <div class="logo"> GamerRift</div>
+
+    <nav class="main-nav">
+      <button class="nav-link active" id="nav-movies" onclick="switchMainTab('movies')"> Фильмы</button>
+      <button class="nav-link" id="nav-games" onclick="switchMainTab('games')"> Игры</button>
+    </nav>
+
     <div class="actions">
       <button id="settings-toggle" class="btn-icon" title="Настройки"></button>
       <button id="playlists-toggle" class="btn-text" title="Плейлисты"> Плейлисты</button>
@@ -18,83 +27,144 @@
   </header>
 
   <main class="container">
-    <div class="auth-block">
-      <button id="google-login-btn" class="google-btn">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18">
-        Войти через Google  
-      </button>
-      <div id="user-info" class="user-info" style="display: none;"></div>
-    </div>
-
-    <div class="control-panel">
-      <div class="tabs">
-        <button class="tab-btn active" data-target="tab-name"> Поиск</button>
-        <button class="tab-btn" data-target="tab-ai"> Нейросеть</button>
+    <!-- ===================== ФИЛЬМЫ ===================== -->
+    <section id="section-movies" class="main-section active">
+      <div class="auth-block">
+        <button id="google-login-btn" class="google-btn">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18" alt="">
+          Войти через Google  
+        </button>
+        <div id="user-info" class="user-info" style="display: none;"></div>
       </div>
 
-      <div id="tab-name" class="tab-content active">
-        <div class="input-row">
-          <input type="text" id="search-input" placeholder="Введите название фильма...">
-          <button id="search-btn">Найти</button>
+      <div class="control-panel glass-panel">
+        <div class="tabs">
+          <button class="tab-btn active" data-target="tab-name"> Поиск</button>
+          <button class="tab-btn" data-target="tab-ai"> Нейросеть</button>
         </div>
-        <div class="quick-actions">
-          <button id="random-btn" class="chip"> Удиви меня</button>
-          <button id="masterpiece-btn" class="chip gold"> Шедевр</button>
-        </div>
-      </div>
 
-      <div id="tab-ai" class="tab-content">
-        <div class="input-row">
-          <input type="text" id="ai-input" placeholder="Опиши, что хочется: «грустное про океан», «как Марсианин»">
-          <button id="ai-button">Подобрать</button>
-        </div>
-        <p id="ai-status" class="status"></p>
-      </div>
-
-      <details class="dropdown">
-        <summary> Фильтры</summary>
-        <div class="dropdown-content">
-          <div class="filter-row">
-            <label>Рейтинг от</label>
-            <input type="range" id="rating-filter" min="0" max="10" step="0.5" value="0">
-            <span id="rating-value">0</span>
+        <div id="tab-name" class="tab-content active">
+          <div class="input-row">
+            <input type="text" id="search-input" placeholder="Введите название фильма...">
+            <button id="search-btn">Найти</button>
           </div>
-          <div class="filter-row">
-            <label>Год от</label>
-            <input type="number" id="year-filter" min="1900" max="2026" value="1900">
+          <div class="quick-actions">
+            <button id="random-btn" class="chip"> Удиви меня</button>
+            <button id="masterpiece-btn" class="chip gold"> Шедевр</button>
           </div>
-          <label class="check-row"><input type="checkbox" id="filter-unwatched"> Только непросмотренные</label>
-          <label class="check-row"><input type="checkbox" id="filter-new"> Только новинки</label>
         </div>
-      </details>
 
-      <details class="dropdown">
-        <summary> Категории</summary>
-        <div class="dropdown-content moods" id="moods">
-          <button data-mood="action"> Боевики</button>
-          <button data-mood="comedy"> Комедии</button>
-          <button data-mood="scifi"> Фантастика</button>
-          <button data-mood="fantasy"> Фэнтези</button>
-          <button data-mood="thriller"> Триллеры</button>
-          <button data-mood="crime">🕵️ Криминал</button>
-          <button data-mood="romance"> Мелодрамы</button>
-          <button data-mood="cartoon"> Мультфильмы</button>
-          <button data-mood="horror"> Ужасы</button>
-          <button data-mood="adventure"> Приключения</button>
+        <div id="tab-ai" class="tab-content">
+          <div class="input-row">
+            <input type="text" id="ai-input" placeholder="Опиши, что хочется: «грустное про океан», «как Марсианин»">
+            <button id="ai-button">Подобрать</button>
+          </div>
+          <p id="ai-status" class="status"></p>
         </div>
-      </details>
-    </div>
 
-    <div class="type-switch" id="type-switch" style="display: none;">
-      <button data-type="movie" class="active"> Фильмы</button>
-      <button data-type="series"> Сериалы</button>
-      <button data-type="cartoon"> Мультики</button>
-    </div>
+        <details class="dropdown">
+          <summary>🎛 Фильтры</summary>
+          <div class="dropdown-content">
+            <div class="filter-row">
+              <label>Рейтинг от</label>
+              <input type="range" id="rating-filter" min="0" max="10" step="0.5" value="0">
+              <span id="rating-value">0</span>
+            </div>
+            <div class="filter-row">
+              <label>Год от</label>
+              <input type="number" id="year-filter" min="1900" max="2026" value="1900">
+            </div>
+            <label class="check-row"><input type="checkbox" id="filter-unwatched"> Только непросмотренные</label>
+            <label class="check-row"><input type="checkbox" id="filter-new"> Только новинки</label>
+          </div>
+        </details>
 
-    <div id="results" class="results"></div>
-    <button id="load-more" class="load-more" style="display: none;">Показать ещё</button>
+        <details class="dropdown">
+          <summary> Категории</summary>
+          <div class="dropdown-content moods" id="moods">
+            <button data-mood="action"> Боевики</button>
+            <button data-mood="comedy"> Комедии</button>
+            <button data-mood="scifi"> Фантастика</button>
+            <button data-mood="fantasy"> Фэнтези</button>
+            <button data-mood="thriller"> Триллеры</button>
+            <button data-mood="crime">🕵️ Криминал</button>
+            <button data-mood="romance"> Мелодрамы</button>
+            <button data-mood="cartoon"> Мультфильмы</button>
+            <button data-mood="horror"> Ужасы</button>
+            <button data-mood="adventure"> Приключения</button>
+          </div>
+        </details>
+      </div>
+
+      <div class="type-switch" id="type-switch" style="display: none;">
+        <button data-type="movie" class="active"> Фильмы</button>
+        <button data-type="series"> Сериалы</button>
+        <button data-type="cartoon"> Мультики</button>
+      </div>
+
+      <div id="results" class="results"></div>
+      <button id="load-more" class="load-more" style="display: none;">Показать ещё</button>
+    </section>
+
+    <!-- ===================== ИГРЫ ===================== -->
+    <section id="section-games" class="main-section">
+      <div class="control-panel glass-panel">
+        <div class="input-row">
+          <input type="text" id="game-search-input" placeholder="Поиск игры по названию или описанию...">
+          <button id="game-search-btn">Найти</button>
+        </div>
+
+        <div class="mood-chips" id="game-moods">
+          <button class="mood-chip active" data-mood="all"> Все</button>
+          <button class="mood-chip" data-mood="relax"> Расслабиться</button>
+          <button class="mood-chip" data-mood="action"> Экшен</button>
+          <button class="mood-chip" data-mood="story"> Сюжет</button>
+          <button class="mood-chip" data-mood="hardcore"> Хардкор</button>
+          <button class="mood-chip" data-mood="horror"> Хоррор</button>
+        </div>
+
+        <div class="games-filter-row">
+          <div class="filter-group">
+            <label> Цена:</label>
+            <select id="game-price-filter" class="filter-select">
+              <option value="all">Любая</option>
+              <option value="free">Бесплатные</option>
+              <option value="under10">До 10 $</option>
+              <option value="10to20">10 – 20 $</option>
+              <option value="over20">Дороже 20 $</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label> Год:</label>
+            <select id="game-year-filter" class="filter-select">
+              <option value="all">Все годы</option>
+              <option value="2020+">2020 и новее</option>
+              <option value="2015_2019">2015 – 2019</option>
+              <option value="2010_2014">2010 – 2014</option>
+              <option value="2000_2009">2000 – 2009</option>
+              <option value="before2000">До 2000</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label> Сортировка:</label>
+            <select id="game-sort-filter" class="filter-select">
+              <option value="popular">Сначала популярные</option>
+              <option value="metacritic">По Metacritic</option>
+              <option value="price_asc">По цене ↑</option>
+              <option value="year_desc">По году выхода</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div id="game-loader" class="results-info">Загрузка базы игр...</div>
+      <div id="games-count" class="results-info"></div>
+      <div id="games-results" class="results"></div>
+      <button id="games-load-more" class="load-more" style="display: none;">Показать ещё</button>
+    </section>
   </main>
 
+  <!-- ==== Панель настроек ==== -->
   <aside id="settings-panel" class="side-panel">
     <div class="panel-header"><h2>Настройки</h2><button id="settings-close" class="btn-icon">✕</button></div>
     <div class="setting-group">
@@ -119,6 +189,7 @@
     <button id="settings-reset" class="reset-btn">Сбросить</button>
   </aside>
 
+  <!-- ==== Панель плейлистов ==== -->
   <aside id="playlists-panel" class="side-panel">
     <div class="panel-header"><h2>Плейлисты</h2><button id="playlists-close" class="btn-icon">✕</button></div>
     <div class="playlist-create">
@@ -128,6 +199,7 @@
     <div id="playlists-list" class="playlists-list"></div>
   </aside>
 
+  <!-- ==== Модалка фильма ==== -->
   <div id="movie-modal" class="modal">
     <div class="modal-content">
       <button id="movie-modal-close" class="btn-icon" style="position:absolute; top:10px; right:10px; z-index:10;">✕</button>
@@ -135,6 +207,7 @@
     </div>
   </div>
 
+  <!-- ==== Модалка профиля ==== -->
   <div id="profile-modal" class="modal">
     <div class="modal-content" style="max-width:400px;">
       <button id="profile-modal-close" class="btn-icon" style="position:absolute; top:10px; right:10px;">✕</button>
@@ -192,7 +265,6 @@
 
     window.dispatchEvent(new Event('firebase-ready'));
   </script>
-
   <script src="script.js"></script>
 </body>
 </html>
