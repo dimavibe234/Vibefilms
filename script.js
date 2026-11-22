@@ -1,13 +1,10 @@
 // ============================================================  
-// SuperHeroFilms × GamerRift  
-// AI_FN + BASE — твои Yandex Cloud функции.  
-// Мои функции фильмов 1:1 + добавлен раздел «Игры».  
+// PlayFrame — фильмы (полный функционал) + игры (умный подбор)  
 // ============================================================  
 
 var AI_FN = "https://functions.yandexcloud.net/d4edhc3vf41qqntfflsp";
 var BASE  = "https://functions.yandexcloud.net/d4e3i0pd816463uq33eu";
 
-// ---------- Фильмы: категории и жанры ----------  
 var categoryParams = {
   action:    { genre: "боевик",      minRating: "6.5", minVotes: "20000" },
   comedy:    { genre: "комедия",     minRating: "6.5", minVotes: "20000" },
@@ -41,13 +38,59 @@ var aiLastVague = true;
 var aiRetryUsed = false;
 var aiBusy = false;
 
-// ---------- Игры ----------  
+// ---------- ИГРЫ ----------  
 var allGames = [];
 var filteredGames = [];
 var gamesLoaded = false;
 var gamesStarted = false;
 var gamesDisplayCount = 100;
 var gameFilters = { query: "", mood: "all", price: "all", year: "all", sort: "popular" };
+
+// Умные правила для mood-фильтра игр  
+var MOOD_RULES = {
+  relax: {
+    include: /relax|casual|chill|cozy|calm|peaceful|wholesome|friendly|heartwarm|cozy|comfort|mindful|meditative|puzzle|jigsaw|hidden.?object|point.?and.?click|visual.?novel|walking.?sim|walking simulator|city.?builder|farm|farming|garden|nature|kawaii|painting|music|rhythm|cooking|gardening|aquarium|pet|cat|dog|pixel.?art|short|atmospheric|exploration|cute|family/i,
+    exclude: /horror|zombie|undead|vampire|scary|terror|creepy|nightmare|monster|ghost|demon|paranormal|slender|fnaf|blood|bloody|gore|brutal|violen|kill|murder|combat|shooter|fight|war|battle|weapon|gun|rifle|apocalyp|dystop|grim|dark.?souls|darkest|doom|dead space|dark.?fantasy|survival.?horror|dark|sad|tragic|death|dying|suicid|psycho|cult|exorcis|satan|hell/i,
+    minMeta: 60, minVotes: 100  
+  },
+  action: {
+    include: /action|shooter|fight|combat|fast.?paced|intense|war|battle|arena|beat.?em.?up|hack.?and.?slash|twin.?stick|shoot.?em.?up|run.?and.?gun|sidescroll|fps|tps/i,
+    exclude: /horror|zombie|scary|terror|creepy|nightmare|casual|relax|chill|cozy|puzzle|wholesome|jigsaw|hidden.?object|match.?3|cooking|visual.?novel|point.?and.?click|diary|dating.?sim/i,
+    minMeta: 65, minVotes: 200  
+  },
+  story: {
+    include: /story|narrative|adventure|rpg|dialogue|choice|plot|character|cinematic|walking.?sim|quest|saga|lore|companion|companionship|decision|tell.?tale|life.?is.?strange|heavy.?rain|nbsp/i,
+    exclude: /horror|zombie|scary|terror|creepy|casual|relax|arcade|rogue.?like|bullet.?hell|survival.?horror/i,
+    minMeta: 65, minVotes: 150  
+  },
+  hardcore: {
+    include: /souls.?like|hardcore|difficult|challenge|rogue.?like|rogue.?lite|permadeath|punishing|brutal|boss.?rush|competitive|esport|leaderboard|dead cells|nuclear throne|hades|dark souls|hollow knight|celeste|sekiro|bloodborne|cuphead|sifu|nioh|darkest dungeon|slay the spire|risk of rain|noita|binding of isaac|enter the gungeon/i,
+    exclude: /casual|relax|chill|cozy|walking.?sim|visual novel|point.?and.?click|hidden.?object|match.?3|farm|cooking|dating.?sim/i,
+    minMeta: 68, minVotes: 200  
+  },
+  horror: {
+    include: /horror|zombie|undead|vampire|scary|terror|creepy|nightmare|monster|ghost|demon|paranormal|survival.?horror|fnaf|amnesia|outlast|silent hill|resident evil|dead space|phasmophobia|layers of fear|until dawn|the evil within|visage|blair witch|penumbra|soma|cult|exorcist|haunted/i,
+    exclude: null,
+    minMeta: 55, minVotes: 100  
+  }
+};
+
+var gameGenreRu = {
+  "Action": "экшен", "Adventure": "приключения", "Animation": "мультфильм",
+  "Casual": "казуальная", "Comedy": "комедия", "Design & Illustration": "дизайн",
+  "Early Access": "ранний доступ", "Education": "обучение", "Free to Play": "бесплатная",
+  "Game Development": "разработка", "Gore": "кровь", "Indie": "инди",
+  "Massively Multiplayer": "MMO", "Movie": "видео", "Nudity": "нагота",
+  "Photo Editing": "фоторедактор", "RPG": "RPG", "Racing": "гонки",
+  "Sexual Content": "18+", "Simulation": "симулятор", "Software Training": "обучение",
+  "Sports": "спорт", "Strategy": "стратегия", "Tutorial": "обучение",
+  "Utilities": "утилиты", "Video Production": "видео", "Violent": "жестокость",
+  "Web Publishing": "публикация", "Horror": "хоррор", "Survival": "выживание",
+  "Stealth": "стелс", "Puzzle": "головоломка", "Platformer": "платформер",
+  "Roguelike": "рогалик", "Rogue-like": "рогалик", "RTS": "стратегия онлайн",
+  "Shooter": "шутер", "Fighting": "файтинг", "Card": "карточная",
+  "Visual Novel": "визуальная новелла", "Souls-like": "souls-like"
+};
 
 var kinopoiskCache = JSON.parse(localStorage.getItem("kinopoisk_cache") || "{}");
 function saveKinopoiskCache() { try { localStorage.setItem("kinopoisk_cache", JSON.stringify(kinopoiskCache)); } catch (e) {} }
@@ -103,7 +146,6 @@ function isVagueQuery(text) {
   return score < 2;
 }
 
-// ---------- Ключевые слова ----------  
 var STOPWORDS = [
   "хочу", "хотел", "хотела", "хотелось", "хочется",
   "фильм", "фильмы", "фильма", "кино",
@@ -193,7 +235,7 @@ function cleanTitle(title) {
   return (title || '').replace(/\s*\(\d{4}\)\s*$/, '').trim();
 }
 
-// ---------- Кинопоиск-функции ----------  
+// ---------- Кинопоиск ----------  
 function mapDoc(d) {
   return {
     kp_id: d.id || null,
@@ -269,7 +311,6 @@ function fetchCandidatesFromKinopoisk(query, limit, typeFilter) {
   });
 }
 
-// ---------- Фильтры фильмов ----------  
 function genreMatches(movieGenres, targetGenres) {
   if (!movieGenres || !targetGenres || !targetGenres.length) return false;
   var normTargets = targetGenres.map(normalize);
@@ -394,7 +435,6 @@ function loadUserData(userId) {
   }).catch(console.error);
 }
 
-// ---------- Просмотренные / скрытые ----------  
 function getHidden() { try { return JSON.parse(localStorage.getItem("mood_hidden") || "[]"); } catch (e) { return []; } }
 function hideMovie(title) { var l = getHidden(); if (l.indexOf(title) === -1) { l.push(title); localStorage.setItem("mood_hidden", JSON.stringify(l)); saveUserData(); } }
 function isHidden(title) { return getHidden().indexOf(title) !== -1; }
@@ -406,7 +446,6 @@ function toggleWatched(title, year) {
   localStorage.setItem("mood_watched", JSON.stringify(l)); saveUserData(); return f === -1;
 }
 
-// ---------- Плейлисты ----------  
 function getPlaylists() { try { return JSON.parse(localStorage.getItem("mood_movies_playlists") || "{}"); } catch (e) { return {}; } }
 function savePlaylists(p) { localStorage.setItem("mood_movies_playlists", JSON.stringify(p)); saveUserData(); }
 function createPlaylist(name) { var p = getPlaylists(); var k = name.trim(); if (!k) return false; if (!p[k]) { p[k] = []; savePlaylists(p); return true; } return false; }
@@ -555,7 +594,7 @@ function render(movies, append, firstLimit) {
     h += '<div class="title" onclick="openMovieModal(\'' + safeT + '\')">' + esc(title) + (w ? ' ✓' : '') + '</div>';
     h += '<div class="meta">' + esc(year) + (rating > 0 ? ' · ' + buildStars(rating) : "") + '</div>';
     h += buildGenres(m.genres);
-    h += '<button class="card-add" onclick="addMovieToPlaylist({title:\'' + safeT + '\',year:\'' + esc(year) + '\',poster:\'' + esc(poster || '') + '\',kp_id:' + (kpId ? "'" + esc(String(kpId)) + "'" : "null") + '})">＋ В плейлист</button>';
+    h += '<button class="card-add" onclick="event.stopPropagation();addMovieToPlaylist({title:\'' + safeT + '\',year:\'' + esc(year) + '\',poster:\'' + esc(poster || '') + '\',kp_id:' + (kpId ? "'" + esc(String(kpId)) + "'" : "null") + '})">＋ В плейлист</button>';
     h += '</div></div>';
   });
 
@@ -612,7 +651,6 @@ function openMovieModal(title) {
   $("movie-modal").classList.add("open");
 }
 
-// ---------- Поиск фильмов ----------  
 function searchByFilmList(query) {
   return fetchKinopoiskRaw(query, 40).then(function (movies) {
     if (!movies || !movies.length) { currentMovies = []; render([], false); return; }
@@ -691,7 +729,6 @@ function searchByTopic(topic, userText) {
   });
 }
 
-// ---------- Нейросеть ----------  
 function askAI(text) {
   return fetch(AI_FN, {
     method: "POST",
@@ -914,7 +951,6 @@ function initAI() {
   };
 }
 
-// ---------- Категории фильмов ----------  
 function loadMoviesByMood(mood) {
   var el = $("results"); if (!el) return;
   var params = (mood === "best") ? { best: "1" } : categoryParams[mood];
@@ -945,6 +981,39 @@ function loadMoviesByMood(mood) {
 // ============================================================  
 //                        ИГРЫ  
 // ============================================================  
+function parseGenres(raw) {
+  if (!raw) return [];
+  return String(raw)
+    .replace(/[\[\]{}"']/g, '')
+    .split(/[,;:]+/)
+    .map(function (x) { return x.trim(); })
+    .filter(function (x) { return x && !/^\d+$/.test(x); });
+}
+function translateGenre(g) {
+  return gameGenreRu[g] || g;
+}
+function computeMoodScore(game, rule) {
+  if (!rule) return 0;
+  var text = [
+    game.name || '',
+    game.short_description || '',
+    game.genres || '',
+    game.categories || ''
+  ].join(' ').toLowerCase();
+
+  if (rule.exclude && rule.exclude.test(text)) return 0;
+
+  var meta = parseFloat(game.metacritic_score) || 0;
+  var votes = parseFloat(game.recommendations_total) || 0;
+
+  if (meta < rule.minMeta && votes < rule.minVotes) return 0;
+
+  var matches = (text.match(rule.include) || []);
+  if (matches.length === 0) return 0;
+
+  return matches.length * 10 + meta * 0.5 + Math.log10(votes + 1);
+}
+
 function loadGames() {
   if (gamesStarted) return;
   gamesStarted = true;
@@ -983,6 +1052,7 @@ function loadGames() {
 function applyGameFilters() {
   var result = allGames.slice();
 
+  // 1) Поиск  
   if (gameFilters.query && gameFilters.query.length >= 2) {
     var q = gameFilters.query;
     result = result.filter(function (g) {
@@ -991,18 +1061,22 @@ function applyGameFilters() {
     });
   }
 
+  // 2) Умная mood-фильтрация  
   if (gameFilters.mood !== 'all') {
-    var patterns = {
-      relax: /puzzle|relax|casual|chill|cozy|calm|farm|peaceful|mindful/i,
-      action: /action|shooter|fight|combat|battle|war|violence|intense|fast/i,
-      story: /story|rpg|adventure|narrative|plot|character|drama|quest/i,
-      hardcore: /hardcore|difficult|survival|rogue|souls|challenge|punish|permadeath/i,
-      horror: /horror|zombie|scary|terror|creepy|dark|monster/i  
-    };
-    var re = patterns[gameFilters.mood];
-    if (re) result = result.filter(function (g) { return g.short_description && re.test(g.short_description); });
+    var rule = MOOD_RULES[gameFilters.mood];
+    if (rule) {
+      result = result.map(function (g) {
+        return { game: g, score: computeMoodScore(g, rule) };
+      }).filter(function (x) { return x.score > 0; })
+        .sort(function (a, b) {
+          if (Math.abs(b.score - a.score) > 0.5) return b.score - a.score;
+          return (parseFloat(b.game.recommendations_total) || 0) - (parseFloat(a.game.recommendations_total) || 0);
+        })
+        .map(function (x) { return x.game; });
+    }
   }
 
+  // 3) Цена  
   if (gameFilters.price !== 'all') {
     result = result.filter(function (g) {
       var isFree = g.is_free === 'True' || (parseFloat(g.mat_final_price) || 0) === 0;
@@ -1016,6 +1090,7 @@ function applyGameFilters() {
     });
   }
 
+  // 4) Год  
   if (gameFilters.year !== 'all') {
     result = result.filter(function (g) {
       var m = String(g.release_date || '').match(/(\d{4})/);
@@ -1031,18 +1106,21 @@ function applyGameFilters() {
     });
   }
 
-  if (gameFilters.sort === 'popular') {
-    result.sort(function (a, b) { return (parseFloat(b.recommendations_total) || 0) - (parseFloat(a.recommendations_total) || 0); });
-  } else if (gameFilters.sort === 'metacritic') {
-    result.sort(function (a, b) { return (parseFloat(b.metacritic_score) || 0) - (parseFloat(a.metacritic_score) || 0); });
-  } else if (gameFilters.sort === 'price_asc') {
-    result.sort(function (a, b) { return (parseFloat(a.mat_final_price) || 0) - (parseFloat(b.mat_final_price) || 0); });
-  } else if (gameFilters.sort === 'year_desc') {
-    result.sort(function (a, b) {
-      var ya = parseInt(String(a.release_date || '').match(/(\d{4})/)?.[1] || 0);
-      var yb = parseInt(String(b.release_date || '').match(/(\d{4})/)?.[1] || 0);
-      return yb - ya;
-    });
+  // 5) Общая сортировка (только если mood=all — иначе сохраняем приоритет mood-score)  
+  if (gameFilters.mood === 'all') {
+    if (gameFilters.sort === 'popular') {
+      result.sort(function (a, b) { return (parseFloat(b.recommendations_total) || 0) - (parseFloat(a.recommendations_total) || 0); });
+    } else if (gameFilters.sort === 'metacritic') {
+      result.sort(function (a, b) { return (parseFloat(b.metacritic_score) || 0) - (parseFloat(a.metacritic_score) || 0); });
+    } else if (gameFilters.sort === 'price_asc') {
+      result.sort(function (a, b) { return (parseFloat(a.mat_final_price) || 0) - (parseFloat(b.mat_final_price) || 0); });
+    } else if (gameFilters.sort === 'year_desc') {
+      result.sort(function (a, b) {
+        var ya = parseInt(String(a.release_date || '').match(/(\d{4})/)?.[1] || 0);
+        var yb = parseInt(String(b.release_date || '').match(/(\d{4})/)?.[1] || 0);
+        return yb - ya;
+      });
+    }
   }
 
   filteredGames = result;
@@ -1050,7 +1128,13 @@ function applyGameFilters() {
   renderGames(filteredGames.slice(0, gamesDisplayCount));
 
   var countEl = $("games-count");
-  if (countEl) countEl.textContent = "Найдено: " + filteredGames.length + " игр";
+  if (countEl) {
+    var label = "Найдено: " + filteredGames.length + " игр";
+    if (gameFilters.mood !== 'all' && filteredGames.length < 3) {
+      label += " · в этой категории мало подходящих игр (попробуй другую)";
+    }
+    countEl.textContent = label;
+  }
 
   var btn = $("games-load-more");
   if (btn) btn.style.display = filteredGames.length > gamesDisplayCount ? "block" : "none";
@@ -1075,7 +1159,15 @@ function renderGames(list) {
     var price = isFree ? 'Бесплатно' : (parseFloat(game.mat_final_price) / 100).toFixed(2) + ' $';
     var desc = (game.short_description || '').replace(/<[^>]*>?/gm, '');
     var descShort = desc.length > 130 ? desc.substring(0, 130) + '...' : desc;
-    var year = String(game.release_date || '').match(/\d{4}/);
+    var yearMatch = String(game.release_date || '').match(/\d{4}/);
+    var genres = parseGenres(game.genres).slice(0, 2).map(translateGenre);
+
+    var genresHtml = '';
+    if (genres.length) {
+      genresHtml = '<div class="genre-tags">';
+      genres.forEach(function (g) { genresHtml += '<span class="genre-tag">' + esc(g) + '</span>'; });
+      genresHtml += '</div>';
+    }
 
     card.innerHTML =
       '<div class="card-poster-wrap" style="aspect-ratio: 460/215;">' +
@@ -1084,12 +1176,83 @@ function renderGames(list) {
       '</div>' +
       '<div class="info">' +
         '<div class="title">' + esc(game.name) + '</div>' +
-        '<div class="meta">' + (year ? esc(year[0]) : '') + (game.developers ? ' · ' + esc(game.developers.split(',')[0]) : '') + '</div>' +
+        '<div class="meta">' + (yearMatch ? esc(yearMatch[0]) : '') + (game.developers ? ' · ' + esc(game.developers.split(',')[0]) : '') + '</div>' +
+        genresHtml +
         '<div class="game-desc-short">' + esc(descShort) + '</div>' +
       '</div>';
+
+    card.onclick = function () { openGameModal(game); };
     container.appendChild(card);
   });
 }
+
+function openGameModal(game) {
+  var title = game.name || 'Игра';
+  var yearMatch = String(game.release_date || '').match(/\d{4}/);
+  var year = yearMatch ? yearMatch[0] : '';
+  var devs = game.developers || '';
+  var descShort = (game.short_description || '').replace(/<[^>]*>?/gm, '').trim();
+  var descFull = (game.detailed_description || descShort).replace(/<[^>]*>?/gm, '').trim();
+  if (descFull.length > 500) descFull = descFull.slice(0, 500) + '...';
+  var img = game.header_image || '';
+  var appid = game.appid;
+  var isFree = game.is_free === 'True' || (parseFloat(game.mat_final_price) || 0) === 0;
+  var price = isFree ? 'Бесплатно' : (parseFloat(game.mat_final_price) / 100).toFixed(2) + ' $';
+  var genres = parseGenres(game.genres).map(translateGenre);
+  var meta = parseFloat(game.metacritic_score) || 0;
+  var votes = parseFloat(game.recommendations_total) || 0;
+
+  var steamUrl = appid ? 'https://store.steampowered.com/app/' + appid : '';
+  var trailerQueryEn = encodeURIComponent(title + ' ' + year + ' trailer');
+  var trailerQueryRu = encodeURIComponent(title + ' ' + year + ' трейлер');
+  var rutubeSearch = 'https://rutube.ru/search/?query=' + trailerQueryRu;
+  var ytSearch = 'https://www.youtube.com/results?search_query=' + trailerQueryEn;
+  var translateUrl = descShort  
+    ? 'https://translate.google.com/?sl=en&tl=ru&text=' + encodeURIComponent(descShort.slice(0, 400)) + '&op=translate'
+    : '';
+
+  var h = '';
+  h += '<div class="movie-header">';
+  if (img) h += '<img src="' + esc(img) + '" alt="" style="width:220px; aspect-ratio:460/215; object-fit:cover; border-radius:12px;">';
+  h += '<div class="movie-headline">';
+  h += '<h2>' + esc(title) + '</h2>';
+  h += '<p>' + esc(year) + (devs ? ' · ' + esc(devs.split(',')[0]) : '') + ' · ' + esc(price) + '</p>';
+  if (genres.length) {
+    h += '<div class="genre-tags">';
+    genres.slice(0, 6).forEach(function (g) { h += '<span class="genre-tag">' + esc(g) + '</span>'; });
+    h += '</div>';
+  }
+  if (meta > 0) {
+    h += '<p style="color:#fbbf24;font-weight:700;margin-top:8px;"> Metacritic: ' + meta +
+      (votes ? ' · ' + Math.round(votes).toLocaleString('ru-RU') + ' рекомендаций' : '') + '</p>';
+  }
+  h += '</div></div>';
+
+  h += '<div class="trailer-block">';
+  h += '<div class="trailer-title">Трейлер и магазин</div>';
+  h += '<a class="btn-trailer-main" href="' + rutubeSearch + '" target="_blank" rel="noopener">▶ Трейлер на Rutube</a>';
+  h += '<div class="trailer-links">';
+  h += '<a class="trailer-link" href="' + ytSearch + '" target="_blank" rel="noopener">YouTube</a>';
+  if (steamUrl) h += '<a class="trailer-link" style="background:rgba(102,192,244,0.18);border-color:rgba(102,192,244,0.35);" href="' + steamUrl + '" target="_blank" rel="noopener"> Steam</a>';
+  h += '</div></div>';
+
+  if (descFull) {
+    h += '<p class="movie-desc">' + esc(descFull) + '</p>';
+  }
+  if (translateUrl) {
+    h += '<a class="ai-explain-link" href="' + translateUrl + '" target="_blank" rel="noopener"> Перевести описание на русский →</a>';
+  }
+
+  h += '<div class="social-links" style="margin-top:20px;">';
+  if (steamUrl) h += '<a class="social-btn steam" href="' + steamUrl + '" target="_blank" rel="noopener"> Открыть в Steam</a>';
+  h += '<a class="social-btn rutube" href="' + rutubeSearch + '" target="_blank" rel="noopener">▶ Rutube</a>';
+  h += '</div>';
+
+  $("game-modal-body").innerHTML = h;
+  $("game-modal").classList.add("open");
+}
+
+function closeGameModal() { $("game-modal").classList.remove("open"); }
 
 // ============================================================  
 //                        ПЕРЕКЛЮЧАТЕЛЬ  
@@ -1109,7 +1272,7 @@ function switchMainTab(tab) {
 }
 
 // ============================================================  
-//                        ФОН (частицы)  
+//                        ФОН  
 // ============================================================  
 function initParticles() {
   var canvas = $("bg-canvas");
@@ -1173,7 +1336,6 @@ function initParticles() {
 function init() {
   initParticles();
 
-  // Настройки  
   var settingsToggle = $("settings-toggle");
   var settingsPanel = $("settings-panel");
   var settingsClose = $("settings-close");
@@ -1186,7 +1348,6 @@ function init() {
   if (playlistsToggle && playlistsPanel) playlistsToggle.onclick = function () { playlistsPanel.classList.add("open"); renderPlaylists(); };
   if (playlistsClose && playlistsPanel) playlistsClose.onclick = function () { playlistsPanel.classList.remove("open"); };
 
-  // Tabs фильмов  
   document.querySelectorAll(".tab-btn").forEach(function (btn) {
     btn.onclick = function () {
       document.querySelectorAll(".tab-btn").forEach(function (b) { b.classList.remove("active"); });
@@ -1197,7 +1358,6 @@ function init() {
     };
   });
 
-  // Поиск фильма  
   if ($("search-btn")) $("search-btn").onclick = function () {
     var q = $("search-input").value.trim();
     if (!q) return;
@@ -1285,6 +1445,25 @@ function init() {
 
   if ($("movie-modal-close")) $("movie-modal-close").onclick = function () { $("movie-modal").classList.remove("open"); };
   if ($("profile-modal-close")) $("profile-modal-close").onclick = function () { $("profile-modal").classList.remove("open"); };
+  if ($("game-modal-close")) $("game-modal-close").onclick = closeGameModal;
+
+  // Escape  
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      ["movie-modal", "game-modal", "profile-modal"].forEach(function (id) {
+        var m = $(id);
+        if (m) m.classList.remove("open");
+      });
+    }
+  });
+  // Клик вне  
+  ["movie-modal", "game-modal"].forEach(function (id) {
+    var m = $(id);
+    if (!m) return;
+    m.addEventListener("click", function (e) {
+      if (e.target === m) m.classList.remove("open");
+    });
+  });
 
   var savedAccent = localStorage.getItem("mood_accent");
   if (savedAccent) document.body.setAttribute("data-accent", savedAccent);
@@ -1294,7 +1473,7 @@ function init() {
   if (window.firebaseAuth) initFirebase(); else window.addEventListener("firebase-ready", initFirebase);
   initGoogleLogin(); initProfile(); initAI();
 
-  // ==== ИГРЫ ====  
+  // Игры — чипы  
   document.querySelectorAll("#game-moods .mood-chip").forEach(function (chip) {
     chip.onclick = function () {
       document.querySelectorAll("#game-moods .mood-chip").forEach(function (c) { c.classList.remove("active"); });
