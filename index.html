@@ -114,6 +114,13 @@
           <button id="game-search-btn">Найти</button>
         </div>
 
+        <!-- AI-подбор игр -->
+        <div class="input-row" style="margin-top: 8px;">
+          <input type="text" id="game-ai-input" placeholder=" Опиши, во что хочешь поиграть: «расслабиться под музыку», «как Dark Souls, но проще»...">
+          <button id="game-ai-btn" style="background: linear-gradient(135deg, #f59e0b, #ec4899);"> Подобрать</button>
+        </div>
+        <p id="game-ai-status" class="ai-game-status"></p>
+
         <div class="mood-chips" id="game-moods">
           <button class="mood-chip active" data-mood="all"> Все</button>
           <button class="mood-chip" data-mood="relax"> Расслабиться</button>
