@@ -86,9 +86,9 @@ function relevanceScore(query, candidateTitle) {
   return Math.max(0, 1 - levenshtein(q, t) / maxLen);
 }
 
-// Оценивает «расплывчатость» запроса к нейросети.
-// true  → показать до 5 вариантов.
-// false → показать 1 фильм (точный сюжет).
+// «Расплывчатость» запроса:
+// true  → показать до 5 вариантов + «Показать ещё».
+// false → показать 1 фильм по точному сюжету.
 function isVagueQuery(text) {
   var t = (text || "").trim();
   if (!t) return true;
@@ -96,11 +96,9 @@ function isVagueQuery(text) {
   var score = 0;
   if (words.length >= 6) score += 2;
   else if (words.length >= 4) score += 1;
-
-  if (/[А-ЯЁA-Z]/.test(t.slice(1))) score += 1;  // имена собственные  
-  if (/[«»"']/.test(t)) score += 1;               // кавычки — точное название  
-  if (/\d/.test(t)) score += 1;                   // годы, числа
-
+  if (/[А-ЯЁA-Z]/.test(t.slice(1))) score += 1;
+  if (/[«»"']/.test(t)) score += 1;
+  if (/\d/.test(t)) score += 1;
   return score < 2;
 }
 
@@ -157,6 +155,25 @@ function fetchKinopoiskRaw(query, limit) {
     })
     .catch(function (e) {
       console.log("[BASE] ошибка:", e && e.message ? e.message : e);
+      return [];
+    });
+}
+
+function fetchCategoryDocs(params) {
+  var p = Object.assign({ catalog: "1", page: "1", limit: "30" }, params || {});
+  var url = BASE + "?" + Object.keys(p).map(function (k) {
+    return k + "=" + encodeURIComponent(p[k]);
+  }).join("&");
+  return fetchWithTimeout(url, 15000)
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d && d._err) console.log("[category] server:", d._err);
+      return (d && d.docs ? d.docs : []).map(mapDoc).filter(function (m) {
+        return m.poster && passUserFilters(m);
+      });
+    })
+    .catch(function (e) {
+      console.error("[fetchCategoryDocs]", e);
       return [];
     });
 }
@@ -525,7 +542,6 @@ function render(movies, append) {
 
   if (append) el.innerHTML += h; else el.innerHTML = h;
 
-  // === Кнопка «Показать ещё» — показываем только если есть что листать ===  
   var lm = $("load-more");
   if (lm) {
     var shownCount = document.querySelectorAll("#results .card").length;
@@ -583,7 +599,7 @@ function openMovieModal(title) {
 }
 
 // ---------- Поиск ----------
-// Поиск по названию: возвращает СПИСОК кандидатов, чтобы работала «Показать ещё».
+// Поиск по названию: возвращает СПИСОК кандидатов (для «Показать ещё»).
 function searchByFilmList(query) {
   return fetchKinopoiskRaw(query, 40).then(function (movies) {
     if (!movies || !movies.length) {
@@ -731,9 +747,36 @@ function fromAiMovie(m) {
   };
 }
 
+// --- Хелперы для рендера AI ---  
+function isPickExplainable(p, m) {
+  return !!(m && (p.reason || p.mood || p.note));
+}
+function buildExplainNode(p, m) {
+  var block = document.createElement("div");
+  block.className = "ai-explain";
+  block.innerHTML =
+    '<div class="ai-explain-label">Почему этот фильм</div>' +
+    "<p>" + esc(p.reason || "") + "</p>" +
+    (p.mood ? '<p class="ai-explain-meta">Настроение: <b>' + esc(p.mood) + "</b></p>" : "") +
+    (p.note ? '<p class="ai-explain-meta">Деталь: ' + esc(p.note) + "</p>" : "") +
+    (m.url ? '<a class="ai-explain-link" href="' + esc(m.url) + '" target="_blank" rel="noopener">Открыть на Кинопоиске →</a>' : "");
+  return block;
+}
+function renderSimpleAiFallback(el, p) {
+  el.innerHTML =
+    '<div class="ai-explain">' +
+    '<div class="ai-explain-label">Подбор нейросети</div>' +
+    "<h3>" + esc(p.title || "Фильм") + (p.year ? " (" + esc(p.year) + ")" : "") + "</h3>" +
+    "<p>" + esc(p.reason || "") + "</p>" +
+    '<p class="ai-explain-meta">Карточка в базе не нашлась — проверьте название вручную.</p>' +
+    "</div>";
+  var lm = $("load-more");
+  if (lm) lm.style.display = "none";
+}
+
 // Новый рендер нейросети:
-// vague = true  → до 5 фильмов (movie + до 4 alternatives)
-// vague = false → 1 фильм (только movie)
+// vague=false → 1 фильм, без кнопки.
+// vague=true  → 5 рекомендаций + добор похожих (всего до 40) → работает «Показать ещё».
 function renderAiPick(data, vague) {
   var el = $("results");
   if (!el) return;
@@ -742,59 +785,106 @@ function renderAiPick(data, vague) {
   var m = data && data.movie;
   var alts = (data && data.alternatives) || [];
 
-  var list = [];
-  if (m) list.push(fromAiMovie(m));
+  var primary = [];
+  if (m) primary.push(fromAiMovie(m));
 
   if (vague) {
-    var seen = {};
-    if (m && m.title) seen[normalize(m.title)] = 1;
-    alts.slice(0, 4).forEach(function (a) {
+    var seen0 = {};
+    if (m && m.title) seen0[normalize(m.title)] = 1;
+    alts.forEach(function (a) {
+      if (primary.length >= 5) return;
       var key = normalize(a.title || "");
-      if (key && !seen[key]) { seen[key] = 1; list.push(fromAiMovie(a)); }
+      if (key && !seen0[key]) { seen0[key] = 1; primary.push(fromAiMovie(a)); }
     });
   }
 
-  currentMovies = list;
-  currentMood = null;
-  lastSearchQuery = null;
   currentAlternatives = alts.slice();
 
-  if (!list.length) {
-    el.innerHTML =
-      '<div class="ai-explain">' +
-      '<div class="ai-explain-label">Подбор нейросети</div>' +
-      "<h3>" + esc(p.title || "Фильм") + (p.year ? " (" + esc(p.year) + ")" : "") + "</h3>" +
-      "<p>" + esc(p.reason || "") + "</p>" +
-      '<p class="ai-explain-meta">Карточка в базе не нашлась — проверьте название вручную.</p>' +
-      "</div>";
+  if (!primary.length) {
+    currentMovies = [];
+    currentMood = null;
+    lastSearchQuery = null;
+    renderSimpleAiFallback(el, p);
     return;
   }
 
-  render(list, false);
+  // Точный сюжет — ровно 1 фильм, кнопки быть не должно  
+  if (!vague) {
+    currentMovies = primary;
+    currentMood = null;
+    lastSearchQuery = null;
+    render(primary, false);
 
-  // Заголовок-подпись — над сеткой  
-  var head = document.createElement("div");
-  head.className = "ai-header";
-  head.textContent = vague  
-    ? "Расплывчатый запрос — подобрали вариантов: " + list.length  
-    : "Точный сюжет — нашли 1 фильм";
-  el.insertBefore(head, el.firstChild);
+    var headExact = document.createElement("div");
+    headExact.className = "ai-header";
+    headExact.textContent = "Точный сюжет — нашли 1 фильм";
+    el.insertBefore(headExact, el.firstChild);
 
-  // Блок объяснения — под заголовком  
-  if (m && (p.reason || p.mood || p.note)) {
-    var block = document.createElement("div");
-    block.className = "ai-explain";
-    block.innerHTML =
-      '<div class="ai-explain-label">Почему этот фильм</div>' +
-      "<p>" + esc(p.reason || "") + "</p>" +
-      (p.mood ? '<p class="ai-explain-meta">Настроение: <b>' + esc(p.mood) + "</b></p>" : "") +
-      (p.note ? '<p class="ai-explain-meta">Деталь: ' + esc(p.note) + "</p>" : "") +
-      (m.url ? '<a class="ai-explain-link" href="' + esc(m.url) + '" target="_blank" rel="noopener">Открыть на Кинопоиске →</a>' : "");
-    el.insertBefore(block, head.nextSibling);
+    if (isPickExplainable(p, m)) {
+      el.insertBefore(buildExplainNode(p, m), headExact.nextSibling);
+    }
+    return;
   }
+
+  // Расплывчатый запрос — добираем похожие из Кинопоиска.
+  var fillParams = {};
+  if (m && m.genres && m.genres.length) {
+    var g = m.genres[0];
+    var ruGenre = genreTranslations[g] || g;
+    if (ruGenre) fillParams = { genre: ruGenre, minRating: "6.5", minVotes: "10000" };
+  }
+  if (!fillParams.genre) fillParams = { genre: "драма", minRating: "7", minVotes: "50000" };
+
+  el.innerHTML = '<p class="empty">Подбираем ещё похожие…</p>';
+
+  fetchCategoryDocs(fillParams).then(function (fillers) {
+    var seen = {};
+    primary.forEach(function (x) { seen[normalize(x.title)] = 1; });
+
+    var extra = [];
+    fillers.forEach(function (mv) {
+      var key = normalize(mv.title);
+      if (seen[key]) return;
+      if (mv.rating && mv.rating < 6) return;
+      seen[key] = 1;
+      extra.push(mv);
+    });
+
+    extra.sort(popularitySort);
+
+    var list = primary.slice();
+
+    // добиваем до 5 рекомендаций  
+    var need = Math.max(0, 5 - list.length);
+    while (need > 0 && extra.length) { list.push(extra.shift()); need--; }
+
+    // добиваем ещё — чтобы работала «Показать ещё» (всего до 40)
+    while (extra.length && list.length < 40) list.push(extra.shift());
+
+    currentMovies = list;
+    currentMood = null;
+    lastSearchQuery = null;
+    render(list, false);
+
+    var head = document.createElement("div");
+    head.className = "ai-header";
+    var aiTop = Math.min(list.length, 5);
+    head.textContent = "Расплывчатый запрос — рекомендаций: " + aiTop + " · всего в подборке: " + list.length;
+    el.insertBefore(head, el.firstChild);
+
+    if (isPickExplainable(p, m)) {
+      el.insertBefore(buildExplainNode(p, m), head.nextSibling);
+    }
+  }).catch(function (e) {
+    console.error("[renderAiPick fill]", e);
+    currentMovies = primary;
+    currentMood = null;
+    lastSearchQuery = null;
+    render(primary, false);
+  });
 }
 
-// Старый механизм альтернатив оставлен для случаев, если где-то выстрелит showAiAlternative()
+// Старый механизм альтернатив (оставлен для совместимости)  
 function showAiAlternative(i) {
   var m = currentAlternatives[i];
   if (!m) return;
@@ -906,14 +996,12 @@ function init() {
     };
   });
 
-  // === Обычный поиск: список с «Показать ещё» ===  
   if ($("search-btn")) $("search-btn").onclick = function () {
     var q = $("search-input").value.trim();
     if (!q) return;
     $("results").innerHTML = '<p class="empty">Поиск...</p>';
     currentMood = null;
     lastSearchQuery = q;
-
     searchByFilmList(q);
   };
   if ($("search-input")) $("search-input").onkeydown = function (e) {
