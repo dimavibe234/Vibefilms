@@ -69,38 +69,18 @@
       </details>
 
       <details class="dropdown">
-        <summary> Выбрать настроение</summary>
+        <summary> Категории</summary>
         <div class="dropdown-content moods" id="moods">
-          <button data-mood="happy"> Весело</button>
-          <button data-mood="sad"> Грустно</button>
-          <button data-mood="action"> Адреналин</button>
-          <button data-mood="cozy"> Уютно</button>
-          <button data-mood="scary"> Страшно</button>
-          <button data-mood="romance"> Романтика</button>
-          <button data-mood="nostalgia"> Ностальгия</button>
-          <button data-mood="inspire"> Вдохновение</button>
-          <button data-mood="mystery">🕵️ Детектив</button>
+          <button data-mood="action"> Боевики</button>
+          <button data-mood="comedy"> Комедии</button>
           <button data-mood="scifi"> Фантастика</button>
-          <button data-mood="music"> Музыка</button>
-          <button data-mood="think"> Подумать</button>
-          <button data-mood="anime"> Аниме</button>
           <button data-mood="fantasy"> Фэнтези</button>
-          <button data-mood="crime"> Криминал</button>
-          <button data-mood="thriller"> Триллер</button>
-          <button data-mood="documentary"> Документальное</button>
-          <button data-mood="sport"> Спорт</button>
-          <button data-mood="war"> Военное</button>
-          <button data-mood="western"> Вестерн</button>
-          <button data-mood="biography"> Биография</button>
-          <button data-mood="kids"> Для детей</button>
+          <button data-mood="thriller"> Триллеры</button>
+          <button data-mood="crime">🕵️ Криминал</button>
+          <button data-mood="romance"> Мелодрамы</button>
+          <button data-mood="cartoon"> Мультфильмы</button>
+          <button data-mood="horror"> Ужасы</button>
           <button data-mood="adventure"> Приключения</button>
-          <button data-mood="comedy_dark"> Чёрная комедия</button>
-          <button data-mood="mystic"> Мистика</button>
-          <button data-mood="musical"> Мюзикл</button>
-          <button data-mood="family"> Семейное</button>
-          <button data-mood="heist"> Ограбление</button>
-          <button data-mood="survival"> Выживание</button>
-          <button data-mood="space"> Космос</button>
         </div>
       </details>
     </div>
@@ -214,149 +194,5 @@
   </script>
 
   <script src="script.js"></script>
-
-  <!-- ============================================================
-       ПАТЧ: 10 категорий + фикс кнопки «Шедевр»
-       Не трогает script.js, не затрагивает регистрацию/плейлисты/профиль  
-       ============================================================ -->
-  <script>
-  (function () {
-    var BASE = "https://functions.yandexcloud.net/d4e3i0pd816463uq33eu";
-    var TRAILER = "./trailer.html";
-
-    // ---- 10 основных категорий ----
-    var CATEGORIES = [
-      { key: "action",    label: " Боевики",     params: { genre: "боевик",      minRating: "6.5", minVotes: "20000" } },
-      { key: "comedy",    label: " Комедии",     params: { genre: "комедия",     minRating: "6.5", minVotes: "20000" } },
-      { key: "scifi",     label: " Фантастика",  params: { genre: "фантастика",  minRating: "6.5", minVotes: "20000" } },
-      { key: "fantasy",   label: " Фэнтези",     params: { genre: "фэнтези",     minRating: "6.5", minVotes: "20000" } },
-      { key: "thriller",  label: " Триллеры",    params: { genre: "триллер",     minRating: "7",   minVotes: "20000" } },
-      { key: "crime",     label: "🕵️ Криминал",    params: { genre: "криминал",    minRating: "7",   minVotes: "30000" } },
-      { key: "romance",   label: " Мелодрамы",   params: { genre: "мелодрама",   minRating: "6.5", minVotes: "20000" } },
-      { key: "cartoon",   label: " Мультфильмы", params: { type:  "cartoon",     minRating: "6.5", minVotes: "10000" } },
-      { key: "horror",    label: " Ужасы",       params: { genre: "ужасы",       minRating: "6",   minVotes: "10000" } },
-      { key: "adventure", label: " Приключения", params: { genre: "приключения", minRating: "7",   minVotes: "20000" } }
-    ];
-
-    function buildUrl(params) {
-      var p = Object.assign({ catalog: "1", page: "1", limit: "30" }, params || {});
-      return BASE + "?" + Object.keys(p).map(function (k) {
-        return k + "=" + encodeURIComponent(p[k]);
-      }).join("&");
-    }
-
-    function posterOf(d) {
-      return (d && d.poster && (d.poster.url || d.poster.previewUrl)) || "";
-    }
-
-    function ratingOf(d) {
-      if (!d || !d.rating) return "";
-      var r = d.rating.kp || d.rating.imdb || 0;
-      return r >= 1 ? (Math.round(r * 10) / 10).toFixed(1) : "";
-    }
-
-    function hideLoadMore() {
-      var lm = document.getElementById("load-more");
-      if (lm) lm.style.display = "none";
-    }
-
-    function render(docs) {
-      var results = document.getElementById("results");
-      if (!results) return;
-      hideLoadMore();
-
-      if (!docs || !docs.length) {
-        results.innerHTML = '<p style="grid-column:1/-1;text-align:center;opacity:.6;padding:30px">Ничего не найдено</p>';
-        return;
-      }
-
-      results.innerHTML = docs.map(function (d) {
-        var poster = posterOf(d);
-        var rating = ratingOf(d);
-        var name = d.name || d.alternativeName || "Без названия";
-        var year = d.year || "";
-        var genres = (d.genres || []).slice(0, 2).map(function (g) { return g.name; }).join(", ");
-        var href = TRAILER +
-          "?kp=" + encodeURIComponent(d.id) +
-          "&title=" + encodeURIComponent(name) +
-          "&year=" + encodeURIComponent(year) +
-          "&rating=" + encodeURIComponent(rating) +
-          "&genres=" + encodeURIComponent(genres) +
-          "&poster=" + encodeURIComponent(poster);
-
-        return '<a href="' + href + '" style="display:flex;flex-direction:column;background:#151b23;border-radius:10px;overflow:hidden;text-decoration:none;color:inherit;border:1px solid rgba(255,255,255,.06)">' +
-          '<div style="position:relative;aspect-ratio:2/3;background:#222">' +
-            (poster ? '<img src="' + poster + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block" alt="">' : '') +
-            (rating ? '<span style="position:absolute;top:8px;left:8px;background:rgba(0,0,0,.8);color:#ffd84d;padding:2px 8px;border-radius:6px;font-size:.78rem;font-weight:700">★ ' + rating + '</span>' : '') +
-          '</div>' +
-          '<div style="padding:8px 10px">' +
-            '<div style="font-size:.88rem;font-weight:600;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">' + name + '</div>' +
-            (year ? '<div style="font-size:.76rem;opacity:.6;margin-top:3px">' + year + (genres ? " · " + genres : "") + '</div>' : '') +
-          '</div>' +
-        '</a>';
-      }).join("");
-    }
-
-    function load(params) {
-      var results = document.getElementById("results");
-      if (results) results.innerHTML = '<p style="grid-column:1/-1;text-align:center;opacity:.6;padding:30px">Загружаем…</p>';
-
-      fetch(buildUrl(params))
-        .then(function (r) { return r.json(); })
-        .then(function (d) { render(d.docs || []); })
-        .catch(function (e) {
-          console.error("[categories] error:", e);
-          if (results) results.innerHTML = '<p style="grid-column:1/-1;text-align:center;opacity:.6;padding:30px">Ошибка загрузки</p>';
-        });
-    }
-
-    // ---- перерисовать блок «Настроение» в 10 категорий ----
-    function rebuildMoods() {
-      var moods = document.getElementById("moods");
-      if (!moods) return;
-
-      moods.innerHTML = CATEGORIES.map(function (c) {
-        return '<button data-category="' + c.key + '">' + c.label + '</button>';
-      }).join("");
-
-      moods.addEventListener("click", function (e) {
-        var btn = e.target.closest("[data-category]");
-        if (!btn) return;
-        var cat = CATEGORIES.filter(function (c) { return c.key === btn.dataset.category; })[0];
-        if (!cat) return;
-        load(cat.params);
-      });
-
-      var details = moods.closest("details");
-      if (details) {
-        var sum = details.querySelector("summary");
-        if (sum) sum.textContent = " Категории";
-      }
-    }
-
-    // ---- кнопка «Шедевр» — перехват, жёсткие фильтры ----
-    function fixMasterpiece() {
-      var btn = document.getElementById("masterpiece-btn");
-      if (!btn) return;
-      btn.addEventListener("click", function (e) {
-        e.stopImmediatePropagation();
-        e.preventDefault();
-        load({ best: "1" });
-      }, true); // capture: срабатывает раньше обработчика script.js  
-    }
-
-    function init() {
-      rebuildMoods();
-      fixMasterpiece();
-    }
-
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", init);
-    } else {
-      init();
-    }
-  })();
-  </script>
-
 </body>
 </html>
