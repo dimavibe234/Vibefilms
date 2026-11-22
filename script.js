@@ -86,9 +86,6 @@ function relevanceScore(query, candidateTitle) {
   return Math.max(0, 1 - levenshtein(q, t) / maxLen);
 }
 
-// «Расплывчатость» запроса:
-// true  → показать до 5 вариантов + добор по ключевым словам.
-// false → показать 1 фильм по точному сюжету.
 function isVagueQuery(text) {
   var t = (text || "").trim();
   if (!t) return true;
@@ -102,7 +99,7 @@ function isVagueQuery(text) {
   return score < 2;
 }
 
-// ---------- Ключевые слова для добора из Кинопоиска ----------  
+// ---------- Ключевые слова для добора ----------  
 var STOPWORDS = [
   "хочу", "хотел", "хотела", "хотелось", "хочется",
   "фильм", "фильмы", "фильма", "кино", "киношка",
@@ -132,12 +129,10 @@ function keywordStem(w) {
   if (w.length <= 5) return w;
   return w.slice(0, 5);
 }
-
 function extractKeywords(text) {
   var t = (text || "").toLowerCase().replace(/ё/g, "е");
   var words = t.split(/[^\wа-я0-9]+/i).filter(Boolean);
-  var out = [];
-  var seen = {};
+  var out = [], seen = {};
   words.forEach(function (w) {
     if (w.length < 3) return;
     if (STOPWORDS.indexOf(w) !== -1) return;
@@ -149,7 +144,6 @@ function extractKeywords(text) {
   });
   return out;
 }
-
 function keywordMatch(movie, stems) {
   var text = [
     movie.title || "",
@@ -162,16 +156,13 @@ function keywordMatch(movie, stems) {
   }
   return false;
 }
-
 function fillFromKeywords(keywordPairs, limit) {
   if (!keywordPairs || !keywordPairs.length) return Promise.resolve([]);
   var words = keywordPairs.map(function (x) { return x.word; }).slice(0, 4);
   var stems = keywordPairs.map(function (x) { return x.stem; });
   var jobs = words.map(function (w) { return fetchKinopoiskRaw(w, 20); });
-
   return Promise.all(jobs).then(function (arrays) {
-    var seen = {};
-    var all = [];
+    var seen = {}, all = [];
     arrays.forEach(function (arr) {
       arr.forEach(function (m) {
         var key = normalize(m.title);
@@ -229,10 +220,7 @@ function fetchKinopoiskRaw(query, limit) {
   return fetchWithTimeout(url, 15000)
     .then(function (r) { return r.json(); })
     .then(function (data) {
-      if (!data || !data.docs) {
-        console.log("[BASE] «" + query + "» → нет docs.");
-        return [];
-      }
+      if (!data || !data.docs) return [];
       var docs = data.docs.map(mapDoc).filter(function (m) { return m.poster; });
       console.log("[BASE] «" + query + "» → " + docs.length);
       return docs;
@@ -268,22 +256,15 @@ function fetchKinopoisk(title) {
 
   return fetchKinopoiskRaw(title, 10).then(function (candidates) {
     if (!candidates.length) return null;
-
     var scored = candidates.map(function (m) {
-      var s = Math.max(
-        relevanceScore(title, m.title),
-        relevanceScore(title, m.originalTitle)
-      );
+      var s = Math.max(relevanceScore(title, m.title), relevanceScore(title, m.originalTitle));
       return { m: m, s: s };
     }).filter(function (x) { return x.s >= 0.55; });
-
     if (!scored.length) return null;
-
     scored.sort(function (a, b) {
       if (Math.abs(b.s - a.s) > 0.05) return b.s - a.s;
       return (b.m.votes || 0) - (a.m.votes || 0);
     });
-
     kinopoiskCache[key] = scored[0].m;
     saveKinopoiskCache();
     return scored[0].m;
@@ -294,16 +275,13 @@ function matchType(m, type) {
   if (type === "movie") return m.type === "movie" || m.type === "";
   if (type === "series") return m.type === "tv-series" || m.type === "mini-series";
   if (type === "cartoon") return m.genres.indexOf("анимация") !== -1 || m.type === "cartoon";
-  if (type === "documentary")
-    return m.genres.indexOf("документальный") !== -1 || m.type === "documentary";
+  if (type === "documentary") return m.genres.indexOf("документальный") !== -1 || m.type === "documentary";
   return true;
 }
 
 function fetchCandidatesFromKinopoisk(query, limit, typeFilter) {
   return fetchKinopoiskRaw(query, limit || 30).then(function (movies) {
-    if (typeFilter) {
-      movies = movies.filter(function (m) { return matchType(m, typeFilter); });
-    }
+    if (typeFilter) movies = movies.filter(function (m) { return matchType(m, typeFilter); });
     return movies;
   });
 }
@@ -334,7 +312,6 @@ function passUserFilters(m) {
   var nowYear = new Date().getFullYear();
   var r = m.rating || 0;
   var y = parseInt(m.year, 10) || 0;
-
   if (r > 0 && r < f.minRating) return false;
   if (y && y < f.minYear) return false;
   if (f.unwatchedOnly && isWatched(cleanTitle(m.title))) return false;
@@ -553,14 +530,15 @@ function buildTrailerBlock(kpId, links, trailerUrl) {
   h += '<a class="trailer-link kp" href="' + esc(links.kp) + '" target="_blank" rel="noopener">Кинопоиск</a>';
   h += '<a class="trailer-link rt" href="' + esc(links.rutube) + '" target="_blank" rel="noopener">Rutube</a>';
   h += '<a class="trailer-link vk" href="' + esc(links.vk) + '" target="_blank" rel="noopener">VK Видео</a>';
-  h += '</div>';
-  h += '</div>';
+  h += '</div></div>';
   return h;
 }
 
 var RENDER_LIMIT = 20;
 
-function render(movies, append) {
+// firstLimit — сколько показать сразу при !append.  
+// Обычно RENDER_LIMIT (20). Для AI-режима передаём 5.
+function render(movies, append, firstLimit) {
   var el = $("results"); if (!el) return;
   if (!append) el.innerHTML = '<p class="empty">Загрузка...</p>';
   if (!movies || !movies.length) {
@@ -575,7 +553,8 @@ function render(movies, append) {
     var already = document.querySelectorAll("#results .card").length;
     toRender = currentMovies.slice(already, already + RENDER_LIMIT);
   } else {
-    toRender = movies.slice(0, RENDER_LIMIT);
+    var lim = (typeof firstLimit === "number" && firstLimit > 0) ? firstLimit : RENDER_LIMIT;
+    toRender = movies.slice(0, lim);
     currentMovies = movies;
   }
 
@@ -646,8 +625,7 @@ function openMovieModal(title) {
   h += '<div class="movie-headline">' +
        '<h2>' + esc(title) + '</h2>' +
        '<p>' + esc(year) + (rating ? ' · ★ ' + rating.toFixed(1) : '') + '</p>' +
-       buildGenres(m.genres) +
-       '</div></div>';
+       buildGenres(m.genres) + '</div></div>';
 
   h += buildTrailerBlock(kpId, links, trailerUrl);
   h += '<p class="movie-desc">' + esc(desc) + '</p>';
@@ -669,28 +647,17 @@ function openMovieModal(title) {
 // ---------- Поиск ----------
 function searchByFilmList(query) {
   return fetchKinopoiskRaw(query, 40).then(function (movies) {
-    if (!movies || !movies.length) {
-      currentMovies = [];
-      render([], false);
-      return;
-    }
-
+    if (!movies || !movies.length) { currentMovies = []; render([], false); return; }
     var scored = movies.map(function (m) {
-      var rel = Math.max(
-        relevanceScore(query, m.title),
-        relevanceScore(query, m.originalTitle || "")
-      );
+      var rel = Math.max(relevanceScore(query, m.title), relevanceScore(query, m.originalTitle || ""));
       return { m: m, s: rel };
     }).filter(function (x) { return x.s >= 0.3; });
-
     scored.sort(function (a, b) {
       if (Math.abs(b.s - a.s) > 0.1) return b.s - a.s;
       return (b.m.votes || 0) - (a.m.votes || 0);
     });
-
     var list = scored.map(function (x) { return x.m; });
     if (!list.length) { currentMovies = []; render([], false); return; }
-
     currentMood = null;
     lastSearchQuery = query;
     currentMovies = list;
@@ -738,12 +705,10 @@ function searchByTopic(topic, userText) {
     queries.push(userText);
   }
   if (!/кино|фильм|movie/i.test(topic)) queries.push(topic + " фильм");
-
   return Promise.all(queries.map(function (q) {
     return fetchCandidatesFromKinopoisk(q, 40, currentType);
   })).then(function (arrays) {
-    var seen = {};
-    var all = [];
+    var seen = {}, all = [];
     arrays.forEach(function (arr) {
       arr.forEach(function (m) {
         var key = normalize(m.title) + "|" + (m.year || "");
@@ -771,9 +736,7 @@ function askAI(text) {
   }).then(function (r) {
     return r.text().then(function (t) {
       var d = null;
-      try {
-        d = JSON.parse(t);
-      } catch (e) {
+      try { d = JSON.parse(t); } catch (e) {
         throw new Error("Ответ не JSON (HTTP " + r.status + "): " + t.slice(0, 120));
       }
       if (!r.ok) throw new Error(d.error || ("HTTP " + r.status));
@@ -798,9 +761,7 @@ function fromAiMovie(m) {
   };
 }
 
-function isPickExplainable(p, m) {
-  return !!(m && (p.reason || p.mood || p.note));
-}
+function isPickExplainable(p, m) { return !!(m && (p.reason || p.mood || p.note)); }
 function buildExplainNode(p, m) {
   var block = document.createElement("div");
   block.className = "ai-explain";
@@ -824,11 +785,9 @@ function renderSimpleAiFallback(el, p) {
   if (lm) lm.style.display = "none";
 }
 
-// Новый renderAiPick:
-// vague=false → ровно 1 фильм (без кнопки).
-// vague=true  → всё, что вернул AI (movie + alternatives), +
-//               добор ТОЛЬКО по ключевым словам запроса (не по жанру!).
-//               Кнопка «Показать ещё» появляется, если релевантных набралось > 20.
+// AI-режим:
+// vague=false → ровно 1 фильм, без кнопки.
+// vague=true  → ровно 5 карточек, под ними «Показать ещё» на остальные релевантные.
 function renderAiPick(data, vague) {
   var el = $("results");
   if (!el) return;
@@ -870,13 +829,11 @@ function renderAiPick(data, vague) {
     headExact.className = "ai-header";
     headExact.textContent = "Точный сюжет — нашли 1 фильм";
     el.insertBefore(headExact, el.firstChild);
-    if (isPickExplainable(p, m)) {
-      el.insertBefore(buildExplainNode(p, m), headExact.nextSibling);
-    }
+    if (isPickExplainable(p, m)) el.insertBefore(buildExplainNode(p, m), headExact.nextSibling);
     return;
   }
 
-  // Расплывчатый запрос — добираем ТОЛЬКО по ключевым словам запроса  
+  // Расплывчатый запрос: 5 карточек + кнопка «Показать ещё»  
   var userQuery = ($("ai-input") && $("ai-input").value) || "";
   var keywordPairs = extractKeywords(userQuery);
 
@@ -884,27 +841,26 @@ function renderAiPick(data, vague) {
     currentMovies = list;
     currentMood = null;
     lastSearchQuery = null;
-    render(list, false);
+    render(list, false, 5);           // ← показываем ровно 5 карточек  
     var head = document.createElement("div");
     head.className = "ai-header";
     head.textContent = headerText;
     el.insertBefore(head, el.firstChild);
-    if (isPickExplainable(p, m)) {
-      el.insertBefore(buildExplainNode(p, m), head.nextSibling);
-    }
+    if (isPickExplainable(p, m)) el.insertBefore(buildExplainNode(p, m), head.nextSibling);
   }
 
-  if (primary.length >= 5 || !keywordPairs.length) {
-    finishWithHeader(
-      primary,
-      "Рекомендаций от нейросети: " + primary.length +
-      (primary.length < 5 ? " (по запросу больше ничего релевантного не нашли — попробуйте уточнить)" : "")
-    );
+  var AI_SHOW = 5;
+
+  if (!keywordPairs.length) {
+    var totalOnlyAi = primary.length;
+    var headText1 = "Рекомендаций: " + Math.min(totalOnlyAi, AI_SHOW) +
+      (totalOnlyAi > AI_SHOW ? " · ещё " + (totalOnlyAi - AI_SHOW) + " по кнопке ниже" : "");
+    if (totalOnlyAi < AI_SHOW) headText1 += " · больше подходящего не нашлось";
+    finishWithHeader(primary, headText1);
     return;
   }
 
-  // Показываем AI-часть сразу, потом параллельно ищем добор  
-  el.innerHTML = '<p class="empty">Ищем ещё по вашему запросу…</p>';
+  el.innerHTML = '<p class="empty">Доготавливаем подборку…</p>';
 
   fillFromKeywords(keywordPairs, 60).then(function (extra) {
     var seen = {};
@@ -919,24 +875,35 @@ function renderAiPick(data, vague) {
       add.push(mv);
     });
 
-    var need = Math.max(0, 5 - primary.length);
     var list = primary.slice();
-    for (var i = 0; i < need && i < add.length; i++) list.push(add[i]);
-    // добиваем ещё, чтобы была кнопка «Показать ещё», если релевантных много  
-    var room = 40 - list.length;
-    if (room > 0) {
-      for (var j = need; j < add.length && list.length < 40; j++) list.push(add[j]);
+
+    // добиваем до 5 обязательно (чтобы было «пять»)
+    for (var i = 0; i < add.length && list.length < AI_SHOW; i++) list.push(add[i]);
+
+    // добиваем остаток до 40 (чтобы у «Показать ещё» был запас)
+    for (var j = 0; j < add.length && list.length < 40; j++) {
+      if (list.indexOf(add[j]) !== -1) continue;
+      list.push(add[j]);
     }
 
-    var extraCount = list.length - primary.length;
-    var headText = "От нейросети: " + primary.length;
-    if (extraCount > 0) headText += " · по ключевым словам вашего запроса: " + extraCount;
-    if (list.length < 5) headText += " · больше релевантного найти не удалось";
+    var headText;
+    var shown = Math.min(AI_SHOW, list.length);
+    var rest = Math.max(0, list.length - shown);
+
+    if (list.length >= AI_SHOW) {
+      headText = "Подобрали " + shown + " вариантов" + (rest > 0 ? " · ещё " + rest + " по кнопке ниже" : "");
+    } else {
+      headText = "Подобрали " + list.length + " вариантов · больше подходящего не нашли";
+    }
 
     finishWithHeader(list, headText);
   }).catch(function (e) {
     console.error("[renderAiPick fill]", e);
-    finishWithHeader(primary, "Рекомендаций от нейросети: " + primary.length);
+    var count = primary.length;
+    finishWithHeader(primary,
+      "Рекомендаций: " + Math.min(count, AI_SHOW) +
+      (count < AI_SHOW ? " · больше подходящего не нашли" : "")
+    );
   });
 }
 
@@ -963,7 +930,6 @@ function initAI() {
     if (aiButton.disabled) return;
 
     var vague = isVagueQuery(text);
-
     aiButton.disabled = true;
     aiStatus.textContent = "Нейросеть думает… 5–10 секунд";
     $("results").innerHTML = '<p class="empty">Подбираем фильм…</p>';
@@ -977,19 +943,14 @@ function initAI() {
         aiStatus.textContent = "Ошибка: " + (err.message || err);
         $("results").innerHTML = '<p class="empty">Не получилось подобрать. ' + esc(err.message || "") + '</p>';
       })
-      .then(function () {
-        aiButton.disabled = false;
-      });
+      .then(function () { aiButton.disabled = false; });
   };
 }
 
 // ---------- Категории ----------
 function loadMoviesByMood(mood) {
   var el = $("results"); if (!el) return;
-
-  var params;
-  if (mood === "best") params = { best: "1" };
-  else params = categoryParams[mood];
+  var params = (mood === "best") ? { best: "1" } : categoryParams[mood];
   if (!params) return;
 
   currentMood = mood;
