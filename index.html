@@ -29,6 +29,11 @@
   <main class="container">
     <!-- ===================== ФИЛЬМЫ ===================== -->
     <section id="section-movies" class="main-section active">
+      <div class="hero-block">
+        <h1 class="hero-title">Что посмотрим?</h1>
+        <p class="hero-subtitle">Найди фильм по названию, жанру или опиши настроение — подберём.</p>
+      </div>
+
       <div class="auth-block">
         <button id="google-login-btn" class="google-btn">
           <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18" alt="">
@@ -108,60 +113,95 @@
 
     <!-- ===================== ИГРЫ ===================== -->
     <section id="section-games" class="main-section">
+      <div class="hero-block">
+        <h1 class="hero-title">Во что поиграем?</h1>
+        <p class="hero-subtitle">Найди игру по названию или опиши нейросети, какое настроение тебе сейчас по душе.</p>
+      </div>
+
       <div class="control-panel glass-panel">
-        <div class="input-row">
-          <input type="text" id="game-search-input" placeholder="Поиск игры по названию или описанию...">
-          <button id="game-search-btn">Найти</button>
+        <div class="tabs">
+          <button class="game-tab-btn tab-btn active" data-target="game-tab-name"> Поиск</button>
+          <button class="game-tab-btn tab-btn" data-target="game-tab-ai"> Нейросеть</button>
         </div>
 
-        <!-- AI-подбор игр -->
-        <div class="input-row" style="margin-top: 8px;">
-          <input type="text" id="game-ai-input" placeholder=" Опиши, во что хочешь поиграть: «расслабиться под музыку», «как Dark Souls, но проще»...">
-          <button id="game-ai-btn" style="background: linear-gradient(135deg, #f59e0b, #ec4899);"> Подобрать</button>
-        </div>
-        <p id="game-ai-status" class="ai-game-status"></p>
-
-        <div class="mood-chips" id="game-moods">
-          <button class="mood-chip active" data-mood="all"> Все</button>
-          <button class="mood-chip" data-mood="relax"> Расслабиться</button>
-          <button class="mood-chip" data-mood="action"> Экшен</button>
-          <button class="mood-chip" data-mood="story"> Сюжет</button>
-          <button class="mood-chip" data-mood="hardcore"> Хардкор</button>
-          <button class="mood-chip" data-mood="horror"> Хоррор</button>
+        <div id="game-tab-name" class="game-tab-content tab-content active">
+          <div class="input-row">
+            <input type="text" id="game-search-input" placeholder="Поиск игры по названию или описанию...">
+            <button id="game-search-btn">Найти</button>
+          </div>
+          <div class="quick-actions">
+            <button id="game-random-btn" class="chip"> Удиви меня</button>
+            <button id="game-popular-btn" class="chip gold"> Популярное</button>
+          </div>
         </div>
 
-        <div class="games-filter-row">
-          <div class="filter-group">
-            <label> Цена:</label>
-            <select id="game-price-filter" class="filter-select">
-              <option value="all">Любая</option>
-              <option value="free">Бесплатные</option>
-              <option value="under10">До 10 $</option>
-              <option value="10to20">10 – 20 $</option>
-              <option value="over20">Дороже 20 $</option>
-            </select>
+        <div id="game-tab-ai" class="game-tab-content tab-content">
+          <div class="input-row">
+            <input type="text" id="game-ai-input" placeholder="Опиши, во что хочешь поиграть: расслабиться, как Dark Souls, с сюжетом...">
+            <button id="game-ai-btn" style="background: linear-gradient(135deg, #f59e0b, #ec4899);"> Подобрать</button>
           </div>
-          <div class="filter-group">
-            <label> Год:</label>
-            <select id="game-year-filter" class="filter-select">
-              <option value="all">Все годы</option>
-              <option value="2020+">2020 и новее</option>
-              <option value="2015_2019">2015 – 2019</option>
-              <option value="2010_2014">2010 – 2014</option>
-              <option value="2000_2009">2000 – 2009</option>
-              <option value="before2000">До 2000</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label> Сортировка:</label>
-            <select id="game-sort-filter" class="filter-select">
-              <option value="popular">Сначала популярные</option>
-              <option value="metacritic">По Metacritic</option>
-              <option value="price_asc">По цене ↑</option>
-              <option value="year_desc">По году выхода</option>
-            </select>
+          <p id="game-ai-status" class="status"></p>
+          <div class="ai-hints">
+            <button class="ai-hint-chip" data-query="хочу расслабиться и отдохнуть"> Расслабиться</button>
+            <button class="ai-hint-chip" data-query="игра с глубоким сюжетом и выборами"> Сюжет</button>
+            <button class="ai-hint-chip" data-query="сложная игра с высокой сложностью как Dark Souls"> Хардкор</button>
+            <button class="ai-hint-chip" data-query="короткая игра на вечер до 5 часов"> На вечер</button>
+            <button class="ai-hint-chip" data-query="игра для компании с друзьями онлайн"> С друзьями</button>
+            <button class="ai-hint-chip" data-query="самая лучшая игра всех времен"> Шедевр</button>
           </div>
         </div>
+
+        <details class="dropdown" open>
+          <summary> Настроения</summary>
+          <div class="dropdown-content">
+            <div class="mood-chips" id="game-moods">
+              <button class="mood-chip active" data-mood="all"> Все</button>
+              <button class="mood-chip" data-mood="relax"> Расслабиться</button>
+              <button class="mood-chip" data-mood="action"> Экшен</button>
+              <button class="mood-chip" data-mood="story"> Сюжет</button>
+              <button class="mood-chip" data-mood="hardcore"> Хардкор</button>
+              <button class="mood-chip" data-mood="horror"> Хоррор</button>
+            </div>
+          </div>
+        </details>
+
+        <details class="dropdown">
+          <summary>🎛 Фильтры</summary>
+          <div class="dropdown-content">
+            <div class="games-filter-row">
+              <div class="filter-group">
+                <label> Цена:</label>
+                <select id="game-price-filter" class="filter-select">
+                  <option value="all">Любая</option>
+                  <option value="free">Бесплатные</option>
+                  <option value="under10">До 10 $</option>
+                  <option value="10to20">10 – 20 $</option>
+                  <option value="over20">Дороже 20 $</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label> Год:</label>
+                <select id="game-year-filter" class="filter-select">
+                  <option value="all">Все годы</option>
+                  <option value="2020+">2020 и новее</option>
+                  <option value="2015_2019">2015 – 2019</option>
+                  <option value="2010_2014">2010 – 2014</option>
+                  <option value="2000_2009">2000 – 2009</option>
+                  <option value="before2000">До 2000</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label> Сортировка:</label>
+                <select id="game-sort-filter" class="filter-select">
+                  <option value="popular">Сначала популярные</option>
+                  <option value="metacritic">По Metacritic</option>
+                  <option value="price_asc">По цене ↑</option>
+                  <option value="year_desc">По году выхода</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </details>
       </div>
 
       <div id="game-loader" class="results-info">Загрузка базы игр...</div>
@@ -171,7 +211,6 @@
     </section>
   </main>
 
-  <!-- ==== Панель настроек ==== -->
   <aside id="settings-panel" class="side-panel">
     <div class="panel-header"><h2>Настройки</h2><button id="settings-close" class="btn-icon">✕</button></div>
     <div class="setting-group">
@@ -196,7 +235,6 @@
     <button id="settings-reset" class="reset-btn">Сбросить</button>
   </aside>
 
-  <!-- ==== Панель плейлистов ==== -->
   <aside id="playlists-panel" class="side-panel">
     <div class="panel-header"><h2>Плейлисты</h2><button id="playlists-close" class="btn-icon">✕</button></div>
     <div class="playlist-create">
@@ -206,7 +244,6 @@
     <div id="playlists-list" class="playlists-list"></div>
   </aside>
 
-  <!-- ==== Модалка фильма ==== -->
   <div id="movie-modal" class="modal">
     <div class="modal-content">
       <button id="movie-modal-close" class="btn-icon" style="position:absolute; top:10px; right:10px; z-index:10;">✕</button>
@@ -214,7 +251,6 @@
     </div>
   </div>
 
-  <!-- ==== Модалка игры ==== -->
   <div id="game-modal" class="modal">
     <div class="modal-content">
       <button id="game-modal-close" class="btn-icon" style="position:absolute; top:10px; right:10px; z-index:10;">✕</button>
@@ -222,7 +258,6 @@
     </div>
   </div>
 
-  <!-- ==== Модалка профиля ==== -->
   <div id="profile-modal" class="modal">
     <div class="modal-content" style="max-width:400px;">
       <button id="profile-modal-close" class="btn-icon" style="position:absolute; top:10px; right:10px;">✕</button>

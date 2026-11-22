@@ -1,7 +1,8 @@
 // ============================================================  
-// PlayFrame — фильмы (полный функционал) + игры (умный подбор)  
+// PlayFrame — фильмы + игры  
 // Фильмы: AI_FN (YandexGPT) + BASE (Кинопоиск)  
 // Игры:   GAMES_AI_FN (отдельная YandexGPT-функция)  
+// UI: табы «Поиск/Нейросеть» в обеих секциях, чипы, быстрые подсказки  
 // ============================================================  
 
 var AI_FN       = "https://functions.yandexcloud.net/d4edhc3vf41qqntfflsp";
@@ -170,7 +171,9 @@ var STOPWORDS = [
   "посоветуй", "посоветуйте", "порекомендуй", "порекомендуйте",
   "сегодня", "вечером", "вечер", "утром", "выходные",
   "хорошо", "плохо", "класс", "супер", "вау",
-  "да", "нет", "ну", "вот", "так", "там", "тут", "здесь"
+  "да", "нет", "ну", "вот", "так", "там", "тут", "здесь",
+  "игра", "игру", "игры", "поиграть", "играть",
+  "во", "что-нибудь", "нибудь", "любой", "любая", "любое"
 ];
 function keywordStem(w) {
   w = String(w || "").toLowerCase().replace(/ё/g, "е");
@@ -398,8 +401,8 @@ function openProfile() {
 }
 function initProfile() {
   var m = $("profile-modal");
-  $("profile-modal-close").onclick = function () { m.classList.remove("open"); };
-  $("profile-save-btn").onclick = function () {
+  if ($("profile-modal-close")) $("profile-modal-close").onclick = function () { m.classList.remove("open"); };
+  if ($("profile-save-btn")) $("profile-save-btn").onclick = function () {
     currentProfile.name = $("profile-name-input").value;
     currentProfile.avatar = $("profile-avatar-input").value;
     localStorage.setItem("mood_profile", JSON.stringify(currentProfile));
@@ -1008,7 +1011,7 @@ function computeMoodScore(game, rule) {
   return matches.length * 10 + meta * 0.5 + Math.log10(votes + 1);
 }
 
-// ---------- AI-подбор игр — отдельная Yandex Function ----------  
+// ---------- AI-подбор игр (отдельная Yandex Function) ----------  
 async function gameAiSearch() {
   var input = $("game-ai-input");
   var btn = $("game-ai-btn");
@@ -1253,7 +1256,6 @@ function renderGames(list) {
   });
 }
 
-// Хелпер: собирает URL для trailer.html с параметрами игры  
 function gameTrailerPageUrl(title, year, poster, genres, meta) {
   var p = new URLSearchParams();
   p.set("title", title || "");
@@ -1305,7 +1307,6 @@ function openGameModal(game) {
   }
   h += '</div></div>';
 
-  // Трейлер — через trailer.html (как у фильмов)  
   h += '<div class="trailer-block">';
   h += '<div class="trailer-title">Трейлер</div>';
   h += '<a class="btn-trailer-main" href="' + esc(trailerPage) + '" target="_blank" rel="noopener">▶ Открыть трейлер</a>';
@@ -1415,6 +1416,7 @@ function initParticles() {
 function init() {
   initParticles();
 
+  // ---------- Панели ----------  
   var settingsToggle = $("settings-toggle");
   var settingsPanel = $("settings-panel");
   var settingsClose = $("settings-close");
@@ -1427,16 +1429,29 @@ function init() {
   if (playlistsToggle && playlistsPanel) playlistsToggle.onclick = function () { playlistsPanel.classList.add("open"); renderPlaylists(); };
   if (playlistsClose && playlistsPanel) playlistsClose.onclick = function () { playlistsPanel.classList.remove("open"); };
 
-  document.querySelectorAll(".tab-btn").forEach(function (btn) {
+  // ---------- Табы ФИЛЬМОВ (исключая игровые) ----------  
+  document.querySelectorAll(".tab-btn:not(.game-tab-btn)").forEach(function (btn) {
     btn.onclick = function () {
-      document.querySelectorAll(".tab-btn").forEach(function (b) { b.classList.remove("active"); });
-      document.querySelectorAll(".tab-content").forEach(function (c) { c.classList.remove("active"); });
+      document.querySelectorAll(".tab-btn:not(.game-tab-btn)").forEach(function (b) { b.classList.remove("active"); });
+      document.querySelectorAll(".tab-content:not(.game-tab-content)").forEach(function (c) { c.classList.remove("active"); });
       this.classList.add("active");
       var target = $(this.dataset.target);
       if (target) target.classList.add("active");
     };
   });
 
+  // ---------- Табы ИГР (Поиск / Нейросеть) ----------  
+  document.querySelectorAll(".game-tab-btn").forEach(function (btn) {
+    btn.onclick = function () {
+      document.querySelectorAll(".game-tab-btn").forEach(function (b) { b.classList.remove("active"); });
+      document.querySelectorAll(".game-tab-content").forEach(function (c) { c.classList.remove("active"); });
+      this.classList.add("active");
+      var target = $(this.dataset.target);
+      if (target) target.classList.add("active");
+    };
+  });
+
+  // ---------- Поиск фильмов ----------  
   if ($("search-btn")) $("search-btn").onclick = function () {
     var q = $("search-input").value.trim();
     if (!q) return;
@@ -1522,9 +1537,10 @@ function init() {
     document.querySelectorAll(".color-dot, .theme-btn").forEach(function (el) { el.classList.remove("active"); });
   };
 
+  // ---------- Модалки ----------  
   if ($("movie-modal-close")) $("movie-modal-close").onclick = function () { $("movie-modal").classList.remove("open"); };
-  if ($("profile-modal-close")) $("profile-modal-close").onclick = function () { $("profile-modal").classList.remove("open"); };
   if ($("game-modal-close")) $("game-modal-close").onclick = closeGameModal;
+  if ($("profile-modal-close")) $("profile-modal-close").onclick = function () { $("profile-modal").classList.remove("open"); };
 
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape") {
@@ -1550,7 +1566,7 @@ function init() {
   if (window.firebaseAuth) initFirebase(); else window.addEventListener("firebase-ready", initFirebase);
   initGoogleLogin(); initProfile(); initAI();
 
-  // ============ ИГРЫ: чипы настроения ============  
+  // ---------- ИГРЫ: чипы настроений ----------  
   document.querySelectorAll("#game-moods .mood-chip").forEach(function (chip) {
     chip.onclick = function () {
       document.querySelectorAll("#game-moods .mood-chip").forEach(function (c) { c.classList.remove("active"); });
@@ -1560,23 +1576,26 @@ function init() {
     };
   });
 
-  // Обычный поиск по названию  
+  // ---------- ИГРЫ: обычный поиск ----------  
   var gSearchIn = $("game-search-input");
   var gSearchBtn = $("game-search-btn");
   if (gSearchIn) {
-    gSearchIn.oninput = function (e) {
-      gameFilters.query = e.target.value.toLowerCase().trim();
-      applyGameFilters();
-    };
+    gSearchIn.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); if (gSearchBtn) gSearchBtn.click(); }
+    });
   }
   if (gSearchBtn) {
     gSearchBtn.onclick = function () {
       gameFilters.query = gSearchIn.value.toLowerCase().trim();
+      gameFilters.mood = "all";
+      document.querySelectorAll("#game-moods .mood-chip").forEach(function (c) {
+        c.classList.toggle("active", c.dataset.mood === "all");
+      });
       applyGameFilters();
     };
   }
 
-  // AI-подбор игр  
+  // ---------- ИГРЫ: AI-подбор ----------  
   var gAiIn = $("game-ai-input");
   var gAiBtn = $("game-ai-btn");
   if (gAiBtn) gAiBtn.onclick = gameAiSearch;
@@ -1586,7 +1605,34 @@ function init() {
     });
   }
 
-  // Фильтры цены/года/сортировки  
+  // ---------- ИГРЫ: быстрая кнопка «Удиви меня» ----------  
+  var gRandomBtn = $("game-random-btn");
+  if (gRandomBtn) gRandomBtn.onclick = function () {
+    var moods = ["relax", "action", "story", "hardcore", "horror"];
+    var randomMood = moods[Math.floor(Math.random() * moods.length)];
+    document.querySelectorAll("#game-moods .mood-chip").forEach(function (c) {
+      c.classList.toggle("active", c.dataset.mood === randomMood);
+    });
+    gameFilters.mood = randomMood;
+    applyGameFilters();
+    showToast(" Случайное настроение выбрано");
+  };
+
+  // ---------- ИГРЫ: быстрая кнопка «Популярное» ----------  
+  var gPopularBtn = $("game-popular-btn");
+  if (gPopularBtn) gPopularBtn.onclick = function () {
+    document.querySelectorAll("#game-moods .mood-chip").forEach(function (c) {
+      c.classList.toggle("active", c.dataset.mood === "all");
+    });
+    gameFilters = { query: "", mood: "all", price: "all", year: "all", sort: "popular" };
+    if ($("game-price-filter")) $("game-price-filter").value = "all";
+    if ($("game-year-filter"))  $("game-year-filter").value  = "all";
+    if ($("game-sort-filter"))  $("game-sort-filter").value  = "popular";
+    if ($("game-search-input")) $("game-search-input").value = "";
+    applyGameFilters();
+  };
+
+  // ---------- ИГРЫ: фильтры цены/года/сортировки ----------  
   var priceSel = $("game-price-filter");
   var yearSel  = $("game-year-filter");
   var sortSel  = $("game-sort-filter");
@@ -1594,6 +1640,20 @@ function init() {
   if (yearSel)  yearSel.onchange  = function (e) { gameFilters.year  = e.target.value; applyGameFilters(); };
   if (sortSel)  sortSel.onchange  = function (e) { gameFilters.sort  = e.target.value; applyGameFilters(); };
 
+  // ---------- ИГРЫ: быстрые AI-подсказки ----------  
+  document.querySelectorAll(".ai-hint-chip").forEach(function (chip) {
+    chip.onclick = function () {
+      var aiIn = $("game-ai-input");
+      if (!aiIn) return;
+      aiIn.value = this.dataset.query || this.textContent.replace(/^[^\wа-яА-Я]+/, "").trim();
+      // Переключаем на таб "Нейросеть", если ещё не там  
+      var aiTabBtn = document.querySelector('.game-tab-btn[data-target="game-tab-ai"]');
+      if (aiTabBtn && !aiTabBtn.classList.contains("active")) aiTabBtn.click();
+      if (typeof gameAiSearch === "function") gameAiSearch();
+    };
+  });
+
+  // ---------- ИГРЫ: загрузить ещё ----------  
   var gLoadMore = $("games-load-more");
   if (gLoadMore) gLoadMore.onclick = function () {
     gamesDisplayCount += 100;
