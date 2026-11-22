@@ -1,5 +1,6 @@
 // ============================================================  
 // PlayFrame — фильмы (полный функционал) + игры (умный подбор)  
+// Трейлеры игр открываются через trailer.html (как у фильмов)  
 // ============================================================  
 
 var AI_FN = "https://functions.yandexcloud.net/d4edhc3vf41qqntfflsp";
@@ -46,10 +47,9 @@ var gamesStarted = false;
 var gamesDisplayCount = 100;
 var gameFilters = { query: "", mood: "all", price: "all", year: "all", sort: "popular" };
 
-// Умные правила для mood-фильтра игр  
 var MOOD_RULES = {
   relax: {
-    include: /relax|casual|chill|cozy|calm|peaceful|wholesome|friendly|heartwarm|cozy|comfort|mindful|meditative|puzzle|jigsaw|hidden.?object|point.?and.?click|visual.?novel|walking.?sim|walking simulator|city.?builder|farm|farming|garden|nature|kawaii|painting|music|rhythm|cooking|gardening|aquarium|pet|cat|dog|pixel.?art|short|atmospheric|exploration|cute|family/i,
+    include: /relax|casual|chill|cozy|calm|peaceful|wholesome|friendly|heartwarm|comfort|mindful|meditative|puzzle|jigsaw|hidden.?object|point.?and.?click|visual.?novel|walking.?sim|city.?builder|farm|farming|garden|nature|kawaii|painting|music|rhythm|cooking|gardening|aquarium|pet|cat|dog|pixel.?art|short|atmospheric|exploration|cute|family/i,
     exclude: /horror|zombie|undead|vampire|scary|terror|creepy|nightmare|monster|ghost|demon|paranormal|slender|fnaf|blood|bloody|gore|brutal|violen|kill|murder|combat|shooter|fight|war|battle|weapon|gun|rifle|apocalyp|dystop|grim|dark.?souls|darkest|doom|dead space|dark.?fantasy|survival.?horror|dark|sad|tragic|death|dying|suicid|psycho|cult|exorcis|satan|hell/i,
     minMeta: 60, minVotes: 100  
   },
@@ -59,13 +59,13 @@ var MOOD_RULES = {
     minMeta: 65, minVotes: 200  
   },
   story: {
-    include: /story|narrative|adventure|rpg|dialogue|choice|plot|character|cinematic|walking.?sim|quest|saga|lore|companion|companionship|decision|tell.?tale|life.?is.?strange|heavy.?rain|nbsp/i,
+    include: /story|narrative|adventure|rpg|dialogue|choice|plot|character|cinematic|walking.?sim|quest|saga|lore|companion|companionship|decision|tell.?tale|life.?is.?strange|heavy.?rain/i,
     exclude: /horror|zombie|scary|terror|creepy|casual|relax|arcade|rogue.?like|bullet.?hell|survival.?horror/i,
     minMeta: 65, minVotes: 150  
   },
   hardcore: {
     include: /souls.?like|hardcore|difficult|challenge|rogue.?like|rogue.?lite|permadeath|punishing|brutal|boss.?rush|competitive|esport|leaderboard|dead cells|nuclear throne|hades|dark souls|hollow knight|celeste|sekiro|bloodborne|cuphead|sifu|nioh|darkest dungeon|slay the spire|risk of rain|noita|binding of isaac|enter the gungeon/i,
-    exclude: /casual|relax|chill|cozy|walking.?sim|visual novel|point.?and.?click|hidden.?object|match.?3|farm|cooking|dating.?sim/i,
+    exclude: /casual|relax|chill|cozy|walking.?sim|visual.?novel|point.?and.?click|hidden.?object|match.?3|farm|cooking|dating.?sim/i,
     minMeta: 68, minVotes: 200  
   },
   horror: {
@@ -1052,7 +1052,6 @@ function loadGames() {
 function applyGameFilters() {
   var result = allGames.slice();
 
-  // 1) Поиск  
   if (gameFilters.query && gameFilters.query.length >= 2) {
     var q = gameFilters.query;
     result = result.filter(function (g) {
@@ -1061,7 +1060,6 @@ function applyGameFilters() {
     });
   }
 
-  // 2) Умная mood-фильтрация  
   if (gameFilters.mood !== 'all') {
     var rule = MOOD_RULES[gameFilters.mood];
     if (rule) {
@@ -1076,7 +1074,6 @@ function applyGameFilters() {
     }
   }
 
-  // 3) Цена  
   if (gameFilters.price !== 'all') {
     result = result.filter(function (g) {
       var isFree = g.is_free === 'True' || (parseFloat(g.mat_final_price) || 0) === 0;
@@ -1090,7 +1087,6 @@ function applyGameFilters() {
     });
   }
 
-  // 4) Год  
   if (gameFilters.year !== 'all') {
     result = result.filter(function (g) {
       var m = String(g.release_date || '').match(/(\d{4})/);
@@ -1106,7 +1102,6 @@ function applyGameFilters() {
     });
   }
 
-  // 5) Общая сортировка (только если mood=all — иначе сохраняем приоритет mood-score)  
   if (gameFilters.mood === 'all') {
     if (gameFilters.sort === 'popular') {
       result.sort(function (a, b) { return (parseFloat(b.recommendations_total) || 0) - (parseFloat(a.recommendations_total) || 0); });
@@ -1186,6 +1181,17 @@ function renderGames(list) {
   });
 }
 
+// Хелпер: собирает URL для trailer.html с параметрами игры  
+function gameTrailerPageUrl(title, year, poster, genres, meta) {
+  var p = new URLSearchParams();
+  p.set("title", title || "");
+  p.set("year", year || "");
+  if (poster) p.set("poster", poster);
+  if (genres && genres.length) p.set("genres", genres.slice(0, 3).join(","));
+  p.set("rating", meta ? String(meta) : "");
+  return "trailer.html?" + p.toString();
+}
+
 function openGameModal(game) {
   var title = game.name || 'Игра';
   var yearMatch = String(game.release_date || '').match(/\d{4}/);
@@ -1203,10 +1209,9 @@ function openGameModal(game) {
   var votes = parseFloat(game.recommendations_total) || 0;
 
   var steamUrl = appid ? 'https://store.steampowered.com/app/' + appid : '';
-  var trailerQueryEn = encodeURIComponent(title + ' ' + year + ' trailer');
-  var trailerQueryRu = encodeURIComponent(title + ' ' + year + ' трейлер');
-  var rutubeSearch = 'https://rutube.ru/search/?query=' + trailerQueryRu;
-  var ytSearch = 'https://www.youtube.com/results?search_query=' + trailerQueryEn;
+  var trailerPage = gameTrailerPageUrl(title, year, img, genres, meta);
+  var rutubeSearch = 'https://rutube.ru/search/?query=' + encodeURIComponent(title + ' ' + year + ' трейлер');
+  var ytSearch = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(title + ' ' + year + ' trailer');
   var translateUrl = descShort  
     ? 'https://translate.google.com/?sl=en&tl=ru&text=' + encodeURIComponent(descShort.slice(0, 400)) + '&op=translate'
     : '';
@@ -1228,12 +1233,14 @@ function openGameModal(game) {
   }
   h += '</div></div>';
 
+  // ============ ТРЕЙЛЕР — КАК У ФИЛЬМОВ ============  
   h += '<div class="trailer-block">';
-  h += '<div class="trailer-title">Трейлер и магазин</div>';
-  h += '<a class="btn-trailer-main" href="' + rutubeSearch + '" target="_blank" rel="noopener">▶ Трейлер на Rutube</a>';
+  h += '<div class="trailer-title">Трейлер</div>';
+  h += '<a class="btn-trailer-main" href="' + esc(trailerPage) + '" target="_blank" rel="noopener">▶ Открыть трейлер</a>';
   h += '<div class="trailer-links">';
-  h += '<a class="trailer-link" href="' + ytSearch + '" target="_blank" rel="noopener">YouTube</a>';
-  if (steamUrl) h += '<a class="trailer-link" style="background:rgba(102,192,244,0.18);border-color:rgba(102,192,244,0.35);" href="' + steamUrl + '" target="_blank" rel="noopener"> Steam</a>';
+  h += '<a class="trailer-link rt" href="' + rutubeSearch + '" target="_blank" rel="noopener">Rutube</a>';
+  h += '<a class="trailer-link" href="' + ytSearch + '" target="_blank" rel="noopener" style="background:rgba(255,0,51,0.18);border-color:rgba(255,0,51,0.35);">YouTube</a>';
+  if (steamUrl) h += '<a class="trailer-link" href="' + steamUrl + '" target="_blank" rel="noopener" style="background:rgba(102,192,244,0.18);border-color:rgba(102,192,244,0.35);">Steam</a>';
   h += '</div></div>';
 
   if (descFull) {
@@ -1447,7 +1454,6 @@ function init() {
   if ($("profile-modal-close")) $("profile-modal-close").onclick = function () { $("profile-modal").classList.remove("open"); };
   if ($("game-modal-close")) $("game-modal-close").onclick = closeGameModal;
 
-  // Escape  
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape") {
       ["movie-modal", "game-modal", "profile-modal"].forEach(function (id) {
@@ -1456,7 +1462,6 @@ function init() {
       });
     }
   });
-  // Клик вне  
   ["movie-modal", "game-modal"].forEach(function (id) {
     var m = $(id);
     if (!m) return;
@@ -1473,7 +1478,6 @@ function init() {
   if (window.firebaseAuth) initFirebase(); else window.addEventListener("firebase-ready", initFirebase);
   initGoogleLogin(); initProfile(); initAI();
 
-  // Игры — чипы  
   document.querySelectorAll("#game-moods .mood-chip").forEach(function (chip) {
     chip.onclick = function () {
       document.querySelectorAll("#game-moods .mood-chip").forEach(function (c) { c.classList.remove("active"); });
