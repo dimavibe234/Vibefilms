@@ -28,6 +28,9 @@
       <button class="nav-link nav-wave" id="nav-wave" onclick="switchMainTab('wave')">
         <span class="nav-ico"></span><span class="nav-lbl">Моя волна</span>
       </button>
+      <button class="nav-link nav-fav" id="nav-favorites" onclick="switchMainTab('favorites')">
+        <span class="nav-ico">♥</span><span class="nav-lbl">Избранное</span>
+      </button>
     </nav>
 
     <div class="actions">
@@ -148,6 +151,7 @@
       <div id="results" class="results"></div>
       <button id="load-more" class="load-more" style="display: none;">Показать ещё</button>
     </section>
+
     <!-- ===================== ИГРЫ ===================== -->
     <section id="section-games" class="main-section">
       <div class="hero-block">
@@ -266,7 +270,6 @@
       <div id="games-results" class="results"></div>
       <button id="games-load-more" class="load-more" style="display: none;">Показать ещё</button>
     </section>
-
     <!-- ===================== МОЯ ВОЛНА ===================== -->
     <section id="section-wave" class="main-section">
       <div class="hero-block">
@@ -282,6 +285,22 @@
       <div id="wave-stats" class="wave-stats"></div>
       <div id="wave-info" class="results-info"></div>
       <div id="wave-results" class="results"></div>
+    </section>
+
+    <!-- ===================== ИЗБРАННОЕ ===================== -->
+    <section id="section-favorites" class="main-section">
+      <div class="hero-block">
+        <h1 class="hero-title">♥ Избранное</h1>
+        <p class="hero-subtitle">Игры, которые вы сохранили, и фильмы из ваших плейлистов</p>
+      </div>
+
+      <div class="type-switch" id="favorites-switch">
+        <button data-fav="games" class="active" onclick="switchFavoritesType('games')"> Игры</button>
+        <button data-fav="movies" onclick="switchFavoritesType('movies')"> Фильмы</button>
+      </div>
+
+      <div id="favorites-info" class="results-info"></div>
+      <div id="favorites-results" class="results"></div>
     </section>
   </main>
 
