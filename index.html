@@ -64,60 +64,79 @@
         <div id="tab-name" class="tab-content active">
           <div class="input-row">
             <input type="text" id="search-input" placeholder="Введите название фильма...">
-            <button id="search-btn">
-              <span>Найти</span><span class="btn-ico">→</span>
-            </button>
-          </div>
-          <div class="quick-actions">
-            <button id="random-btn" class="chip"><span class="chip-ico"></span> Удиви меня</button>
-            <button id="masterpiece-btn" class="chip gold"><span class="chip-ico"></span> Шедевр</button>
+            <button id="search-btn"><span>Найти</span><span class="btn-ico">→</span></button>
           </div>
         </div>
 
         <div id="tab-ai" class="tab-content">
           <div class="input-row">
             <input type="text" id="ai-input" placeholder="Опиши, что хочется: «грустное про океан», «как Марсианин»">
-            <button id="ai-button">
-              <span>Подобрать</span><span class="btn-ico">→</span>
-            </button>
+            <button id="ai-button"><span>Подобрать</span><span class="btn-ico">→</span></button>
           </div>
           <p id="ai-status" class="status"></p>
         </div>
 
-        <details class="dropdown">
-          <summary><span>🎛 Фильтры</span></summary>
-          <div class="dropdown-content">
-            <div class="filter-row">
+        <!-- Быстрый старт -->
+        <div class="panel-section">
+          <div class="section-title"><span class="st-dot"></span>Быстрый старт</div>
+          <div class="quick-grid">
+            <button id="random-btn" class="quick-card quick-random">
+              <span class="qc-mark"></span>
+              <div class="qc-body">
+                <div class="qc-title">Удиви меня</div>
+                <div class="qc-sub">Случайный фильм по жанру</div>
+              </div>
+              <span class="qc-arrow">→</span>
+            </button>
+            <button id="masterpiece-btn" class="quick-card quick-gold">
+              <span class="qc-mark"></span>
+              <div class="qc-body">
+                <div class="qc-title">Шедевр</div>
+                <div class="qc-sub">Топовые фильмы всех времён</div>
+              </div>
+              <span class="qc-arrow">→</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Жанры -->
+        <div class="panel-section">
+          <div class="section-title"><span class="st-dot"></span>Жанры</div>
+          <div class="mood-grid" id="moods">
+            <button data-mood="action"><span class="mg-ico"></span><span class="mg-lbl">Боевики</span></button>
+            <button data-mood="comedy"><span class="mg-ico"></span><span class="mg-lbl">Комедии</span></button>
+            <button data-mood="scifi"><span class="mg-ico"></span><span class="mg-lbl">Фантастика</span></button>
+            <button data-mood="fantasy"><span class="mg-ico"></span><span class="mg-lbl">Фэнтези</span></button>
+            <button data-mood="thriller"><span class="mg-ico"></span><span class="mg-lbl">Триллеры</span></button>
+            <button data-mood="crime"><span class="mg-ico">🕵️</span><span class="mg-lbl">Криминал</span></button>
+            <button data-mood="romance"><span class="mg-ico"></span><span class="mg-lbl">Мелодрамы</span></button>
+            <button data-mood="cartoon"><span class="mg-ico"></span><span class="mg-lbl">Мультфильмы</span></button>
+            <button data-mood="horror"><span class="mg-ico"></span><span class="mg-lbl">Ужасы</span></button>
+            <button data-mood="adventure"><span class="mg-ico"></span><span class="mg-lbl">Приключения</span></button>
+          </div>
+        </div>
+
+        <!-- Фильтры -->
+        <div class="panel-section">
+          <div class="section-title"><span class="st-dot"></span>Фильтры</div>
+          <div class="filters-panel">
+            <div class="filter-item">
               <label>Рейтинг от</label>
-              <input type="range" id="rating-filter" min="0" max="10" step="0.5" value="0">
-              <span id="rating-value">0</span>
+              <div class="filter-range">
+                <input type="range" id="rating-filter" min="0" max="10" step="0.5" value="0">
+                <span id="rating-value" class="ri-val">0</span>
+              </div>
             </div>
-            <div class="filter-row">
+            <div class="filter-item">
               <label>Год от</label>
               <input type="number" id="year-filter" min="1900" max="2026" value="1900">
             </div>
-            <label class="check-row"><input type="checkbox" id="filter-unwatched"> Только непросмотренные</label>
-            <label class="check-row"><input type="checkbox" id="filter-new"> Только новинки</label>
-          </div>
-        </details>
-
-        <details class="dropdown">
-          <summary><span> Категории</span></summary>
-          <div class="dropdown-content">
-            <div class="moods" id="moods">
-              <button data-mood="action"><span class="mood-ico"></span> Боевики</button>
-              <button data-mood="comedy"><span class="mood-ico"></span> Комедии</button>
-              <button data-mood="scifi"><span class="mood-ico"></span> Фантастика</button>
-              <button data-mood="fantasy"><span class="mood-ico"></span> Фэнтези</button>
-              <button data-mood="thriller"><span class="mood-ico"></span> Триллеры</button>
-              <button data-mood="crime"><span class="mood-ico">🕵️</span> Криминал</button>
-              <button data-mood="romance"><span class="mood-ico"></span> Мелодрамы</button>
-              <button data-mood="cartoon"><span class="mood-ico"></span> Мультфильмы</button>
-              <button data-mood="horror"><span class="mood-ico"></span> Ужасы</button>
-              <button data-mood="adventure"><span class="mood-ico"></span> Приключения</button>
+            <div class="filter-item filter-checks">
+              <label class="check-row"><input type="checkbox" id="filter-unwatched"><span>Только непросмотренные</span></label>
+              <label class="check-row"><input type="checkbox" id="filter-new"><span>Только новинки</span></label>
             </div>
           </div>
-        </details>
+        </div>
       </div>
 
       <div class="type-switch" id="type-switch" style="display: none;">
@@ -150,85 +169,133 @@
         <div id="game-tab-name" class="game-tab-content tab-content active">
           <div class="input-row">
             <input type="text" id="game-search-input" placeholder="Поиск игры по названию или описанию...">
-            <button id="game-search-btn">
-              <span>Найти</span><span class="btn-ico">→</span>
-            </button>
-          </div>
-          <div class="quick-actions">
-            <button id="game-random-btn" class="chip"><span class="chip-ico"></span> Удиви меня</button>
-            <button id="game-popular-btn" class="chip gold"><span class="chip-ico"></span> Популярное</button>
+            <button id="game-search-btn"><span>Найти</span><span class="btn-ico">→</span></button>
           </div>
         </div>
 
         <div id="game-tab-ai" class="game-tab-content tab-content">
           <div class="input-row">
             <input type="text" id="game-ai-input" placeholder="Опиши, во что хочешь поиграть: расслабиться, как Dark Souls, с сюжетом...">
-            <button id="game-ai-btn">
-              <span>Подобрать</span><span class="btn-ico"></span>
-            </button>
+            <button id="game-ai-btn"><span>Подобрать</span><span class="btn-ico"></span></button>
           </div>
           <p id="game-ai-status" class="status"></p>
+
+          <div class="section-title" style="margin-top:16px;"><span class="st-dot"></span>Готовые подсказки</div>
           <div class="ai-hints">
-            <button class="ai-hint-chip" data-query="хочу расслабиться и отдохнуть"><span class="hi-ico"></span> Расслабиться</button>
-            <button class="ai-hint-chip" data-query="игра с глубоким сюжетом и выборами"><span class="hi-ico"></span> Сюжет</button>
-            <button class="ai-hint-chip" data-query="сложная игра с высокой сложностью как Dark Souls"><span class="hi-ico"></span> Хардкор</button>
-            <button class="ai-hint-chip" data-query="короткая игра на вечер до 5 часов"><span class="hi-ico"></span> На вечер</button>
-            <button class="ai-hint-chip" data-query="игра для компании с друзьями онлайн"><span class="hi-ico"></span> С друзьями</button>
-            <button class="ai-hint-chip" data-query="самая лучшая игра всех времен"><span class="hi-ico"></span> Шедевр</button>
+            <button class="ai-hint-chip" data-query="хочу расслабиться и отдохнуть">
+              <span class="hi-ico"></span>
+              <div class="hi-body">
+                <div class="hi-title">Расслабиться</div>
+                <div class="hi-sub">casual · chill</div>
+              </div>
+            </button>
+            <button class="ai-hint-chip" data-query="игра с глубоким сюжетом и выборами">
+              <span class="hi-ico"></span>
+              <div class="hi-body">
+                <div class="hi-title">Глубокий сюжет</div>
+                <div class="hi-sub">narrative · choice</div>
+              </div>
+            </button>
+            <button class="ai-hint-chip" data-query="сложная игра с высокой сложностью как Dark Souls">
+              <span class="hi-ico"></span>
+              <div class="hi-body">
+                <div class="hi-title">Хардкор</div>
+                <div class="hi-sub">souls-like · challenge</div>
+              </div>
+            </button>
+            <button class="ai-hint-chip" data-query="короткая игра на вечер до 5 часов">
+              <span class="hi-ico"></span>
+              <div class="hi-body">
+                <div class="hi-title">На вечер</div>
+                <div class="hi-sub">short · до 5 часов</div>
+              </div>
+            </button>
+            <button class="ai-hint-chip" data-query="игра для компании с друзьями онлайн">
+              <span class="hi-ico"></span>
+              <div class="hi-body">
+                <div class="hi-title">С друзьями</div>
+                <div class="hi-sub">co-op · multiplayer</div>
+              </div>
+            </button>
+            <button class="ai-hint-chip" data-query="самая лучшая игра всех времен">
+              <span class="hi-ico"></span>
+              <div class="hi-body">
+                <div class="hi-title">Шедевр</div>
+                <div class="hi-sub">top-rated · classic</div>
+              </div>
+            </button>
           </div>
         </div>
 
-        <details class="dropdown" open>
-          <summary><span> Настроения</span></summary>
-          <div class="dropdown-content">
-            <div class="mood-chips" id="game-moods">
-              <button class="mood-chip active" data-mood="all"><span class="mood-ico"></span> Все</button>
-              <button class="mood-chip" data-mood="relax"><span class="mood-ico"></span> Расслабиться</button>
-              <button class="mood-chip" data-mood="action"><span class="mood-ico"></span> Экшен</button>
-              <button class="mood-chip" data-mood="story"><span class="mood-ico"></span> Сюжет</button>
-              <button class="mood-chip" data-mood="hardcore"><span class="mood-ico"></span> Хардкор</button>
-              <button class="mood-chip" data-mood="horror"><span class="mood-ico"></span> Хоррор</button>
-            </div>
+        <div class="panel-section">
+          <div class="section-title"><span class="st-dot"></span>Быстрый старт</div>
+          <div class="quick-grid">
+            <button id="game-random-btn" class="quick-card quick-random">
+              <span class="qc-mark"></span>
+              <div class="qc-body">
+                <div class="qc-title">Удиви меня</div>
+                <div class="qc-sub">Случайное настроение</div>
+              </div>
+              <span class="qc-arrow">→</span>
+            </button>
+            <button id="game-popular-btn" class="quick-card quick-fire">
+              <span class="qc-mark"></span>
+              <div class="qc-body">
+                <div class="qc-title">Популярное</div>
+                <div class="qc-sub">Топ по отзывам</div>
+              </div>
+              <span class="qc-arrow">→</span>
+            </button>
           </div>
-        </details>
+        </div>
 
-        <details class="dropdown">
-          <summary><span>🎛 Фильтры</span></summary>
-          <div class="dropdown-content">
-            <div class="games-filter-row">
-              <div class="filter-group">
-                <label> Цена</label>
-                <select id="game-price-filter" class="filter-select">
-                  <option value="all">Любая</option>
-                  <option value="free">Бесплатные</option>
-                  <option value="under10">До 10 $</option>
-                  <option value="10to20">10 – 20 $</option>
-                  <option value="over20">Дороже 20 $</option>
-                </select>
-              </div>
-              <div class="filter-group">
-                <label> Год</label>
-                <select id="game-year-filter" class="filter-select">
-                  <option value="all">Все годы</option>
-                  <option value="2020+">2020 и новее</option>
-                  <option value="2015_2019">2015 – 2019</option>
-                  <option value="2010_2014">2010 – 2014</option>
-                  <option value="2000_2009">2000 – 2009</option>
-                  <option value="before2000">До 2000</option>
-                </select>
-              </div>
-              <div class="filter-group">
-                <label> Сортировка</label>
-                <select id="game-sort-filter" class="filter-select">
-                  <option value="popular">Сначала популярные</option>
-                  <option value="metacritic">По Metacritic</option>
-                  <option value="price_asc">По цене ↑</option>
-                  <option value="year_desc">По году выхода</option>
-                </select>
-              </div>
+        <div class="panel-section">
+          <div class="section-title"><span class="st-dot"></span>Настроение</div>
+          <div class="mood-chips" id="game-moods">
+            <button class="mood-chip active" data-mood="all"><span class="mc-ico"></span><span class="mc-lbl">Все</span></button>
+            <button class="mood-chip" data-mood="relax"><span class="mc-ico"></span><span class="mc-lbl">Расслабиться</span></button>
+            <button class="mood-chip" data-mood="action"><span class="mc-ico"></span><span class="mc-lbl">Экшен</span></button>
+            <button class="mood-chip" data-mood="story"><span class="mc-ico"></span><span class="mc-lbl">Сюжет</span></button>
+            <button class="mood-chip" data-mood="hardcore"><span class="mc-ico"></span><span class="mc-lbl">Хардкор</span></button>
+            <button class="mood-chip" data-mood="horror"><span class="mc-ico"></span><span class="mc-lbl">Хоррор</span></button>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <div class="section-title"><span class="st-dot"></span>Фильтры</div>
+          <div class="filters-panel filters-games">
+            <div class="filter-item">
+              <label> Цена</label>
+              <select id="game-price-filter" class="filter-select">
+                <option value="all">Любая</option>
+                <option value="free">Бесплатные</option>
+                <option value="under10">До 10 $</option>
+                <option value="10to20">10 – 20 $</option>
+                <option value="over20">Дороже 20 $</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label> Год</label>
+              <select id="game-year-filter" class="filter-select">
+                <option value="all">Все годы</option>
+                <option value="2020+">2020 и новее</option>
+                <option value="2015_2019">2015 – 2019</option>
+                <option value="2010_2014">2010 – 2014</option>
+                <option value="2000_2009">2000 – 2009</option>
+                <option value="before2000">До 2000</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label> Сортировка</label>
+              <select id="game-sort-filter" class="filter-select">
+                <option value="popular">Сначала популярные</option>
+                <option value="metacritic">По Metacritic</option>
+                <option value="price_asc">По цене ↑</option>
+                <option value="year_desc">По году выхода</option>
+              </select>
             </div>
           </div>
-        </details>
+        </div>
       </div>
 
       <div id="game-loader" class="results-info">Загрузка базы игр...</div>
