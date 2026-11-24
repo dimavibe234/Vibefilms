@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PlayFrame</title>
   <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 </head>
 <body>
@@ -13,16 +13,25 @@
   <canvas id="bg-canvas"></canvas>
 
   <header class="top-bar glass-panel">
-    <div class="logo"> PlayFrame</div>
+    <div class="logo">
+      <span class="logo-mark"></span>
+      <span class="logo-text">PlayFrame</span>
+    </div>
 
     <nav class="main-nav">
-      <button class="nav-link active" id="nav-movies" onclick="switchMainTab('movies')"> Фильмы</button>
-      <button class="nav-link" id="nav-games" onclick="switchMainTab('games')"> Игры</button>
+      <button class="nav-link active" id="nav-movies" onclick="switchMainTab('movies')">
+        <span class="nav-ico"></span><span class="nav-lbl">Фильмы</span>
+      </button>
+      <button class="nav-link" id="nav-games" onclick="switchMainTab('games')">
+        <span class="nav-ico"></span><span class="nav-lbl">Игры</span>
+      </button>
     </nav>
 
     <div class="actions">
       <button id="settings-toggle" class="btn-icon" title="Настройки"></button>
-      <button id="playlists-toggle" class="btn-text" title="Плейлисты"> Плейлисты</button>
+      <button id="playlists-toggle" class="btn-text" title="Плейлисты">
+        <span class="pl-ico"></span><span>Плейлисты</span>
+      </button>
     </div>
   </header>
 
@@ -44,31 +53,39 @@
 
       <div class="control-panel glass-panel">
         <div class="tabs">
-          <button class="tab-btn active" data-target="tab-name"> Поиск</button>
-          <button class="tab-btn" data-target="tab-ai"> Нейросеть</button>
+          <button class="tab-btn active" data-target="tab-name">
+            <span class="tab-ico"></span><span class="tab-lbl">Поиск</span>
+          </button>
+          <button class="tab-btn" data-target="tab-ai">
+            <span class="tab-ico"></span><span class="tab-lbl">Нейросеть</span>
+          </button>
         </div>
 
         <div id="tab-name" class="tab-content active">
           <div class="input-row">
             <input type="text" id="search-input" placeholder="Введите название фильма...">
-            <button id="search-btn">Найти</button>
+            <button id="search-btn">
+              <span>Найти</span><span class="btn-ico">→</span>
+            </button>
           </div>
           <div class="quick-actions">
-            <button id="random-btn" class="chip"> Удиви меня</button>
-            <button id="masterpiece-btn" class="chip gold"> Шедевр</button>
+            <button id="random-btn" class="chip"><span class="chip-ico"></span> Удиви меня</button>
+            <button id="masterpiece-btn" class="chip gold"><span class="chip-ico"></span> Шедевр</button>
           </div>
         </div>
 
         <div id="tab-ai" class="tab-content">
           <div class="input-row">
             <input type="text" id="ai-input" placeholder="Опиши, что хочется: «грустное про океан», «как Марсианин»">
-            <button id="ai-button">Подобрать</button>
+            <button id="ai-button">
+              <span>Подобрать</span><span class="btn-ico">→</span>
+            </button>
           </div>
           <p id="ai-status" class="status"></p>
         </div>
 
         <details class="dropdown">
-          <summary>🎛 Фильтры</summary>
+          <summary><span>🎛 Фильтры</span></summary>
           <div class="dropdown-content">
             <div class="filter-row">
               <label>Рейтинг от</label>
@@ -85,18 +102,20 @@
         </details>
 
         <details class="dropdown">
-          <summary> Категории</summary>
-          <div class="dropdown-content moods" id="moods">
-            <button data-mood="action"> Боевики</button>
-            <button data-mood="comedy"> Комедии</button>
-            <button data-mood="scifi"> Фантастика</button>
-            <button data-mood="fantasy"> Фэнтези</button>
-            <button data-mood="thriller"> Триллеры</button>
-            <button data-mood="crime">🕵️ Криминал</button>
-            <button data-mood="romance"> Мелодрамы</button>
-            <button data-mood="cartoon"> Мультфильмы</button>
-            <button data-mood="horror"> Ужасы</button>
-            <button data-mood="adventure"> Приключения</button>
+          <summary><span> Категории</span></summary>
+          <div class="dropdown-content">
+            <div class="moods" id="moods">
+              <button data-mood="action"><span class="mood-ico"></span> Боевики</button>
+              <button data-mood="comedy"><span class="mood-ico"></span> Комедии</button>
+              <button data-mood="scifi"><span class="mood-ico"></span> Фантастика</button>
+              <button data-mood="fantasy"><span class="mood-ico"></span> Фэнтези</button>
+              <button data-mood="thriller"><span class="mood-ico"></span> Триллеры</button>
+              <button data-mood="crime"><span class="mood-ico">🕵️</span> Криминал</button>
+              <button data-mood="romance"><span class="mood-ico"></span> Мелодрамы</button>
+              <button data-mood="cartoon"><span class="mood-ico"></span> Мультфильмы</button>
+              <button data-mood="horror"><span class="mood-ico"></span> Ужасы</button>
+              <button data-mood="adventure"><span class="mood-ico"></span> Приключения</button>
+            </div>
           </div>
         </details>
       </div>
@@ -120,57 +139,65 @@
 
       <div class="control-panel glass-panel">
         <div class="tabs">
-          <button class="game-tab-btn tab-btn active" data-target="game-tab-name"> Поиск</button>
-          <button class="game-tab-btn tab-btn" data-target="game-tab-ai"> Нейросеть</button>
+          <button class="game-tab-btn tab-btn active" data-target="game-tab-name">
+            <span class="tab-ico"></span><span class="tab-lbl">Поиск</span>
+          </button>
+          <button class="game-tab-btn tab-btn" data-target="game-tab-ai">
+            <span class="tab-ico"></span><span class="tab-lbl">Нейросеть</span>
+          </button>
         </div>
 
         <div id="game-tab-name" class="game-tab-content tab-content active">
           <div class="input-row">
             <input type="text" id="game-search-input" placeholder="Поиск игры по названию или описанию...">
-            <button id="game-search-btn">Найти</button>
+            <button id="game-search-btn">
+              <span>Найти</span><span class="btn-ico">→</span>
+            </button>
           </div>
           <div class="quick-actions">
-            <button id="game-random-btn" class="chip"> Удиви меня</button>
-            <button id="game-popular-btn" class="chip gold"> Популярное</button>
+            <button id="game-random-btn" class="chip"><span class="chip-ico"></span> Удиви меня</button>
+            <button id="game-popular-btn" class="chip gold"><span class="chip-ico"></span> Популярное</button>
           </div>
         </div>
 
         <div id="game-tab-ai" class="game-tab-content tab-content">
           <div class="input-row">
             <input type="text" id="game-ai-input" placeholder="Опиши, во что хочешь поиграть: расслабиться, как Dark Souls, с сюжетом...">
-            <button id="game-ai-btn" style="background: linear-gradient(135deg, #f59e0b, #ec4899);"> Подобрать</button>
+            <button id="game-ai-btn">
+              <span>Подобрать</span><span class="btn-ico"></span>
+            </button>
           </div>
           <p id="game-ai-status" class="status"></p>
           <div class="ai-hints">
-            <button class="ai-hint-chip" data-query="хочу расслабиться и отдохнуть"> Расслабиться</button>
-            <button class="ai-hint-chip" data-query="игра с глубоким сюжетом и выборами"> Сюжет</button>
-            <button class="ai-hint-chip" data-query="сложная игра с высокой сложностью как Dark Souls"> Хардкор</button>
-            <button class="ai-hint-chip" data-query="короткая игра на вечер до 5 часов"> На вечер</button>
-            <button class="ai-hint-chip" data-query="игра для компании с друзьями онлайн"> С друзьями</button>
-            <button class="ai-hint-chip" data-query="самая лучшая игра всех времен"> Шедевр</button>
+            <button class="ai-hint-chip" data-query="хочу расслабиться и отдохнуть"><span class="hi-ico"></span> Расслабиться</button>
+            <button class="ai-hint-chip" data-query="игра с глубоким сюжетом и выборами"><span class="hi-ico"></span> Сюжет</button>
+            <button class="ai-hint-chip" data-query="сложная игра с высокой сложностью как Dark Souls"><span class="hi-ico"></span> Хардкор</button>
+            <button class="ai-hint-chip" data-query="короткая игра на вечер до 5 часов"><span class="hi-ico"></span> На вечер</button>
+            <button class="ai-hint-chip" data-query="игра для компании с друзьями онлайн"><span class="hi-ico"></span> С друзьями</button>
+            <button class="ai-hint-chip" data-query="самая лучшая игра всех времен"><span class="hi-ico"></span> Шедевр</button>
           </div>
         </div>
 
         <details class="dropdown" open>
-          <summary> Настроения</summary>
+          <summary><span> Настроения</span></summary>
           <div class="dropdown-content">
             <div class="mood-chips" id="game-moods">
-              <button class="mood-chip active" data-mood="all"> Все</button>
-              <button class="mood-chip" data-mood="relax"> Расслабиться</button>
-              <button class="mood-chip" data-mood="action"> Экшен</button>
-              <button class="mood-chip" data-mood="story"> Сюжет</button>
-              <button class="mood-chip" data-mood="hardcore"> Хардкор</button>
-              <button class="mood-chip" data-mood="horror"> Хоррор</button>
+              <button class="mood-chip active" data-mood="all"><span class="mood-ico"></span> Все</button>
+              <button class="mood-chip" data-mood="relax"><span class="mood-ico"></span> Расслабиться</button>
+              <button class="mood-chip" data-mood="action"><span class="mood-ico"></span> Экшен</button>
+              <button class="mood-chip" data-mood="story"><span class="mood-ico"></span> Сюжет</button>
+              <button class="mood-chip" data-mood="hardcore"><span class="mood-ico"></span> Хардкор</button>
+              <button class="mood-chip" data-mood="horror"><span class="mood-ico"></span> Хоррор</button>
             </div>
           </div>
         </details>
 
         <details class="dropdown">
-          <summary>🎛 Фильтры</summary>
+          <summary><span>🎛 Фильтры</span></summary>
           <div class="dropdown-content">
             <div class="games-filter-row">
               <div class="filter-group">
-                <label> Цена:</label>
+                <label> Цена</label>
                 <select id="game-price-filter" class="filter-select">
                   <option value="all">Любая</option>
                   <option value="free">Бесплатные</option>
@@ -180,7 +207,7 @@
                 </select>
               </div>
               <div class="filter-group">
-                <label> Год:</label>
+                <label> Год</label>
                 <select id="game-year-filter" class="filter-select">
                   <option value="all">Все годы</option>
                   <option value="2020+">2020 и новее</option>
@@ -191,7 +218,7 @@
                 </select>
               </div>
               <div class="filter-group">
-                <label> Сортировка:</label>
+                <label> Сортировка</label>
                 <select id="game-sort-filter" class="filter-select">
                   <option value="popular">Сначала популярные</option>
                   <option value="metacritic">По Metacritic</option>
@@ -216,8 +243,8 @@
     <div class="setting-group">
       <label>Цвет акцента</label>
       <div class="color-row">
-        <button class="color-dot" data-accent="blue" style="background:#3a7bd5"></button>
-        <button class="color-dot" data-accent="purple" style="background:#8b5cf6"></button>
+        <button class="color-dot" data-accent="blue" style="background:#3b82f6"></button>
+        <button class="color-dot" data-accent="purple" style="background:#a855f7"></button>
         <button class="color-dot" data-accent="pink" style="background:#ec4899"></button>
         <button class="color-dot" data-accent="green" style="background:#10b981"></button>
         <button class="color-dot" data-accent="orange" style="background:#f59e0b"></button>
@@ -228,8 +255,8 @@
     <div class="setting-group">
       <label>Тема</label>
       <div class="row">
-        <button class="theme-btn active" data-theme="dark">Тёмная</button>
-        <button class="theme-btn" data-theme="light">Светлая</button>
+        <button class="theme-btn active" data-theme="dark"> Тёмная</button>
+        <button class="theme-btn" data-theme="light"> Светлая</button>
       </div>
     </div>
     <button id="settings-reset" class="reset-btn">Сбросить</button>
@@ -246,24 +273,26 @@
 
   <div id="movie-modal" class="modal">
     <div class="modal-content">
-      <button id="movie-modal-close" class="btn-icon" style="position:absolute; top:10px; right:10px; z-index:10;">✕</button>
+      <button id="movie-modal-close" class="btn-icon modal-close">✕</button>
       <div id="movie-modal-body"></div>
     </div>
   </div>
 
   <div id="game-modal" class="modal">
     <div class="modal-content">
-      <button id="game-modal-close" class="btn-icon" style="position:absolute; top:10px; right:10px; z-index:10;">✕</button>
+      <button id="game-modal-close" class="btn-icon modal-close">✕</button>
       <div id="game-modal-body"></div>
     </div>
   </div>
 
   <div id="profile-modal" class="modal">
-    <div class="modal-content" style="max-width:400px;">
-      <button id="profile-modal-close" class="btn-icon" style="position:absolute; top:10px; right:10px;">✕</button>
-      <div style="padding:20px;">
+    <div class="modal-content" style="max-width:420px;">
+      <button id="profile-modal-close" class="btn-icon modal-close">✕</button>
+      <div style="padding:24px;">
         <h2>Профиль</h2>
-        <div style="text-align:center; margin:15px 0;"><img id="profile-avatar-img" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid var(--accent);"></div>
+        <div style="text-align:center; margin:18px 0;">
+          <img id="profile-avatar-img" style="width:84px; height:84px; border-radius:50%; object-fit:cover; border:3px solid var(--accent);">
+        </div>
         <label class="setting-label">Имя</label>
         <input type="text" id="profile-name-input" class="input">
         <label class="setting-label">Аватарка (URL)</label>
@@ -274,8 +303,8 @@
           <button class="profile-color-dot" data-color="#ff6b6b" style="background:#ff6b6b"></button>
           <button class="profile-color-dot" data-color="#ffd76e" style="background:#ffd76e"></button>
           <button class="profile-color-dot" data-color="#10b981" style="background:#10b981"></button>
-          <button class="profile-color-dot" data-color="#3a7bd5" style="background:#3a7bd5"></button>
-          <button class="profile-color-dot" data-color="#8b5cf6" style="background:#8b5cf6"></button>
+          <button class="profile-color-dot" data-color="#3b82f6" style="background:#3b82f6"></button>
+          <button class="profile-color-dot" data-color="#a855f7" style="background:#a855f7"></button>
         </div>
         <div id="profile-stats" class="stats-box"></div>
         <button id="profile-save-btn" class="btn-primary" style="width:100%; margin-top:20px;">Сохранить</button>
@@ -296,7 +325,7 @@
       projectId: "movie-a9fdf",
       storageBucket: "movie-a9fdf.firebasestorage.app",
       messagingSenderId: "398219529169",
-      appId: "1:398219529169:web:8cf9008857598dc8032ef0"  
+      appId: "1:398219529169:web:8cf9008857598dc8032ef0"
     };
 
     const app = initializeApp(firebaseConfig);
