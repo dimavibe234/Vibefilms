@@ -1,13 +1,264 @@
 // ============================================================  
-// PlayFrame — script.js (часть 1 из 2)  
-// v9: Избранное + Firebase fix (двусторонняя синхронизация)  
+// PlayFrame — script.js (часть 1 из 2)                        
+// v10: FPS на ПК + realtime-синхронизация + избранное          
 // ============================================================  
 
 var AI_FN       = "https://functions.yandexcloud.net/d4edhc3vf41qqntfflsp";
 var BASE        = "https://functions.yandexcloud.net/d4e3i0pd816463uq33eu";
 var GAMES_AI_FN = "https://functions.yandexcloud.net/d4ep609aq1goe7o3c13k";
 
-// ---------- Категории и жанры ----------  
+// ============================================================  
+// PC / FPS — ТАБЛИЦЫ ПРОИЗВОДИТЕЛЬНОСТИ                        
+// ============================================================  
+var GPU_SCORES = {
+  "rtx 4090": 100, "rtx 4080 super": 96, "rtx 4080": 92,
+  "rtx 4070 ti super": 89, "rtx 4070 ti": 85, "rtx 4070 super": 82,
+  "rtx 4070": 78, "rtx 4060 ti": 62, "rtx 4060": 55,
+  "rtx 3090 ti": 84, "rtx 3090": 80, "rtx 3080 ti": 76, "rtx 3080": 73,
+  "rtx 3070 ti": 68, "rtx 3070": 65, "rtx 3060 ti": 58,
+  "rtx 3060": 52, "rtx 3050": 40,
+  "rtx 2080 ti": 66, "rtx 2080 super": 60, "rtx 2080": 58,
+  "rtx 2070 super": 55, "rtx 2070": 50,
+  "rtx 2060 super": 47, "rtx 2060": 43,
+  "gtx 1660 ti": 42, "gtx 1660 super": 41, "gtx 1660": 38,
+  "gtx 1650 super": 34, "gtx 1650": 28,
+  "gtx 1080 ti": 55, "gtx 1080": 45, "gtx 1070 ti": 43, "gtx 1070": 40,
+  "gtx 1060 6gb": 33, "gtx 1060 3gb": 30, "gtx 1060": 32,
+  "gtx 1050 ti": 22, "gtx 1050": 18,
+  "gtx 980 ti": 38, "gtx 980": 32, "gtx 970": 28, "gtx 960": 20,
+  "gtx 780 ti": 22, "gtx 780": 18, "gtx 770": 14, "gtx 750 ti": 12, "gtx 750": 10,
+  "rx 7900 xtx": 94, "rx 7900 xt": 88, "rx 7800 xt": 80, "rx 7700 xt": 73,
+  "rx 7600": 55, "rx 7600 xt": 60,
+  "rx 6950 xt": 78, "rx 6900 xt": 76, "rx 6800 xt": 74, "rx 6800": 70,
+  "rx 6750 xt": 62, "rx 6700 xt": 58, "rx 6700": 54, "rx 6650 xt": 50,
+  "rx 6600 xt": 52, "rx 6600": 48, "rx 6500 xt": 30,
+  "rx 5700 xt": 50, "rx 5700": 45, "rx 5600 xt": 42, "rx 5500 xt": 32,
+  "rx 590": 30, "rx 580": 28, "rx 570": 25, "rx 480": 22, "rx 470": 20,
+  "arc a770": 52, "arc a750": 48, "arc a580": 42, "arc a380": 22,
+  "intel iris xe": 12, "intel uhd 770": 8, "intel uhd 750": 6,
+  "intel uhd 630": 5, "amd vega 8": 8, "amd vega 7": 7, "amd vega 6": 6,
+  "radeon graphics": 6  
+};
+
+var CPU_SCORES = {
+  "i9-13900k": 100, "i9-13900ks": 100, "i9-13900f": 98, "i9-13900": 98,
+  "i7-13700k": 92, "i7-13700": 88,
+  "i5-13600k": 82, "i5-13600": 76, "i3-13100": 56,
+  "i9-12900k": 90, "i9-12900": 86,
+  "i7-12700k": 84, "i7-12700": 78,
+  "i5-12600k": 74, "i5-12600": 68,
+  "i5-12400f": 66, "i5-12400": 66,
+  "i3-12100f": 52, "i3-12100": 52,
+  "i9-11900k": 80, "i9-11900": 76,
+  "i7-11700k": 72, "i7-11700": 68,
+  "i5-11600k": 64, "i5-11500": 60, "i5-11400": 56,
+  "i9-10900k": 72, "i9-10900": 68,
+  "i7-10700k": 66, "i7-10700": 62,
+  "i5-10600k": 58, "i5-10400": 52, "i3-10100": 42,
+  "i9-9900k": 62, "i9-9900": 58,
+  "i7-9700k": 56, "i7-9700": 52,
+  "i5-9600k": 48, "i5-9400": 44,
+  "i7-8700k": 52, "i7-8700": 48,
+  "i5-8600k": 42, "i5-8400": 38,
+  "i3-8300": 26, "i3-8100": 24,
+  "i7-7700k": 42, "i7-7700": 38,
+  "i5-7600k": 30, "i5-7500": 26, "i3-7100": 18,
+  "i7-6700k": 38, "i7-6700": 34,
+  "i5-6600k": 24, "i5-6500": 22,
+  "i7-4790k": 26, "i7-4790": 24,
+  "i5-4690k": 20, "i5-4590": 18, "i5-4570": 18,
+  "i5-3470": 14, "i5-2500k": 14, "i3-2130": 8,
+  "pentium g4560": 12, "pentium g3220": 8, "pentium": 6,
+  "ryzen 9 7950x": 98, "ryzen 9 7950x3d": 100,
+  "ryzen 9 7900x": 88, "ryzen 9 7900": 84,
+  "ryzen 7 7800x3d": 88, "ryzen 7 7700x": 82, "ryzen 7 7700": 78,
+  "ryzen 5 7600x": 76, "ryzen 5 7600": 72,
+  "ryzen 9 5950x": 88, "ryzen 9 5900x": 82, "ryzen 9 5900": 78,
+  "ryzen 7 5800x3d": 80, "ryzen 7 5800x": 74, "ryzen 7 5700x": 68,
+  "ryzen 7 5800": 68, "ryzen 7 3700x": 58,
+  "ryzen 5 5600x": 66, "ryzen 5 5600": 62,
+  "ryzen 5 5500": 52, "ryzen 5 3600": 52,
+  "ryzen 5 2600": 42, "ryzen 5 1600": 36,
+  "ryzen 3 3200g": 28, "ryzen 3 2200g": 24,
+  "fx-8350": 14, "fx-6300": 10  
+};
+
+function normalizePcName(s) {
+  return String(s || "")
+    .toLowerCase()
+    .replace(/nvidia|geforce|amd|radeon|intel|core|ryzen|®|™|\(r\)|\(tm\)/g, " ")
+    .replace(/-\s*/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function lookupGpuScore(name) {
+  if (!name) return null;
+  var n = normalizePcName(name);
+  if (!n) return null;
+  if (GPU_SCORES[n]) return GPU_SCORES[n];
+  var best = null, bestLen = 0;
+  for (var key in GPU_SCORES) {
+    if (n.indexOf(key) !== -1 || key.indexOf(n) !== -1) {
+      if (key.length > bestLen) { bestLen = key.length; best = GPU_SCORES[key]; }
+    }
+  }
+  return best;
+}
+function lookupCpuScore(name) {
+  if (!name) return null;
+  var n = normalizePcName(name);
+  if (!n) return null;
+  if (CPU_SCORES[n]) return CPU_SCORES[n];
+  var best = null, bestLen = 0;
+  for (var key in CPU_SCORES) {
+    if (n.indexOf(key) !== -1 || key.indexOf(n) !== -1) {
+      if (key.length > bestLen) { bestLen = key.length; best = CPU_SCORES[key]; }
+    }
+  }
+  return best;
+}
+function getPcTier(score) {
+  if (score == null) return null;
+  if (score >= 90) return { label: "Топ", color: "#10b981" };
+  if (score >= 70) return { label: "Высокий", color: "#34d399" };
+  if (score >= 50) return { label: "Средний", color: "#f59e0b" };
+  if (score >= 30) return { label: "Начальный", color: "#f97316" };
+  return { label: "Слабый", color: "#ef4444" };
+}
+function getUserPC() {
+  try { return JSON.parse(localStorage.getItem("mood_pc") || '{"cpu":"","gpu":"","ram":16}'); }
+  catch (e) { return { cpu: "", gpu: "", ram: 16 }; }
+}
+function saveUserPC(pc) {
+  localStorage.setItem("mood_pc", JSON.stringify(pc));
+  if (typeof saveUserData === "function") saveUserData();
+}
+function estimateGameDemand(game) {
+  var yearMatch = String(game.release_date || "").match(/(\d{4})/);
+  var year = yearMatch ? parseInt(yearMatch[1], 10) : 2015;
+  var meta = parseFloat(game.metacritic_score) || 65;
+  var votes = parseFloat(game.recommendations_total) || 0;
+  var genres = String(game.genres || "").toLowerCase();
+  var demand = 30;
+  demand += Math.max(0, (year - 2010) * 1.5);
+  demand += Math.max(0, (meta - 70) * 0.6);
+  if (votes > 200000) demand += 12;
+  else if (votes > 50000) demand += 7;
+  else if (votes > 10000) demand += 3;
+  if (/action|shooter|adventure|rpg/.test(genres)) demand += 6;
+  if (/indie|casual|puzzle|visual novel|simulation/.test(genres)) demand -= 15;
+  demand = Math.max(15, Math.min(95, demand));
+  var minGpu = Math.max(8, Math.min(85, demand - 25));
+  var recGpu = Math.max(20, Math.min(100, demand + 5));
+  var minCpu = Math.max(10, Math.min(85, demand - 20));
+  var recCpu = Math.max(25, Math.min(100, demand + 5));
+  var minRam = demand < 30 ? 4 : demand < 55 ? 8 : demand < 75 ? 12 : 16;
+  var recRam = demand < 30 ? 6 : demand < 55 ? 12 : demand < 75 ? 16 : 24;
+  return {
+    demand: Math.round(demand), minGpu: Math.round(minGpu), recGpu: Math.round(recGpu),
+    minCpu: Math.round(minCpu), recCpu: Math.round(recCpu),
+    minRam: minRam, recRam: Math.round(recRam), year: year  
+  };
+}
+function estimateFps(game, pc) {
+  var req = estimateGameDemand(game);
+  var gpuScore = lookupGpuScore(pc.gpu);
+  var cpuScore = lookupCpuScore(pc.cpu);
+  var ram = Number(pc.ram) || 8;
+  if (gpuScore == null) return { error: "Не удалось распознать видеокарту. Проверьте название в панели ПК." };
+  if (cpuScore == null) cpuScore = 50;
+  var fpsLow    = (gpuScore / req.minGpu) * 60;
+  var fpsMedium = (gpuScore / ((req.minGpu + req.recGpu) / 2)) * 60;
+  var fpsHigh   = (gpuScore / req.recGpu) * 60;
+  var fpsUltra  = fpsHigh * 0.65;
+  var cpuFactor = cpuScore / req.recCpu;
+  if (cpuFactor < 1) {
+    var cap = 60 + cpuFactor * 100;
+    fpsLow    = Math.min(fpsLow,    cap * 1.5);
+    fpsMedium = Math.min(fpsMedium, cap * 1.2);
+    fpsHigh   = Math.min(fpsHigh,   cap);
+    fpsUltra  = Math.min(fpsUltra,  cap * 0.85);
+  }
+  if (ram < req.recRam) {
+    fpsMedium *= 0.75; fpsHigh *= 0.75; fpsUltra *= 0.675;
+  }
+  if (ram < req.minRam) {
+    fpsLow *= 0.7; fpsMedium *= 0.6; fpsHigh *= 0.5; fpsUltra *= 0.4;
+  }
+  function clampFps(x) { return Math.round(Math.max(5, Math.min(350, x))); }
+  var notes = [];
+  if (cpuFactor < 0.75) notes.push("CPU ограничивает производительность");
+  if (ram < req.recRam) notes.push("Рекомендуется больше RAM");
+  return {
+    low: clampFps(fpsLow), medium: clampFps(fpsMedium),
+    high: clampFps(fpsHigh), ultra: clampFps(fpsUltra),
+    notes: notes, req: req, gpuScore: gpuScore, cpuScore: cpuScore, ram: ram  
+  };
+}
+function fpsColor(fps) {
+  if (fps >= 60) return "#10b981";
+  if (fps >= 40) return "#34d399";
+  if (fps >= 30) return "#f59e0b";
+  if (fps >= 20) return "#f97316";
+  return "#ef4444";
+}
+function fpsBarWidth(fps) { return Math.min(100, Math.round((fps / 120) * 100)); }
+function renderFpsBlock(game) {
+  var pc = getUserPC();
+  if (!pc.gpu || !pc.cpu) {
+    return '<div class="fps-block fps-block-empty">' +
+      '<div class="fps-block-title"> Узнайте свой FPS в этой игре</div>' +
+      '<p class="fps-block-sub">Укажите процессор и видеокарту один раз — и мы покажем FPS на всех настройках графики.</p>' +
+      '<button class="btn-primary fps-setup-btn" onclick="openPcPanel()"> Настроить мой ПК</button>' +
+      '</div>';
+  }
+  var result = estimateFps(game, pc);
+  if (result.error) {
+    return '<div class="fps-block fps-block-empty">' +
+      '<div class="fps-block-title"> FPS на вашем ПК</div>' +
+      '<p class="fps-block-sub" style="color:#f87171;">' + esc(result.error) + '</p>' +
+      '<button class="btn-primary fps-setup-btn" onclick="openPcPanel()"> Исправить ПК</button>' +
+      '</div>';
+  }
+  var cpuLabel = (pc.cpu || "CPU").split(" ").slice(0, 3).join(" ");
+  var gpuLabel = (pc.gpu || "GPU").split(" ").slice(0, 3).join(" ");
+  var presets = [
+    { label: "Низкие",  fps: result.low },
+    { label: "Средние", fps: result.medium },
+    { label: "Высокие", fps: result.high },
+    { label: "Ультра",  fps: result.ultra }
+  ];
+  var html = '<div class="fps-block">';
+  html += '<div class="fps-block-title"> FPS на вашем ПК</div>';
+  html += '<div class="fps-config">';
+  html += '<span> ' + esc(gpuLabel) + '</span>';
+  html += '<span> ' + esc(cpuLabel) + '</span>';
+  html += '<span> ' + esc(String(result.ram)) + ' GB</span>';
+  html += '<button class="fps-edit-btn" onclick="openPcPanel()">✎ Изменить</button>';
+  html += '</div>';
+  html += '<div class="fps-grid">';
+  presets.forEach(function (p) {
+    var color = fpsColor(p.fps), width = fpsBarWidth(p.fps);
+    html += '<div class="fps-item">';
+    html += '<div class="fps-label">' + p.label + '</div>';
+    html += '<div class="fps-value" style="color:' + color + '">' + p.fps + '</div>';
+    html += '<div class="fps-unit">FPS</div>';
+    html += '<div class="fps-bar"><div class="fps-bar-fill" style="width:' + width + '%;background:' + color + ';"></div></div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  if (result.notes && result.notes.length) {
+    html += '<div class="fps-note"> ' + result.notes.join(" · ") + '</div>';
+  } else {
+    html += '<div class="fps-note">Оценка приблизительная. Реальный FPS зависит от драйверов, ОС и настроек.</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+// ============================================================  
+// КАТЕГОРИИ И ЖАНРЫ                                            
+// ============================================================  
 var categoryParams = {
   action:    { genre: "боевик",      minRating: "6.5", minVotes: "20000" },
   comedy:    { genre: "комедия",     minRating: "6.5", minVotes: "20000" },
@@ -31,18 +282,27 @@ var genreTranslations = {
   "War": "военный", "Western": "вестерн", "Children": "детский"
 };
 
-// ---------- Глобальное состояние ----------  
-var currentMood = null;
-var currentType = "movie";
-var lastSearchQuery = null;
-var currentMovies = [];
-var currentUser = null;
-var currentAlternatives = [];
+var gameGenreRu = {
+  "Action": "экшен", "Adventure": "приключения", "Animation": "мультфильм",
+  "Casual": "казуальная", "Comedy": "комедия", "Indie": "инди",
+  "Massively Multiplayer": "MMO", "RPG": "RPG", "Racing": "гонки",
+  "Simulation": "симулятор", "Sports": "спорт", "Strategy": "стратегия",
+  "Horror": "хоррор", "Survival": "выживание", "Stealth": "стелс",
+  "Puzzle": "головоломка", "Platformer": "платформер",
+  "Roguelike": "рогалик", "Shooter": "шутер", "Fighting": "файтинг",
+  "Card": "карточная", "Visual Novel": "визуальная новелла",
+  "Souls-like": "souls-like"
+};
+
+// ============================================================  
+// ГЛОБАЛЬНОЕ СОСТОЯНИЕ                                         
+// ============================================================  
+var currentMood = null, currentType = "movie", lastSearchQuery = null;
+var currentMovies = [], currentUser = null, currentAlternatives = [];
 var currentProfile = { name: "", avatar: "", color: "#e8eaed" };
 var firebaseReady = false, fbAuth = null, fbDb = null, fbProvider = null;
-
+var fbUnsubscribe = null;
 var aiLastQuery = "", aiLastVague = true, aiRetryUsed = false, aiBusy = false;
-
 var allGames = [], filteredGames = [], gamesLoaded = false, gamesStarted = false, gamesDisplayCount = 100;
 var gameFilters = { query: "", mood: "all", price: "all", year: "all", sort: "popular" };
 var waveType = "games";
@@ -75,41 +335,23 @@ var MOOD_RULES = {
   }
 };
 
-var gameGenreRu = {
-  "Action": "экшен", "Adventure": "приключения", "Animation": "мультфильм",
-  "Casual": "казуальная", "Comedy": "комедия", "Design & Illustration": "дизайн",
-  "Early Access": "ранний доступ", "Education": "обучение", "Free to Play": "бесплатная",
-  "Game Development": "разработка", "Gore": "кровь", "Indie": "инди",
-  "Massively Multiplayer": "MMO", "Movie": "видео", "Nudity": "нагота",
-  "Photo Editing": "фоторедактор", "RPG": "RPG", "Racing": "гонки",
-  "Sexual Content": "18+", "Simulation": "симулятор", "Software Training": "обучение",
-  "Sports": "спорт", "Strategy": "стратегия", "Tutorial": "обучение",
-  "Utilities": "утилиты", "Video Production": "видео", "Violent": "жестокость",
-  "Web Publishing": "публикация", "Horror": "хоррор", "Survival": "выживание",
-  "Stealth": "стелс", "Puzzle": "головоломка", "Platformer": "платформер",
-  "Roguelike": "рогалик", "Rogue-like": "рогалик", "RTS": "стратегия онлайн",
-  "Shooter": "шутер", "Fighting": "файтинг", "Card": "карточная",
-  "Visual Novel": "визуальная новелла", "Souls-like": "souls-like"
-};
-
 var kinopoiskCache = JSON.parse(localStorage.getItem("kinopoisk_cache") || "{}");
 function saveKinopoiskCache() {
   try { localStorage.setItem("kinopoisk_cache", JSON.stringify(kinopoiskCache)); } catch (e) {}
 }
 function $(id) { return document.getElementById(id); }
 
-// ---------- Утилиты ----------  
+// ============================================================  
+// УТИЛИТЫ                                                      
+// ============================================================  
 function esc(s) {
   return String(s || "").replace(/[&<>"']/g, function (c) {
     return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
   });
 }
 function normalize(s) {
-  return (s || "").toLowerCase()
-    .replace(/ё/g, "е")
-    .replace(/[^\wа-я0-9\s]/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return (s || "").toLowerCase().replace(/ё/g, "е")
+    .replace(/[^\wа-я0-9\s]/gi, " ").replace(/\s+/g, " ").trim();
 }
 function levenshtein(a, b) {
   a = normalize(a); b = normalize(b);
@@ -146,21 +388,7 @@ function isVagueQuery(text) {
   return s < 2;
 }
 
-var STOPWORDS = [
-  "хочу","хотел","хотела","хотелось","хочется","фильм","фильмы","фильма","кино",
-  "про","о","об","обо","мне","меня","нам","тебе","вам","покажи","покажите",
-  "найди","найдите","подбери","подберите","посмотреть","смотреть","глянуть","включить",
-  "где","что","как","когда","кто","почему","зачем","куда","и","с","со","на","в","во",
-  "по","для","или","но","да","не","ни","без","очень","самый","самая","самое","самые",
-  "такой","такая","такое","такие","типа","вроде","похожий","похожее","похожая","похожие",
-  "чем","то","это","этот","эта","эти","один","одна","одно","два","две","три","четыре",
-  "пять","хороший","хорошая","хорошее","хорошие","плохой","плохая","плохое","плохие",
-  "новый","новая","новое","новые","новинка","новинки","старый","старая","старое","старые",
-  "настроение","настроения","настроению","посоветуй","посоветуйте","порекомендуй",
-  "порекомендуйте","сегодня","вечером","вечер","утром","выходные","хорошо","плохо","класс",
-  "супер","вау","ну","вот","так","там","тут","здесь","игра","игру","игры","поиграть","играть",
-  "что-нибудь","нибудь","любой","любая","любое"
-];
+var STOPWORDS = ["хочу","хотел","хотела","хотелось","хочется","фильм","фильмы","фильма","кино","про","о","об","обо","мне","меня","нам","тебе","вам","покажи","покажите","найди","найдите","подбери","подберите","посмотреть","смотреть","глянуть","включить","где","что","как","когда","кто","почему","зачем","куда","и","с","со","на","в","во","по","для","или","но","да","не","ни","без","очень","самый","самая","самое","самые","такой","такая","такое","такие","типа","вроде","похожий","похожее","похожая","похожие","чем","то","это","этот","эта","эти","один","одна","одно","два","две","три","четыре","пять","хороший","хорошая","хорошее","хорошие","плохой","плохая","плохое","плохие","новый","новая","новое","новые","новинка","новинки","старый","старая","старое","старые","настроение","настроения","настроению","посоветуй","посоветуйте","порекомендуй","порекомендуйте","сегодня","вечером","вечер","утром","выходные","хорошо","плохо","класс","супер","вау","ну","вот","так","там","тут","здесь","игра","игру","игры","поиграть","играть","что-нибудь","нибудь","любой","любая","любое"];
 function keywordStem(w) {
   w = String(w || "").toLowerCase().replace(/ё/g, "е");
   return w.length <= 5 ? w : w.slice(0, 5);
@@ -206,7 +434,6 @@ function fillFromKeywords(keywordPairs, limit) {
       return all.slice(0, limit || 40);
     });
 }
-
 function showToast(text, isError) {
   var toast = $("toast");
   if (!toast) return;
@@ -217,6 +444,16 @@ function showToast(text, isError) {
     toast.className = "toast";
     toast.textContent = "";
   }, 2500);
+}
+function setSyncStatus(state, title) {
+  var el = $("sync-status");
+  if (!el) return;
+  el.className = "sync-status";
+  if (!state) { el.textContent = ""; return; }
+  if (state === "ok") { el.classList.add("sync-ok"); el.textContent = "✓"; }
+  else if (state === "busy") { el.classList.add("sync-busy"); el.textContent = ""; }
+  else if (state === "error") { el.classList.add("sync-error"); el.textContent = ""; }
+  if (title) el.title = title;
 }
 function fetchWithTimeout(url, ms) {
   return Promise.race([
@@ -231,7 +468,7 @@ function extractYear(title) {
 function cleanTitle(title) { return (title || "").replace(/\s*\(\d{4}\)\s*$/, "").trim(); }
 
 // ============================================================  
-// ИЗБРАННОЕ ИГР  
+// ИЗБРАННОЕ ИГР                                                
 // ============================================================  
 function getGameFavorites() {
   try { return JSON.parse(localStorage.getItem("mood_game_favorites") || "[]"); }
@@ -256,8 +493,7 @@ function toggleGameFavorite(game) {
       short_description: game.short_description, genres: game.genres,
       release_date: game.release_date, is_free: game.is_free,
       mat_final_price: game.mat_final_price, metacritic_score: game.metacritic_score,
-      recommendations_total: game.recommendations_total, developers: game.developers,
-      detailed_description: game.detailed_description  
+      recommendations_total: game.recommendations_total, developers: game.developers  
     });
     saveGameFavorites(l);
     return true;
@@ -268,7 +504,7 @@ function toggleGameFavorite(game) {
 }
 
 // ============================================================  
-// СТАТИСТИКА ИНТЕРЕСОВ  
+// СТАТИСТИКА ИНТЕРЕСОВ                                         
 // ============================================================  
 function getCategoryStats() {
   try { return JSON.parse(localStorage.getItem("mood_category_stats") || '{"movies":{},"games":{}}'); }
@@ -290,7 +526,6 @@ function getTopKeys(obj, n) {
   arr.sort(function (a, b) { return b.v - a.v; });
   return arr.slice(0, n || 5).map(function (x) { return x.k; });
 }
-
 function getGameSearches() {
   try { return JSON.parse(localStorage.getItem("mood_game_searches") || "[]"); }
   catch (e) { return []; }
@@ -298,8 +533,7 @@ function getGameSearches() {
 function trackGameSearch(q) {
   q = (q || "").trim();
   if (q.length < 3) return;
-  var l = getGameSearches();
-  var found = null;
+  var l = getGameSearches(), found = null;
   for (var i = 0; i < l.length; i++) if (l[i].q === q) { found = l[i]; break; }
   if (found) found.count++;
   else l.push({ q: q, count: 1 });
@@ -308,7 +542,6 @@ function trackGameSearch(q) {
   localStorage.setItem("mood_game_searches", JSON.stringify(l));
   saveUserData();
 }
-
 function getDislikedMovies() {
   try { return JSON.parse(localStorage.getItem("mood_disliked_movies") || "[]"); }
   catch (e) { return []; }
@@ -335,7 +568,7 @@ function dislikeGameById(appid) {
 }
 
 // ============================================================  
-// КИНОПОИСК  
+// КИНОПОИСК                                                    
 // ============================================================  
 function mapDoc(d) {
   return {
@@ -358,10 +591,7 @@ function fetchKinopoiskRaw(query, limit) {
     .then(function (data) {
       return (!data || !data.docs) ? [] : data.docs.map(mapDoc).filter(function (m) { return m.poster; });
     })
-    .catch(function (e) {
-      console.log("[BASE]", e && e.message ? e.message : e);
-      return [];
-    });
+    .catch(function (e) { console.log("[BASE]", e && e.message); return []; });
 }
 function fetchKinopoisk(title) {
   var key = "v2:" + normalize(title);
@@ -418,7 +648,7 @@ function popularitySort(a, b) {
 }
 
 // ============================================================  
-// FIREBASE — с двусторонней синхронизацией  
+// FIREBASE — с realtime-синхронизацией                          
 // ============================================================  
 function initFirebase() {
   if (!window.firebaseAuth) return;
@@ -426,18 +656,88 @@ function initFirebase() {
   fbDb = window.firebaseDb;
   fbProvider = window.googleProvider;
   firebaseReady = true;
+  setSyncStatus("ok", "Firebase готов");
   window.firebaseOnAuth(fbAuth, function (user) {
     if (user) {
       currentUser = { id: user.uid, name: user.displayName || user.email, picture: user.photoURL };
       localStorage.setItem("mood_user", JSON.stringify(currentUser));
       renderUserInfo();
       loadUserData(user.uid);
+      startRealtimeSync(user.uid);
     } else {
       currentUser = null;
       localStorage.removeItem("mood_user");
+      if (fbUnsubscribe) { fbUnsubscribe(); fbUnsubscribe = null; }
+      setSyncStatus(null);
       renderUserInfo();
     }
   });
+}
+function startRealtimeSync(uid) {
+  if (!firebaseReady || !fbDb || !window.firebaseOnSnapshot) return;
+  if (fbUnsubscribe) { fbUnsubscribe(); fbUnsubscribe = null; }
+  try {
+    fbUnsubscribe = window.firebaseOnSnapshot(window.firebaseDoc(fbDb, "users", uid),
+      function (snap) {
+        if (!snap.exists()) return;
+        var d = snap.data();
+        applyRemoteData(d);
+      },
+      function (err) {
+        console.error("[Firebase] onSnapshot:", err);
+        if (err.code === "unavailable" || /blocked/i.test(err.message || "")) {
+          setSyncStatus("error", "Синхронизация заблокирована браузером/адблоком");
+        } else if (err.code === "permission-denied") {
+          setSyncStatus("error", "Firestore правила запрещают доступ");
+        }
+      }
+    );
+  } catch (e) {
+    console.error("[Firebase] onSnapshot init failed:", e);
+  }
+}
+function applyRemoteData(d) {
+  if (!d) return;
+  var changed = false;
+  function setIf(key, remoteVal) {
+    if (!remoteVal) return;
+    var cur = localStorage.getItem(key);
+    var neu = JSON.stringify(remoteVal);
+    if (cur !== neu) { localStorage.setItem(key, neu); changed = true; }
+  }
+  setIf("mood_movies_playlists", d.playlists);
+  setIf("mood_watched", d.watched);
+  setIf("mood_hidden", d.hidden);
+  setIf("mood_game_favorites", d.gameFavorites);
+  setIf("mood_category_stats", d.categoryStats);
+  setIf("mood_game_searches", d.gameSearches);
+  setIf("mood_disliked_movies", d.dislikedMovies);
+  setIf("mood_disliked_games", d.dislikedGames);
+  setIf("mood_pc", d.userPC);
+  if (d.profile && JSON.stringify(d.profile) !== JSON.stringify(currentProfile)) {
+    currentProfile = d.profile;
+    localStorage.setItem("mood_profile", JSON.stringify(currentProfile));
+    renderUserInfo();
+    changed = true;
+  }
+  if (d.accent && localStorage.getItem("mood_accent") !== d.accent) {
+    localStorage.setItem("mood_accent", d.accent);
+    document.body.setAttribute("data-accent", d.accent);
+    changed = true;
+  }
+  if (d.theme && localStorage.getItem("mood_theme") !== d.theme) {
+    localStorage.setItem("mood_theme", d.theme);
+    document.body.classList.toggle("light", d.theme === "light");
+    changed = true;
+  }
+  if (changed) {
+    setSyncStatus("ok", "Данные обновлены из облака");
+    renderPlaylists();
+    refreshUIAfterLoad();
+    showToast(" Обновлено из облака");
+  } else {
+    setSyncStatus("ok", "Синхронизировано");
+  }
 }
 function renderUserInfo() {
   var el = $("user-info"), btn = $("google-login-btn");
@@ -458,6 +758,8 @@ function renderUserInfo() {
       window.firebaseSignOut(fbAuth).then(function () {
         currentUser = null;
         localStorage.removeItem("mood_user");
+        if (fbUnsubscribe) { fbUnsubscribe(); fbUnsubscribe = null; }
+        setSyncStatus(null);
         renderUserInfo();
       });
     };
@@ -513,13 +815,12 @@ function initProfile() {
   var saved = localStorage.getItem("mood_profile");
   if (saved) { try { currentProfile = JSON.parse(saved); } catch (e) {} }
 }
-
-// ---------- SAVE — с логами ----------  
 function saveUserData() {
   if (!currentUser || !firebaseReady || !fbDb) {
-    console.log("[Firebase] Нет пользователя — сохранение отложено");
+    console.log("[Firebase] Нет пользователя — сохранение только локально");
     return;
   }
+  setSyncStatus("busy", "Сохранение...");
   var payload = {
     playlists: getPlaylists(),
     watched: getWatched(),
@@ -531,83 +832,75 @@ function saveUserData() {
     categoryStats: getCategoryStats(),
     gameSearches: getGameSearches(),
     dislikedMovies: getDislikedMovies(),
-    dislikedGames: getDislikedGames()
+    dislikedGames: getDislikedGames(),
+    userPC: getUserPC()
   };
   window.firebaseSetDoc(window.firebaseDoc(fbDb, "users", currentUser.id), payload, { merge: true })
-    .then(function () { console.log("[Firebase] ✓ Сохранено:", Object.keys(payload)); })
-    .catch(function (err) { console.error("[Firebase] ✗ Ошибка сохранения:", err); });
+    .then(function () {
+      setSyncStatus("ok", "Сохранено в облако");
+      console.log("[Firebase] ✓ Сохранено");
+    })
+    .catch(function (err) {
+      console.error("[Firebase] ✗ Ошибка:", err);
+      if (err.code === "permission-denied") {
+        setSyncStatus("error", "Firestore правила запрещают запись");
+        showToast("Правила Firestore запрещают запись. Настройте правила в консоли.", true);
+      } else if (err.code === "unavailable" || /blocked/i.test(err.message || "")) {
+        setSyncStatus("error", "Заблокировано браузером (адблок/VPN)");
+        showToast("Синхронизация заблокирована расширением браузера", true);
+      } else {
+        setSyncStatus("error", "Ошибка сохранения");
+      }
+    });
 }
-
-// ---------- LOAD — если сервер пуст, заливаем локальное ----------  
 function loadUserData(uid) {
   if (!firebaseReady || !fbDb) return;
+  setSyncStatus("busy", "Загрузка из облака...");
   window.firebaseGetDoc(window.firebaseDoc(fbDb, "users", uid)).then(function (snap) {
     var remote = snap.exists() ? snap.data() : null;
-    var remoteEmpty = !remote || Object.keys(remote).length === 0;
-    var localHasData = localStorage.getItem("mood_game_favorites") ||
-                       localStorage.getItem("mood_category_stats") ||
-                       localStorage.getItem("mood_movies_playlists") ||
-                       localStorage.getItem("mood_game_searches") ||
-                       localStorage.getItem("mood_disliked_movies") ||
-                       localStorage.getItem("mood_disliked_games");
-
-    if (remoteEmpty) {
-      console.log("[Firebase] Сервер пуст. Заливаем локальное:", !!localHasData);
-      if (localHasData) {
+    if (!remote || Object.keys(remote).length === 0) {
+      var hasLocal = localStorage.getItem("mood_game_favorites") ||
+                     localStorage.getItem("mood_category_stats") ||
+                     localStorage.getItem("mood_movies_playlists") ||
+                     localStorage.getItem("mood_pc");
+      if (hasLocal) {
+        console.log("[Firebase] Облако пусто, заливаем локальное");
         saveUserData();
-        showToast("Данные отправлены в облако");
       }
+      setSyncStatus("ok", "Облако готово");
       return;
     }
-
-    console.log("[Firebase] ✓ Загружено с сервера:", Object.keys(remote));
-
-    if (remote.playlists) localStorage.setItem("mood_movies_playlists", JSON.stringify(remote.playlists));
-    if (remote.watched) localStorage.setItem("mood_watched", JSON.stringify(remote.watched));
-    if (remote.hidden) localStorage.setItem("mood_hidden", JSON.stringify(remote.hidden));
-    if (remote.profile) {
-      currentProfile = remote.profile;
-      localStorage.setItem("mood_profile", JSON.stringify(currentProfile));
-      renderUserInfo();
-    }
-    if (remote.accent) {
-      localStorage.setItem("mood_accent", remote.accent);
-      document.body.setAttribute("data-accent", remote.accent);
-    }
-    if (remote.theme) {
-      localStorage.setItem("mood_theme", remote.theme);
-      document.body.classList.toggle("light", remote.theme === "light");
-    }
-    if (remote.gameFavorites) localStorage.setItem("mood_game_favorites", JSON.stringify(remote.gameFavorites));
-    if (remote.categoryStats) localStorage.setItem("mood_category_stats", JSON.stringify(remote.categoryStats));
-    if (remote.gameSearches) localStorage.setItem("mood_game_searches", JSON.stringify(remote.gameSearches));
-    if (remote.dislikedMovies) localStorage.setItem("mood_disliked_movies", JSON.stringify(remote.dislikedMovies));
-    if (remote.dislikedGames) localStorage.setItem("mood_disliked_games", JSON.stringify(remote.dislikedGames));
-
-    renderPlaylists();
-    refreshUIAfterLoad();
-    showToast("Данные загружены из облака");
+    applyRemoteData(remote);
+    showToast("✓ Данные загружены из облака");
   }).catch(function (err) {
     console.error("[Firebase] Ошибка загрузки:", err);
+    if (err.code === "permission-denied") {
+      setSyncStatus("error", "Нет доступа к Firestore");
+    } else {
+      setSyncStatus("error", "Ошибка загрузки");
+    }
   });
 }
-
-// ---------- Перерисовка активного раздела после загрузки ----------  
+function forceSyncNow() {
+  if (!currentUser) { showToast("Войдите через Google", true); return; }
+  setSyncStatus("busy", "Синхронизация...");
+  saveUserData();
+  loadUserData(currentUser.id);
+  var info = $("force-sync-info");
+  if (info) { info.textContent = "Синхронизация запущена..."; setTimeout(function () { info.textContent = ""; }, 3000); }
+}
 function refreshUIAfterLoad() {
   var active = document.querySelector(".main-section.active");
   if (!active) return;
   var id = active.id;
-  if (id === "section-games" && gamesLoaded) {
-    applyGameFilters();
-  } else if (id === "section-wave") {
-    renderWave();
-  } else if (id === "section-favorites") {
-    renderFavorites();
-  }
+  if (id === "section-games" && gamesLoaded) applyGameFilters();
+  else if (id === "section-wave") renderWave();
+  else if (id === "section-favorites") renderFavorites();
+  else if (id === "section-movies") renderPlaylists && renderPlaylists();
 }
 
 // ============================================================  
-// ПОЛЬЗОВАТЕЛЬСКИЕ ДАННЫЕ  
+// ПОЛЬЗОВАТЕЛЬСКИЕ ДАННЫЕ                                      
 // ============================================================  
 function getHidden() {
   try { return JSON.parse(localStorage.getItem("mood_hidden") || "[]"); }
@@ -640,7 +933,7 @@ function toggleWatched(title, year) {
 }
 
 // ============================================================  
-// ПЛЕЙЛИСТЫ  
+// ПЛЕЙЛИСТЫ                                                    
 // ============================================================  
 function getPlaylists() {
   try { return JSON.parse(localStorage.getItem("mood_movies_playlists") || "{}"); }
@@ -746,7 +1039,7 @@ function togglePlaylistWatched(n, t) {
 }
 
 // ============================================================  
-// ВСПОМОГАТЕЛЬНЫЕ ДЛЯ РЕНДЕРА  
+// ВСПОМОГАТЕЛЬНЫЕ ДЛЯ РЕНДЕРА                                  
 // ============================================================  
 function buildStars(r) {
   var s = "";
@@ -794,7 +1087,7 @@ function buildTrailerBlock(kpId, links, trailerUrl) {
 }
 
 // ============================================================  
-// КАРТОЧКА ФИЛЬМА  
+// КАРТОЧКА ФИЛЬМА                                              
 // ============================================================  
 function buildMovieCardHtml(m) {
   var title = cleanTitle(m.title || "");
@@ -909,7 +1202,7 @@ function dislikeMovieAndClose(title) {
 }
 
 // ============================================================  
-// ПОИСК ФИЛЬМОВ  
+// ПОИСК ФИЛЬМОВ                                                
 // ============================================================  
 function searchByFilmList(query) {
   return fetchKinopoiskRaw(query, 40).then(function (movies) {
@@ -992,7 +1285,7 @@ function searchByTopic(topic, userText) {
 }
 
 // ============================================================  
-// AI ФИЛЬМЫ  
+// AI ФИЛЬМЫ                                                    
 // ============================================================  
 function askAI(text) {
   return fetch(AI_FN, {
@@ -1012,16 +1305,11 @@ function askAI(text) {
 }
 function fromAiMovie(m) {
   return {
-    kp_id: m.kp_id || null,
-    title: m.title || "",
-    originalTitle: m.title_original || "",
-    year: m.year || "",
-    poster: m.poster || null,
-    rating: m.rating_kp || null,
-    description: m.description || "",
-    genres: m.genres || [],
-    votes: 0,
-    type: "movie"
+    kp_id: m.kp_id || null, title: m.title || "",
+    originalTitle: m.title_original || "", year: m.year || "",
+    poster: m.poster || null, rating: m.rating_kp || null,
+    description: m.description || "", genres: m.genres || [],
+    votes: 0, type: "movie"
   };
 }
 function isPickExplainable(p, m) { return !!(m && (p.reason || p.mood || p.note)); }
@@ -1097,9 +1385,7 @@ function renderAiPick(data, vague) {
   }
   currentAlternatives = alts.slice();
   if (!primary.length) {
-    currentMovies = [];
-    currentMood = null;
-    lastSearchQuery = null;
+    currentMovies = []; currentMood = null; lastSearchQuery = null;
     renderSimpleAiFallback(el, p);
     return;
   }
@@ -1182,7 +1468,6 @@ function initAI() {
       .then(function () { btn.disabled = false; });
   };
 }
-
 function loadMoviesByMood(mood) {
   var el = $("results");
   if (!el) return;
@@ -1212,7 +1497,7 @@ function loadMoviesByMood(mood) {
     });
 }
 // ============================================================  
-// ИГРЫ  
+// ИГРЫ                                                         
 // ============================================================  
 function parseGenres(raw) {
   if (!raw) return [];
@@ -1223,6 +1508,7 @@ function parseGenres(raw) {
     .filter(function (x) { return x && !/^\d+$/.test(x); });
 }
 function translateGenre(g) { return gameGenreRu[g] || g; }
+
 function computeMoodScore(game, rule) {
   if (!rule) return 0;
   var text = [game.name || '', game.short_description || '', game.genres || '', game.categories || '']
@@ -1237,11 +1523,8 @@ function computeMoodScore(game, rule) {
 }
 
 async function gameAiSearch() {
-  var input = $("game-ai-input");
-  var btn = $("game-ai-btn");
-  var status = $("game-ai-status");
-  var container = $("games-results");
-  var countEl = $("games-count");
+  var input = $("game-ai-input"), btn = $("game-ai-btn"), status = $("game-ai-status");
+  var container = $("games-results"), countEl = $("games-count");
   if (!input || !btn || !container) return;
   var text = input.value.trim();
   if (text.length < 3) { showToast("Опиши чуть больше", true); return; }
@@ -1486,11 +1769,8 @@ function toggleGameFavCard(appid) {
     b.classList.toggle("active", added);
     b.textContent = added ? "♥" : "♡";
   });
-  // Если мы в Избранном и убрали — перерисовываем  
   var active = document.querySelector(".main-section.active");
-  if (active && active.id === "section-favorites" && !added) {
-    renderFavorites();
-  }
+  if (active && active.id === "section-favorites" && !added) renderFavorites();
 }
 
 function dislikeGameAndRefresh(appid) {
@@ -1548,8 +1828,12 @@ function openGameModal(game) {
       (votes ? ' · ' + Math.round(votes).toLocaleString('ru-RU') + ' рекомендаций' : '') + '</p>';
   }
   h += '</div></div>';
+
+  // FPS BLOCK — вставляем сюда, сразу после шапки  
+  h += renderFpsBlock(game);
+
   var safeAppid = esc(String(appid || '')).replace(/'/g, "\\'");
-  h += '<button class="btn-primary" id="game-modal-fav-btn" style="width:100%;margin-bottom:10px;background:' +
+  h += '<button class="btn-primary" id="game-modal-fav-btn" style="width:100%;margin-top:15px;margin-bottom:10px;background:' +
        (fav ? '#ec4899' : 'var(--accent)') + '" data-appid="' + safeAppid + '">' +
        (fav ? '♥ В избранном' : '♡ В избранное') + '</button>';
   h += '<button class="btn-primary" id="game-modal-dislike-btn" style="width:100%;margin-bottom:15px;background:#f87171;" data-appid="' + safeAppid + '"> Не нравится</button>';
@@ -1589,7 +1873,7 @@ function openGameModal(game) {
 function closeGameModal() { $("game-modal").classList.remove("open"); }
 
 // ============================================================  
-// МОЯ ВОЛНА  
+// МОЯ ВОЛНА                                                    
 // ============================================================  
 function switchWaveType(type) {
   waveType = type;
@@ -1712,10 +1996,10 @@ function renderWave() {
 }
 
 // ============================================================  
-// ИЗБРАННОЕ (новая страница)  
+// ИЗБРАННОЕ                                                    
 // ============================================================  
 function switchFavoritesType(type) {
-  waveType = type; // используем общий тип  
+  waveType = type;
   document.querySelectorAll("#favorites-switch button").forEach(function (b) {
     b.classList.toggle("active", b.dataset.fav === type);
   });
@@ -1760,16 +2044,11 @@ function renderFavoritesMovies(el) {
     el.innerHTML = '<p class="empty">Пока нет избранных фильмов. Добавьте фильм в плейлист через «＋ В плейлист».</p>';
     return;
   }
-  // Превращаем в полноценные movie-объекты для модалки  
   var movies = all.map(function (m) {
     return {
-      title: m.title,
-      year: m.year,
-      poster: m.poster || null,
-      kp_id: m.kp_id || null,
-      rating: m.rating || 0,
-      genres: m.genres || [],
-      description: m.description || ""
+      title: m.title, year: m.year, poster: m.poster || null,
+      kp_id: m.kp_id || null, rating: m.rating || 0,
+      genres: m.genres || [], description: m.description || ""
     };
   });
   currentMovies = movies;
@@ -1805,7 +2084,139 @@ function renderFavorites() {
 }
 
 // ============================================================  
-// ПЕРЕКЛЮЧАТЕЛЬ РАЗДЕЛОВ  
+// ПАНЕЛЬ «МОЙ ПК»                                              
+// ============================================================  
+function updatePcTierLabel(fieldId, score) {
+  var el = $(fieldId);
+  if (!el) return;
+  if (score == null) { el.textContent = " Не распознано"; el.style.color = "#8e96a8"; return; }
+  var tier = getPcTier(score);
+  el.textContent = "● " + tier.label + " · " + score + "/100";
+  el.style.color = tier.color;
+}
+
+function populateDatalists() {
+  var cpuList = $("cpu-list");
+  var gpuList = $("gpu-list");
+  if (cpuList) {
+    cpuList.innerHTML = "";
+    Object.keys(CPU_SCORES).sort().forEach(function (k) {
+      var opt = document.createElement("option");
+      opt.value = k;
+      cpuList.appendChild(opt);
+    });
+  }
+  if (gpuList) {
+    gpuList.innerHTML = "";
+    Object.keys(GPU_SCORES).sort().forEach(function (k) {
+      var opt = document.createElement("option");
+      opt.value = k;
+      gpuList.appendChild(opt);
+    });
+  }
+}
+
+function openPcPanel() {
+  var pc = getUserPC();
+  var cpuInput = $("pc-cpu-input");
+  var gpuInput = $("pc-gpu-input");
+  if (cpuInput) cpuInput.value = pc.cpu || "";
+  if (gpuInput) gpuInput.value = pc.gpu || "";
+  updatePcTierLabel("pc-cpu-tier", lookupCpuScore(pc.cpu));
+  updatePcTierLabel("pc-gpu-tier", lookupGpuScore(pc.gpu));
+  document.querySelectorAll("#pc-ram-row button").forEach(function (b) {
+    b.classList.toggle("active", Number(b.dataset.ram) === Number(pc.ram));
+  });
+  var panel = $("pc-panel");
+  if (panel) panel.classList.add("open");
+}
+
+function savePcFromPanel() {
+  var cpuInput = $("pc-cpu-input");
+  var gpuInput = $("pc-gpu-input");
+  var ram = 16;
+  var activeRam = document.querySelector("#pc-ram-row button.active");
+  if (activeRam) ram = Number(activeRam.dataset.ram);
+  var pc = {
+    cpu: cpuInput ? cpuInput.value.trim() : "",
+    gpu: gpuInput ? gpuInput.value.trim() : "",
+    ram: ram  
+  };
+  if (!pc.cpu || !pc.gpu) {
+    showToast("Укажите CPU и GPU", true);
+    return;
+  }
+  if (lookupGpuScore(pc.gpu) == null) {
+    showToast("Не распознали видеокарту. Проверьте название.", true);
+    return;
+  }
+  saveUserPC(pc);
+  showToast("✓ ПК сохранён — FPS обновлён");
+  var panel = $("pc-panel");
+  if (panel) panel.classList.remove("open");
+  // Обновляем открытую модалку игры, если она есть  
+  var gameModal = $("game-modal");
+  if (gameModal && gameModal.classList.contains("open")) {
+    var cards = document.querySelectorAll(".card[data-appid]");
+    // Просто перерисовываем модалку — но у нас нет game объекта под рукой,
+    // поэтому перерисовываем блок FPS в модалке напрямую  
+    var fpsBlock = document.querySelector("#game-modal-body .fps-block");
+    if (fpsBlock) {
+      var modalBody = $("game-modal-body");
+      // Найдём игру по названию из h2  
+      var titleEl = modalBody.querySelector("h2");
+      if (titleEl) {
+        var gameTitle = titleEl.textContent;
+        var game = null;
+        for (var i = 0; i < allGames.length; i++) {
+          if (allGames[i].name === gameTitle) { game = allGames[i]; break; }
+        }
+        if (game) {
+          var newBlock = renderFpsBlock(game);
+          var wrapper = document.createElement("div");
+          wrapper.innerHTML = newBlock;
+          fpsBlock.parentNode.replaceChild(wrapper.firstChild, fpsBlock);
+        }
+      }
+    }
+  }
+}
+
+function initPcPanel() {
+  var toggle = $("pc-toggle");
+  var close = $("pc-close");
+  var save = $("pc-save");
+  var cpuInput = $("pc-cpu-input");
+  var gpuInput = $("pc-gpu-input");
+  var ramRow = $("pc-ram-row");
+
+  if (toggle) toggle.onclick = openPcPanel;
+  if (close) close.onclick = function () { $("pc-panel").classList.remove("open"); };
+  if (save) save.onclick = savePcFromPanel;
+
+  if (cpuInput) {
+    cpuInput.addEventListener("input", function () {
+      updatePcTierLabel("pc-cpu-tier", lookupCpuScore(this.value));
+    });
+  }
+  if (gpuInput) {
+    gpuInput.addEventListener("input", function () {
+      updatePcTierLabel("pc-gpu-tier", lookupGpuScore(this.value));
+    });
+  }
+  if (ramRow) {
+    ramRow.querySelectorAll("button").forEach(function (b) {
+      b.onclick = function () {
+        ramRow.querySelectorAll("button").forEach(function (x) { x.classList.remove("active"); });
+        this.classList.add("active");
+      };
+    });
+  }
+  populateDatalists();
+}
+
+// ============================================================  
+// ПЕРЕКЛЮЧАТЕЛЬ РАЗДЕЛОВ                                         
 // ============================================================  
 function switchMainTab(tab) {
   document.querySelectorAll(".main-section").forEach(function (s) { s.classList.remove("active"); });
@@ -1832,7 +2243,7 @@ function switchMainTab(tab) {
 }
 
 // ============================================================  
-// ПАРТИКЛЫ НА ФОНЕ  
+// ПАРТИКЛЫ                                                     
 // ============================================================  
 function initParticles() {
   var canvas = $("bg-canvas");
@@ -1888,11 +2299,12 @@ function initParticles() {
 }
 
 // ============================================================  
-// ИНИЦИАЛИЗАЦИЯ  
+// ИНИЦИАЛИЗАЦИЯ                                                
 // ============================================================  
 function init() {
   initParticles();
 
+  // Настройки / плейлисты  
   var sT = $("settings-toggle"), sP = $("settings-panel"), sC = $("settings-close");
   if (sT && sP) sT.onclick = function () { sP.classList.add("open"); };
   if (sC && sP) sC.onclick = function () { sP.classList.remove("open"); };
@@ -1900,6 +2312,14 @@ function init() {
   if (pT && pP) pT.onclick = function () { pP.classList.add("open"); renderPlaylists(); };
   if (pC && pP) pC.onclick = function () { pP.classList.remove("open"); };
 
+  // Панель ПК  
+  initPcPanel();
+
+  // Force sync  
+  var fsb = $("force-sync-btn");
+  if (fsb) fsb.onclick = forceSyncNow;
+
+  // Табы фильмов  
   document.querySelectorAll(".tab-btn:not(.game-tab-btn)").forEach(function (btn) {
     btn.onclick = function () {
       document.querySelectorAll(".tab-btn:not(.game-tab-btn)").forEach(function (b) { b.classList.remove("active"); });
@@ -1909,6 +2329,7 @@ function init() {
       if (t) t.classList.add("active");
     };
   });
+  // Табы игр  
   document.querySelectorAll(".game-tab-btn").forEach(function (btn) {
     btn.onclick = function () {
       document.querySelectorAll(".game-tab-btn").forEach(function (b) { b.classList.remove("active"); });
@@ -1919,6 +2340,7 @@ function init() {
     };
   });
 
+  // Поиск фильмов  
   if ($("search-btn")) $("search-btn").onclick = function () {
     var q = $("search-input").value.trim();
     if (!q) return;
@@ -1934,6 +2356,7 @@ function init() {
     if (e.key === "Enter") { e.preventDefault(); $("ai-button").click(); }
   };
 
+  // Быстрые кнопки фильмов  
   if ($("random-btn")) $("random-btn").onclick = function () {
     var k = Object.keys(categoryParams);
     loadMoviesByMood(k[Math.floor(Math.random() * k.length)]);
@@ -1942,6 +2365,7 @@ function init() {
     loadMoviesByMood("best");
   };
 
+  // Жанры фильмов  
   document.querySelectorAll("#moods button").forEach(function (b) {
     b.onclick = function () {
       document.querySelectorAll("#moods button").forEach(function (x) { x.classList.remove("active"); });
@@ -1950,6 +2374,7 @@ function init() {
     };
   });
 
+  // Тип фильма  
   document.querySelectorAll("#type-switch button").forEach(function (b) {
     b.onclick = function () {
       document.querySelectorAll("#type-switch button").forEach(function (x) { x.classList.remove("active"); });
@@ -1983,6 +2408,7 @@ function init() {
     upd();
   }
 
+  // Акцент  
   document.querySelectorAll(".color-dot").forEach(function (d) {
     d.onclick = function () {
       document.querySelectorAll(".color-dot").forEach(function (x) { x.classList.remove("active"); });
@@ -1992,6 +2418,7 @@ function init() {
       saveUserData();
     };
   });
+  // Тема  
   document.querySelectorAll(".theme-btn").forEach(function (b) {
     b.onclick = function () {
       document.querySelectorAll(".theme-btn").forEach(function (x) { x.classList.remove("active"); });
@@ -2018,14 +2445,20 @@ function init() {
     if (active && active.id === "section-wave") renderWave();
   };
 
+  // Закрытие модалок  
   if ($("movie-modal-close")) $("movie-modal-close").onclick = function () { $("movie-modal").classList.remove("open"); };
   if ($("game-modal-close")) $("game-modal-close").onclick = closeGameModal;
   if ($("profile-modal-close")) $("profile-modal-close").onclick = function () { $("profile-modal").classList.remove("open"); };
 
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") ["movie-modal", "game-modal", "profile-modal"].forEach(function (id) {
-      var m = $(id); if (m) m.classList.remove("open");
-    });
+    if (e.key === "Escape") {
+      ["movie-modal", "game-modal", "profile-modal"].forEach(function (id) {
+        var m = $(id); if (m) m.classList.remove("open");
+      });
+      ["settings-panel", "playlists-panel", "pc-panel"].forEach(function (id) {
+        var p = $(id); if (p) p.classList.remove("open");
+      });
+    }
   });
   ["movie-modal", "game-modal"].forEach(function (id) {
     var m = $(id);
@@ -2033,11 +2466,13 @@ function init() {
     m.addEventListener("click", function (e) { if (e.target === m) m.classList.remove("open"); });
   });
 
+  // Применение сохранённых настроек  
   var sa = localStorage.getItem("mood_accent");
   if (sa) document.body.setAttribute("data-accent", sa);
   var st = localStorage.getItem("mood_theme");
   if (st === "light") document.body.classList.add("light");
 
+  // Firebase  
   if (window.firebaseAuth) initFirebase();
   else window.addEventListener("firebase-ready", initFirebase);
   initGoogleLogin();
@@ -2076,6 +2511,7 @@ function init() {
     if (e.key === "Enter") { e.preventDefault(); gameAiSearch(); }
   });
 
+  // Быстрые кнопки игр  
   if ($("game-random-btn")) $("game-random-btn").onclick = function () {
     var moods = ["relax", "action", "story", "hardcore", "horror"];
     var m = moods[Math.floor(Math.random() * moods.length)];
@@ -2099,10 +2535,12 @@ function init() {
     applyGameFilters();
   };
 
+  // Фильтры игр  
   if ($("game-price-filter")) $("game-price-filter").onchange = function (e) { gameFilters.price = e.target.value; applyGameFilters(); };
   if ($("game-year-filter")) $("game-year-filter").onchange = function (e) { gameFilters.year = e.target.value; applyGameFilters(); };
   if ($("game-sort-filter")) $("game-sort-filter").onchange = function (e) { gameFilters.sort = e.target.value; applyGameFilters(); };
 
+  // AI-подсказки игр  
   document.querySelectorAll(".ai-hint-chip").forEach(function (chip) {
     chip.onclick = function () {
       var a = $("game-ai-input");
@@ -2114,11 +2552,15 @@ function init() {
     };
   });
 
+  // Показать ещё игр  
   if ($("games-load-more")) $("games-load-more").onclick = function () {
     gamesDisplayCount += 100;
     renderGames(filteredGames.slice(0, gamesDisplayCount));
     if (filteredGames.length <= gamesDisplayCount) this.style.display = "none";
   };
+
+  // Предзагрузка игр в фоне  
+  setTimeout(function () { if (!gamesStarted) loadGames(); }, 2000);
 }
 
 if (document.readyState === "loading") {

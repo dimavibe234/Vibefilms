@@ -12,6 +12,7 @@
   <div class="bg-glow"></div>
   <canvas id="bg-canvas"></canvas>
 
+  <!-- ===================== TOPBAR ===================== -->
   <header class="top-bar glass-panel">
     <div class="logo">
       <span class="logo-mark"></span>
@@ -34,6 +35,8 @@
     </nav>
 
     <div class="actions">
+      <span id="sync-status" class="sync-status" title="Статус синхронизации"></span>
+      <button id="pc-toggle" class="btn-icon" title="Мой ПК"></button>
       <button id="settings-toggle" class="btn-icon" title="Настройки"></button>
       <button id="playlists-toggle" class="btn-text" title="Плейлисты">
         <span class="pl-ico"></span><span>Плейлисты</span>
@@ -276,12 +279,10 @@
         <h1 class="hero-title"> Моя волна</h1>
         <p class="hero-subtitle">Персональные рекомендации на основе ваших интересов, избранного и предпочтений</p>
       </div>
-
       <div class="type-switch" id="wave-switch">
         <button data-wave="games" class="active" onclick="switchWaveType('games')"> Игры</button>
         <button data-wave="movies" onclick="switchWaveType('movies')"> Фильмы</button>
       </div>
-
       <div id="wave-stats" class="wave-stats"></div>
       <div id="wave-info" class="results-info"></div>
       <div id="wave-results" class="results"></div>
@@ -291,14 +292,12 @@
     <section id="section-favorites" class="main-section">
       <div class="hero-block">
         <h1 class="hero-title">♥ Избранное</h1>
-        <p class="hero-subtitle">Игры, которые вы сохранили, и фильмы из ваших плейлистов</p>
+        <p class="hero-subtitle">Сохранённые игры и фильмы — синхронизируются со всеми устройствами</p>
       </div>
-
       <div class="type-switch" id="favorites-switch">
         <button data-fav="games" class="active" onclick="switchFavoritesType('games')"> Игры</button>
         <button data-fav="movies" onclick="switchFavoritesType('movies')"> Фильмы</button>
       </div>
-
       <div id="favorites-info" class="results-info"></div>
       <div id="favorites-results" class="results"></div>
     </section>
@@ -330,8 +329,17 @@
       </div>
     </div>
     <div class="setting-group">
+      <label>Облако</label>
+      <button id="force-sync-btn" class="reset-btn" style="border-color:#06b6d4;color:#06b6d4;margin-bottom:10px;">
+         Синхронизировать сейчас  
+      </button>
+      <div id="force-sync-info" style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:6px;"></div>
+    </div>
+    <div class="setting-group">
       <label>Мои предпочтения</label>
-      <button id="clear-wave-stats" class="reset-btn" style="border-color:#f59e0b;color:#f59e0b;"> Сбросить историю интересов</button>
+      <button id="clear-wave-stats" class="reset-btn" style="border-color:#f59e0b;color:#f59e0b;">
+         Сбросить историю интересов  
+      </button>
     </div>
     <button id="settings-reset" class="reset-btn">Сбросить оформление</button>
   </aside>
@@ -347,6 +355,45 @@
       <button id="playlist-create-btn">Создать</button>
     </div>
     <div id="playlists-list" class="playlists-list"></div>
+  </aside>
+
+  <!-- ===================== МОЙ ПК ===================== -->
+  <aside id="pc-panel" class="side-panel">
+    <div class="panel-header">
+      <h2> Мой компьютер</h2>
+      <button id="pc-close" class="btn-icon">✕</button>
+    </div>
+
+    <div class="setting-group">
+      <label>Процессор (CPU)</label>
+      <input type="text" id="pc-cpu-input" class="input" list="cpu-list"
+             placeholder="Intel Core i5-12400 / Ryzen 5 5600X">
+      <div id="pc-cpu-tier" class="pc-tier"></div>
+    </div>
+
+    <div class="setting-group">
+      <label>Видеокарта (GPU)</label>
+      <input type="text" id="pc-gpu-input" class="input" list="gpu-list"
+             placeholder="RTX 3060 / RX 6600 XT">
+      <div id="pc-gpu-tier" class="pc-tier"></div>
+    </div>
+
+    <div class="setting-group">
+      <label>Оперативная память</label>
+      <div class="row" id="pc-ram-row">
+        <button data-ram="4">4 GB</button>
+        <button data-ram="8">8 GB</button>
+        <button data-ram="16" class="active">16 GB</button>
+        <button data-ram="32">32 GB</button>
+        <button data-ram="64">64 GB</button>
+      </div>
+    </div>
+
+    <button id="pc-save" class="btn-primary" style="width:100%; margin-top:14px;"> Сохранить ПК</button>
+
+    <div style="font-size:0.75rem; color:var(--text-muted); text-align:center; margin-top:10px;">
+      Синхронизируется со всеми устройствами через Firebase  
+    </div>
   </aside>
 
   <!-- ===================== МОДАЛКИ ===================== -->
@@ -393,11 +440,15 @@
 
   <div id="toast" class="toast"></div>
 
+  <!-- ===================== DATALISTS ===================== -->
+  <datalist id="cpu-list"></datalist>
+  <datalist id="gpu-list"></datalist>
+
   <!-- ===================== FIREBASE ===================== -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBd7a0IJ_54SacowpCs4EZF5BIFKy-3qxw",
@@ -421,6 +472,7 @@
     window.firebaseDoc = doc;
     window.firebaseSetDoc = setDoc;
     window.firebaseGetDoc = getDoc;
+    window.firebaseOnSnapshot = onSnapshot;
 
     window.dispatchEvent(new Event('firebase-ready'));
   </script>

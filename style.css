@@ -1895,3 +1895,195 @@ body.light .genre-tag {
   border: 2px solid var(--bg);
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent-hover); }
+/* ============================================================ */
+/* МОЙ ПК — панель                                              */
+/* ============================================================ */
+.pc-tier {
+  font-size: 0.78rem;
+  margin-top: 8px;
+  font-weight: 700;
+  min-height: 1.1em;
+  transition: color 0.2s;
+}
+#pc-ram-row {
+  display: flex;
+  gap: 6px;
+}
+#pc-ram-row button {
+  flex: 1;
+  padding: 10px 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+#pc-ram-row button:hover { border-color: var(--accent); }
+#pc-ram-row button.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 6px 18px var(--accent-glow);
+}
+
+/* ============================================================ */
+/* FPS-БЛОК в модалке игры                                      */
+/* ============================================================ */
+.fps-block {
+  margin-top: 18px;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(59,130,246,0.06));
+  border: 1px solid rgba(16,185,129,0.35);
+  border-radius: 16px;
+  box-shadow: 0 0 30px rgba(16,185,129,0.1);
+}
+.fps-block-empty {
+  text-align: center;
+  background: linear-gradient(135deg, rgba(168,85,247,0.08), rgba(236,72,153,0.05));
+  border-color: rgba(168,85,247,0.35);
+  box-shadow: 0 0 30px rgba(168,85,247,0.1);
+}
+.fps-block-title {
+  font-family: var(--font-ui);
+  font-weight: 900;
+  font-size: 0.92rem;
+  margin-bottom: 12px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fps-block-sub {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin-bottom: 14px;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.fps-setup-btn {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  display: block;
+}
+.fps-config {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 14px;
+  font-size: 0.78rem;
+}
+.fps-config span {
+  padding: 5px 11px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border-hi);
+  border-radius: 8px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+.fps-edit-btn {
+  background: transparent;
+  border: 1px solid var(--border-hi);
+  color: var(--text-muted);
+  padding: 5px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-left: auto;
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+.fps-edit-btn:hover {
+  color: var(--accent-hover);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.fps-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.fps-item {
+  text-align: center;
+  padding: 12px 8px;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border-hi);
+  transition: transform 0.25s ease;
+}
+.fps-item:hover { transform: translateY(-2px); }
+.fps-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+.fps-value {
+  font-size: 1.7rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.fps-unit {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 3px;
+}
+.fps-bar {
+  margin-top: 8px;
+  height: 4px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.fps-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.65s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.fps-note {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 10px;
+  line-height: 1.4;
+}
+.fps-loading {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 16px 8px;
+  font-weight: 500;
+}
+.fps-error {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #f87171;
+  font-size: 0.85rem;
+  padding: 14px 8px;
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .fps-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .fps-value { font-size: 1.4rem; }
+  .fps-config span { font-size: 0.72rem; }
+  #pc-ram-row button { font-size: 0.72rem; padding: 9px 2px; }
+}
