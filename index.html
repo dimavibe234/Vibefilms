@@ -16,7 +16,6 @@
   <div class="bg-glow" aria-hidden="true"></div>
   <canvas id="bg-canvas" aria-hidden="true"></canvas>
 
-  <!-- ===================== TOPBAR ===================== -->
   <header class="top-bar glass-panel">
     <div class="logo">
       <span class="logo-mark" aria-hidden="true"></span>
@@ -49,7 +48,6 @@
   </header>
 
   <main class="container">
-    <!-- ===================== ФИЛЬМЫ ===================== -->
     <section id="section-movies" class="main-section active">
       <div class="hero-block">
         <h1 class="hero-title">Что посмотрим?</h1>
@@ -159,7 +157,6 @@
       <button type="button" id="load-more" class="load-more" style="display: none;">Показать ещё</button>
     </section>
 
-    <!-- ===================== ИГРЫ ===================== -->
     <section id="section-games" class="main-section">
       <div class="hero-block">
         <h1 class="hero-title">Во что поиграем?</h1>
@@ -274,7 +271,6 @@
 
       <div id="game-loader" class="results-info">Загрузка базы игр...</div>
 
-      <!-- Панель с кнопкой производительности -->
       <div class="games-toolbar">
         <div id="games-count" class="results-info" aria-live="polite"></div>
         <button type="button" id="perf-toggle-btn" class="btn-perf" title="Показать FPS на вашем ПК">
@@ -287,7 +283,6 @@
       <button type="button" id="games-load-more" class="load-more" style="display: none;">Показать ещё</button>
     </section>
 
-    <!-- ===================== МОЯ ВОЛНА ===================== -->
     <section id="section-wave" class="main-section">
       <div class="hero-block">
         <h1 class="hero-title">Моя волна</h1>
@@ -302,7 +297,6 @@
       <div id="wave-results" class="results" aria-live="polite"></div>
     </section>
 
-    <!-- ===================== ИЗБРАННОЕ ===================== -->
     <section id="section-favorites" class="main-section">
       <div class="hero-block">
         <h1 class="hero-title">♥ Избранное</h1>
@@ -317,7 +311,6 @@
     </section>
   </main>
 
-  <!-- ===================== НАСТРОЙКИ ===================== -->
   <aside id="settings-panel" class="side-panel" aria-hidden="true">
     <div class="panel-header">
       <h2>Настройки</h2>
@@ -358,7 +351,6 @@
     <button type="button" id="settings-reset" class="reset-btn">Сбросить оформление</button>
   </aside>
 
-  <!-- ===================== ПЛЕЙЛИСТЫ ===================== -->
   <aside id="playlists-panel" class="side-panel" aria-hidden="true">
     <div class="panel-header">
       <h2>Плейлисты</h2>
@@ -371,7 +363,6 @@
     <div id="playlists-list" class="playlists-list"></div>
   </aside>
 
-  <!-- ===================== МОЙ ПК ===================== -->
   <aside id="pc-panel" class="side-panel" aria-hidden="true">
     <div class="panel-header">
       <h2>Мой компьютер</h2>
@@ -410,7 +401,6 @@
     </div>
   </aside>
 
-  <!-- ===================== МОДАЛКИ ===================== -->
   <div id="movie-modal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modal-content">
       <button type="button" id="movie-modal-close" class="btn-icon modal-close" aria-label="Закрыть">✕</button>
@@ -425,27 +415,106 @@
     </div>
   </div>
 
+  <!-- ============ ПРОФИЛЬ: РАСШИРЕННАЯ КАСТОМИЗАЦИЯ ============ -->
   <div id="profile-modal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
-    <div class="modal-content" style="max-width:420px;">
+    <div class="modal-content" style="max-width:540px;">
       <button type="button" id="profile-modal-close" class="btn-icon modal-close" aria-label="Закрыть профиль">✕</button>
       <div style="padding:24px;">
         <h2>Профиль</h2>
-        <div style="text-align:center; margin:18px 0;">
-          <img id="profile-avatar-img" alt="Аватар" style="width:84px; height:84px; border-radius:50%; object-fit:cover; border:3px solid var(--accent);">
+
+        <!-- Превью карточки -->
+        <div class="profile-preview" id="profile-preview">
+          <div class="pp-banner pb-none" id="profile-preview-banner"></div>
+          <div class="pp-body">
+            <div class="pp-avatar-wrap af-none" id="profile-preview-avatar-wrap">
+              <img id="profile-preview-avatar" alt="Аватар" src="https://via.placeholder.com/120x120/1a1d28/8f9bab?text=%3F">
+            </div>
+            <div class="pp-name ns-normal" id="profile-preview-name">Ваш ник</div>
+            <div class="pp-bio" id="profile-preview-bio">Коротко о себе</div>
+          </div>
         </div>
-        <label class="setting-label" for="profile-name-input">Имя</label>
-        <input type="text" id="profile-name-input" class="input">
-        <label class="setting-label" for="profile-avatar-input">Аватарка (URL)</label>
-        <input type="text" id="profile-avatar-input" class="input">
+
+        <!-- Основные поля -->
+        <label class="setting-label" for="profile-name-input">Ник</label>
+        <input type="text" id="profile-name-input" class="input" maxlength="40" placeholder="Как тебя зовут на сайте">
+
+        <label class="setting-label" for="profile-avatar-input">Аватар (URL)</label>
+        <input type="text" id="profile-avatar-input" class="input" placeholder="https://...">
+
+        <label class="setting-label" for="profile-bio-input">О себе (до 120 символов)</label>
+        <input type="text" id="profile-bio-input" class="input" maxlength="120" placeholder="Люблю сюжетки и субтитры">
+
+        <!-- Рамка аватара -->
+        <div class="profile-pick-group">
+          <label class="setting-label">Рамка аватара</label>
+          <div class="pick-row" data-group="avatarFrame">
+            <button type="button" class="pick-btn" data-value="none">Без</button>
+            <button type="button" class="pick-btn" data-value="purple">Пурпур</button>
+            <button type="button" class="pick-btn" data-value="pink">Розовая</button>
+            <button type="button" class="pick-btn" data-value="gold">Золото</button>
+            <button type="button" class="pick-btn" data-value="neon">Неон</button>
+            <button type="button" class="pick-btn" data-value="rainbow">Радуга</button>
+            <button type="button" class="pick-btn" data-value="glow">Свечение</button>
+            <button type="button" class="pick-btn" data-value="leaf">Лайм</button>
+          </div>
+        </div>
+
+        <!-- Фон -->
+        <div class="profile-pick-group">
+          <label class="setting-label">Фон карточки</label>
+          <div class="pick-row" data-group="banner">
+            <button type="button" class="pick-btn" data-value="none">Тёмный</button>
+            <button type="button" class="pick-btn" data-value="sunset">Закат</button>
+            <button type="button" class="pick-btn" data-value="ocean">Океан</button>
+            <button type="button" class="pick-btn" data-value="forest">Лес</button>
+            <button type="button" class="pick-btn" data-value="neon">Неон</button>
+            <button type="button" class="pick-btn" data-value="galaxy">Галактика</button>
+            <button type="button" class="pick-btn" data-value="mono">Моно</button>
+            <button type="button" class="pick-btn" data-value="candy">Карамель</button>
+          </div>
+        </div>
+
+        <!-- Стиль ника -->
+        <div class="profile-pick-group">
+          <label class="setting-label">Стиль ника</label>
+          <div class="pick-row" data-group="nameStyle">
+            <button type="button" class="pick-btn" data-value="normal">Обычный</button>
+            <button type="button" class="pick-btn" data-value="gradient">Градиент</button>
+            <button type="button" class="pick-btn" data-value="neon">Неон</button>
+            <button type="button" class="pick-btn" data-value="glow">Свечение</button>
+            <button type="button" class="pick-btn" data-value="mono">Моно</button>
+          </div>
+        </div>
+
+        <!-- Бейдж -->
+        <div class="profile-pick-group">
+          <label class="setting-label">Бейдж рядом с ником</label>
+          <div class="pick-row" data-group="badge">
+            <button type="button" class="pick-btn" data-value="">Без</button>
+            <button type="button" class="pick-btn" data-value=""></button>
+            <button type="button" class="pick-btn" data-value=""></button>
+            <button type="button" class="pick-btn" data-value=""></button>
+            <button type="button" class="pick-btn" data-value=""></button>
+            <button type="button" class="pick-btn" data-value=""></button>
+            <button type="button" class="pick-btn" data-value=""></button>
+            <button type="button" class="pick-btn" data-value=""></button>
+            <button type="button" class="pick-btn" data-value=""></button>
+            <button type="button" class="pick-btn" data-value=""></button>
+          </div>
+        </div>
+
+        <!-- Цвет ника -->
         <label class="setting-label">Цвет ника</label>
         <div class="color-row" style="margin-bottom:20px;">
-          <button type="button" class="profile-color-dot" data-color="#e8eaed" style="background:#e8eaed" aria-label="Белый"></button>
+          <button type="button" class="profile-color-dot active" data-color="#e8eaed" style="background:#e8eaed" aria-label="Белый"></button>
           <button type="button" class="profile-color-dot" data-color="#ff6b6b" style="background:#ff6b6b" aria-label="Красный"></button>
           <button type="button" class="profile-color-dot" data-color="#ffd76e" style="background:#ffd76e" aria-label="Жёлтый"></button>
           <button type="button" class="profile-color-dot" data-color="#10b981" style="background:#10b981" aria-label="Зелёный"></button>
           <button type="button" class="profile-color-dot" data-color="#3b82f6" style="background:#3b82f6" aria-label="Синий"></button>
           <button type="button" class="profile-color-dot" data-color="#a855f7" style="background:#a855f7" aria-label="Фиолетовый"></button>
+          <button type="button" class="profile-color-dot" data-color="#ec4899" style="background:#ec4899" aria-label="Розовый"></button>
         </div>
+
         <div id="profile-stats" class="stats-box"></div>
         <button type="button" id="profile-save-btn" class="btn-primary" style="width:100%; margin-top:20px;">Сохранить</button>
       </div>
@@ -454,11 +523,9 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <!-- ===================== DATALISTS ===================== -->
   <datalist id="cpu-list"></datalist>
   <datalist id="gpu-list"></datalist>
 
-  <!-- ===================== FIREBASE ===================== -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";

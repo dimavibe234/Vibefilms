@@ -2165,3 +2165,164 @@ body.light .card-fps-mini {
   .card-fps-mini .cfm-lbl { font-size: .5rem; }
   .games-toolbar .btn-perf { width: 100%; justify-content: center; }
 }
+/* ============================================================ */
+/* РАСШИРЕННАЯ КАСТОМИЗАЦИЯ ПРОФИЛЯ                                */
+/* ============================================================ */
+
+/* Обёртка аватара в топбаре */
+.user-avatar-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  padding: 2px;
+  background: transparent;
+  flex-shrink: 0;
+  transition: box-shadow .3s ease, background .3s ease;
+}
+.user-avatar-wrap img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+.user-badge {
+  display: inline-block;
+  margin-right: 5px;
+  font-size: 1rem;
+  line-height: 1;
+  vertical-align: middle;
+}
+.user-name {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* Превью карточки профиля */
+.profile-preview {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border-hi);
+  margin: 18px 0 22px;
+  background: var(--bg-card);
+}
+.pp-banner {
+  height: 72px;
+  background: #1f2937;
+  transition: background .3s ease;
+}
+.pp-body {
+  padding: 0 16px 16px;
+  margin-top: -32px;
+  text-align: center;
+}
+.pp-avatar-wrap {
+  display: inline-flex;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  padding: 3px;
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  transition: background .3s ease, box-shadow .3s ease;
+}
+.pp-avatar-wrap img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-card);
+}
+.pp-name {
+  font-weight: 800;
+  font-size: 1.1rem;
+  margin-top: 10px;
+  letter-spacing: -0.02em;
+}
+.pp-bio {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  margin-top: 6px;
+  min-height: 1.2em;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+/* ===== Рамки аватара ===== */
+.af-none { background: transparent; }
+.af-purple   { background: linear-gradient(135deg, #a855f7, #ec4899); box-shadow: 0 0 12px rgba(168,85,247,.5); }
+.af-pink     { background: linear-gradient(135deg, #ec4899, #f472b6); box-shadow: 0 0 12px rgba(236,72,153,.5); }
+.af-gold     { background: linear-gradient(135deg, #fde68a, #f59e0b, #fbbf24); box-shadow: 0 0 14px rgba(245,158,11,.55); }
+.af-neon     { background: linear-gradient(135deg, #06b6d4, #a855f7); box-shadow: 0 0 16px rgba(6,182,212,.6); }
+.af-rainbow  { background: conic-gradient(from 0deg, #f87171, #fbbf24, #34d399, #3b82f6, #a855f7, #f87171); }
+.af-glow     { background: transparent; padding: 3px; box-shadow: 0 0 0 2px var(--accent), 0 0 0 5px var(--accent-soft), 0 0 20px var(--accent-glow); }
+.af-leaf     { background: linear-gradient(135deg, #34d399, #10b981); box-shadow: 0 0 12px rgba(16,185,129,.5); }
+
+/* ===== Фоны карточки ===== */
+.pb-none    { background: linear-gradient(135deg, #1f2937, #111827); }
+.pb-sunset  { background: linear-gradient(135deg, #f97316 0%, #ec4899 55%, #8b5cf6 100%); }
+.pb-ocean   { background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 55%, #14b8a6 100%); }
+.pb-forest  { background: linear-gradient(135deg, #166534 0%, #22c55e 55%, #86efac 100%); }
+.pb-neon    { background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #06b6d4 100%); }
+.pb-galaxy  { background: linear-gradient(135deg, #1e1b4b 0%, #4c1d95 55%, #1e40af 100%); }
+.pb-mono    { background: linear-gradient(135deg, #374151 0%, #1f2937 100%); }
+.pb-candy   { background: linear-gradient(135deg, #fbbf24 0%, #f472b6 55%, #a78bfa 100%); }
+
+/* ===== Стили ника ===== */
+.ns-normal  { }
+.ns-gradient {
+  background: linear-gradient(120deg, currentColor 0%, var(--accent) 55%, var(--accent-2) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.ns-neon {
+  text-shadow: 0 0 6px currentColor, 0 0 18px currentColor;
+}
+.ns-glow {
+  text-shadow: 0 0 12px var(--accent-glow), 0 0 24px var(--accent-soft);
+}
+.ns-mono {
+  font-family: ui-monospace, SFMono-Regular, "Courier New", monospace;
+  letter-spacing: 0;
+}
+
+/* ===== Селекторы ===== */
+.profile-pick-group { margin-bottom: 18px; }
+.pick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.pick-btn {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-hi);
+  background: var(--bg-input);
+  color: var(--text);
+  font: 700 0.8rem var(--font-ui);
+  cursor: pointer;
+  transition: all 0.22s ease;
+  min-width: 44px;
+  text-align: center;
+}
+.pick-btn:hover {
+  border-color: var(--accent);
+  box-shadow: 0 4px 14px var(--accent-soft);
+}
+.pick-btn.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 16px var(--accent-glow);
+}
+
+/* Светлая тема — небольшая поправка превью */
+body.light .pp-banner { filter: saturate(0.95); }
+body.light .pp-avatar-wrap img { background: #fff; }
