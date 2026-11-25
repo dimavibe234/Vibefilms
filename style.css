@@ -2326,3 +2326,171 @@ body.light .card-fps-mini {
 /* Светлая тема — небольшая поправка превью */
 body.light .pp-banner { filter: saturate(0.95); }
 body.light .pp-avatar-wrap img { background: #fff; }
+/* ============================================================ */
+/* ЛЮДИ / АНКЕТЫ / ДРУЗЬЯ / ЧАТ                                  */
+/* ============================================================ */
+
+.nav-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 999px;
+  background: #ef4444; color: #fff;
+  font-size: 0.68rem; font-weight: 900; margin-left: 4px;
+}
+
+.people-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin: 8px 0 18px; flex-wrap: wrap;
+}
+.people-toolbar .results-info { margin: 0; }
+
+.people-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.person-card {
+  background: linear-gradient(180deg, var(--bg-card-hi), var(--bg-card));
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  transition: all .35s cubic-bezier(.2,.8,.2,1);
+}
+.person-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-lift), 0 0 40px var(--accent-soft);
+}
+
+.pc-head { display: flex; align-items: center; gap: 12px; padding: 16px; }
+.pc-avatar { width: 52px; height: 52px; border-radius: 50%; padding: 2px; display: inline-flex; flex-shrink: 0; }
+.pc-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: var(--bg-card); }
+.pc-name { font-weight: 800; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pc-bio { font-size: 0.74rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pc-score {
+  font-weight: 900; font-size: 0.82rem; padding: 4px 10px;
+  border-radius: 999px; background: var(--accent-soft); color: var(--accent-hover);
+  flex-shrink: 0;
+}
+
+.anketa-preview { padding: 0 16px 14px; font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+.anketa-tag {
+  display: inline-block; padding: 3px 9px; margin: 2px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  font-weight: 700; font-size: 0.7rem;
+}
+
+.pc-actions { display: flex; gap: 8px; padding: 0 16px 16px; margin-top: auto; }
+.pc-action {
+  flex: 1; padding: 10px;
+  border-radius: 10px;
+  font: 800 0.8rem var(--font-ui);
+  cursor: pointer; border: none;
+  transition: all .2s ease;
+}
+.pc-btn-skip {
+  background: transparent; border: 1px solid var(--border-hi); color: var(--text);
+}
+.pc-btn-skip:hover { border-color: #ef4444; color: #ef4444; }
+.pc-btn-request {
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  color: #fff;
+  box-shadow: 0 6px 16px var(--accent-glow);
+}
+.pc-btn-request:hover { transform: translateY(-1px); }
+
+/* Друзья */
+.friends-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media (max-width: 768px) { .friends-grid { grid-template-columns: 1fr; } }
+
+.requests-list, .friends-list { display: flex; flex-direction: column; gap: 10px; }
+.request-item, .friend-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px; border-radius: 14px;
+  background: var(--bg-card); border: 1px solid var(--border);
+}
+.request-item img, .friend-item img {
+  width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--bg-card-hi);
+}
+.req-name { flex: 1; font-weight: 700; font-size: 0.9rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.req-actions { display: flex; gap: 6px; }
+.req-btn {
+  padding: 7px 12px; border-radius: 8px; border: none;
+  font-weight: 800; font-size: 0.78rem; cursor: pointer;
+  transition: all .18s ease;
+}
+.req-accept { background: #10b981; color: #fff; }
+.req-accept:hover { background: #059669; }
+.req-decline { background: transparent; border: 1px solid #ef4444; color: #ef4444; }
+.req-decline:hover { background: rgba(239,68,68,.1); }
+.req-chat {
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  color: #fff;
+  box-shadow: 0 6px 16px var(--accent-glow);
+}
+.req-chat:hover { transform: translateY(-1px); }
+
+/* Чат */
+.chat-wrap { display: flex; flex-direction: column; height: 70vh; max-height: 540px; }
+.chat-head {
+  display: flex; gap: 12px; align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.chat-head img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--bg-card-hi); }
+.chat-name { font-weight: 800; }
+.chat-status { font-size: 0.74rem; color: var(--text-muted); }
+.chat-messages {
+  flex: 1; overflow-y: auto; padding: 16px;
+  display: flex; flex-direction: column; gap: 8px;
+  overscroll-behavior: contain;
+}
+.chat-msg {
+  padding: 9px 13px; border-radius: 14px;
+  max-width: 80%; word-break: break-word; line-height: 1.35;
+  font-size: 0.88rem;
+}
+.chat-msg.from-me {
+  align-self: flex-end;
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.chat-msg.from-them {
+  align-self: flex-start;
+  background: var(--bg-card-hi);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+}
+.chat-msg-time { font-size: 0.65rem; opacity: 0.65; margin-top: 4px; }
+.chat-form {
+  display: flex; gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+.chat-form input { flex: 1; margin: 0; }
+.chat-form .btn-primary { padding: 0 18px; }
+
+/* Анкета */
+.anketa-tabs { display: flex; gap: 6px; margin-bottom: 18px; }
+.anketa-tab {
+  flex: 1; padding: 9px;
+  border-radius: 10px;
+  border: 1px solid var(--border-hi);
+  background: var(--bg-input);
+  color: var(--text);
+  font: 700 0.82rem var(--font-ui);
+  cursor: pointer;
+  transition: all .18s ease;
+}
+.anketa-tab.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  color: #fff; border-color: transparent;
+  box-shadow: 0 4px 14px var(--accent-glow);
+}
+.anketa-section { display: none; }
+.anketa-section.active { display: block; animation: fadeUp 0.25s ease; }

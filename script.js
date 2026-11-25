@@ -1,16 +1,17 @@
 // ============================================================  
-// PlayFrame — script.js (ЧАСТЬ 1 из 2)                          
-// v12: расширенная кастомизация профиля                          
+// PlayFrame — script.js (ЧАСТЬ 1 из 3)                          
+// v13: анкеты, матчинг, друзья, чат (это часть 1)                 
 // ============================================================  
 
 var AI_FN       = "https://functions.yandexcloud.net/d4edhc3vf41qqntfflsp";
 var BASE        = "https://functions.yandexcloud.net/d4e3i0pd816463uq33eu";
 var GAMES_AI_FN = "https://functions.yandexcloud.net/d4ep609aq1goe7o3c13k";
 
-// ===== Профиль — константы и значения по умолчанию =====  
+// ===== Профиль =====  
 var DEFAULT_PROFILE = {
   name: "", avatar: "", color: "#e8eaed", bio: "",
-  avatarFrame: "none", banner: "none", nameStyle: "normal", badge: ""
+  avatarFrame: "none", banner: "none", nameStyle: "normal", badge: "",
+  anketa_games: null, anketa_movies: null  
 };
 var AVATAR_FRAMES   = ["none","purple","pink","gold","neon","rainbow","glow","leaf"];
 var PROFILE_BANNERS = ["none","sunset","ocean","forest","neon","galaxy","mono","candy"];
@@ -28,13 +29,13 @@ function sanitizeProfile(p) {
     avatarFrame: AVATAR_FRAMES.indexOf(p.avatarFrame) !== -1 ? p.avatarFrame : "none",
     banner: PROFILE_BANNERS.indexOf(p.banner) !== -1 ? p.banner : "none",
     nameStyle: NAME_STYLES.indexOf(p.nameStyle) !== -1 ? p.nameStyle : "normal",
-    badge: PROFILE_BADGES.indexOf(p.badge) !== -1 ? p.badge : ""
+    badge: PROFILE_BADGES.indexOf(p.badge) !== -1 ? p.badge : "",
+    anketa_games: p.anketa_games || null,
+    anketa_movies: p.anketa_movies || null  
   };
 }
 
-// ============================================================  
-// PC / FPS — ТАБЛИЦЫ ПРОИЗВОДИТЕЛЬНОСТИ                          
-// ============================================================  
+// ===== Таблицы производительности =====  
 var GPU_SCORES = {
   "rtx 4090": 100, "rtx 4080 super": 96, "rtx 4080": 92,
   "rtx 4070 ti super": 89, "rtx 4070 ti": 85, "rtx 4070 super": 82,
@@ -293,9 +294,7 @@ function renderFpsBlock(game) {
   return html;
 }
 
-// ============================================================  
-// КАТЕГОРИИ, ЖАНРЫ, СОСТОЯНИЕ                                  
-// ============================================================  
+// ===== Категории, жанры, состояние =====  
 var categoryParams = {
   action:    { genre: "боевик",      minRating: "6.5", minVotes: "20000" },
   comedy:    { genre: "комедия",     minRating: "6.5", minVotes: "20000" },
@@ -342,7 +341,8 @@ var gamesDisplayCount = 100;
 var gameFilters = { query: "", mood: "all", price: "all", year: "all", sort: "popular" };
 var waveType = "games";
 var favoritesType = "games";
-var perfMode = localStorage.getItem("mood_perf_mode") === "1";
+var perfMode = false;
+try { perfMode = localStorage.getItem("mood_perf_mode") === "1"; } catch (e) {}
 var currentOpenGame = null;
 var _saveTimer = null;
 var _profileDraft = Object.assign({}, DEFAULT_PROFILE);
@@ -382,9 +382,7 @@ function saveKinopoiskCache() {
 }
 function $(id) { return document.getElementById(id); }
 
-// ============================================================  
-// УТИЛИТЫ                                                      
-// ============================================================  
+// ===== Утилиты =====  
 function esc(s) {
   return String(s || "").replace(/[&<>"']/g, function (c) {
     return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
@@ -513,9 +511,7 @@ function extractYear(title) {
 }
 function cleanTitle(title) { return (title || "").replace(/\s*\(\d{4}\)\s*$/, "").trim(); }
 
-// ============================================================  
-// ИЗБРАННОЕ ИГР / СТАТИСТИКА / ДИЗЛАЙКИ                        
-// ============================================================  
+// ===== Избранное игр / статистика / дизлайки =====  
 function getGameFavorites() {
   try { return JSON.parse(localStorage.getItem("mood_game_favorites") || "[]"); }
   catch (e) { return []; }
@@ -608,9 +604,7 @@ function dislikeGameById(appid) {
   showToast("Скрыто. Похожее больше не покажем", false);
 }
 
-// ============================================================  
-// КИНОПОИСК                                                    
-// ============================================================  
+// ===== Кинопоиск =====  
 function mapDoc(d) {
   return {
     kp_id: d.id || null,
@@ -689,9 +683,7 @@ function popularitySort(a, b) {
          (Math.log10((a.votes || 0) + 1) * 3 + (a.rating || 0));
 }
 
-// ============================================================  
-// FIREBASE                                                    
-// ============================================================  
+// ===== Firebase =====  
 function initFirebase() {
   if (!window.firebaseAuth) return;
   fbAuth = window.firebaseAuth;
@@ -786,9 +778,7 @@ function applyRemoteData(d) {
   }
 }
 
-// ============================================================  
-// RENDER USER INFO (с рамкой, стилем, бейджем)                     
-// ============================================================  
+// ===== Render user info / профиль =====  
 function renderUserInfo() {
   var el = $("user-info"), btn = $("google-login-btn");
   if (!el) return;
@@ -828,7 +818,6 @@ function renderUserInfo() {
     if (btn) btn.style.display = "inline-flex";
   }
 }
-
 function initGoogleLogin() {
   var btn = $("google-login-btn");
   if (!btn) return;
@@ -839,10 +828,6 @@ function initGoogleLogin() {
     });
   };
 }
-
-// ============================================================  
-// ПРОФИЛЬ — превью, черновик, сохранение                        
-// ============================================================  
 function _profilePreviewApply() {
   var d = sanitizeProfile(_profileDraft);
   var banner = $("profile-preview-banner");
@@ -863,7 +848,6 @@ function _profilePreviewApply() {
   }
   if (bio) bio.textContent = d.bio || "Коротко о себе";
 }
-
 function _syncPickRows() {
   document.querySelectorAll(".pick-row").forEach(function (row) {
     var group = row.dataset.group;
@@ -876,7 +860,6 @@ function _syncPickRows() {
     d.classList.toggle("active", d.dataset.color === _profileDraft.color);
   });
 }
-
 function openProfile() {
   var m = $("profile-modal");
   _profileDraft = sanitizeProfile(currentProfile);
@@ -893,14 +876,11 @@ function openProfile() {
     "Избранных игр: <b>" + getGameFavorites().length + "</b>";
   if (m) { m.classList.add("open"); m.setAttribute("aria-hidden", "false"); }
 }
-
 function initProfile() {
   var m = $("profile-modal");
   if ($("profile-modal-close")) $("profile-modal-close").onclick = function () {
     if (m) { m.classList.remove("open"); m.setAttribute("aria-hidden", "true"); }
   };
-
-  // Ввод в поля — обновляем черновик и превью  
   if ($("profile-name-input")) $("profile-name-input").oninput = function () {
     _profileDraft.name = this.value.slice(0, 40); _profilePreviewApply();
   };
@@ -910,8 +890,6 @@ function initProfile() {
   if ($("profile-bio-input")) $("profile-bio-input").oninput = function () {
     _profileDraft.bio = this.value.slice(0, 120); _profilePreviewApply();
   };
-
-  // Селекторы-группы (рамка, фон, стиль, бейдж)  
   document.querySelectorAll(".pick-row").forEach(function (row) {
     row.querySelectorAll(".pick-btn").forEach(function (btn) {
       btn.onclick = function () {
@@ -922,8 +900,6 @@ function initProfile() {
       };
     });
   });
-
-  // Цвет ника  
   document.querySelectorAll(".profile-color-dot").forEach(function (dot) {
     dot.onclick = function () {
       _profileDraft.color = this.dataset.color;
@@ -931,34 +907,25 @@ function initProfile() {
       _profilePreviewApply();
     };
   });
-
-  // Сохранить  
   if ($("profile-save-btn")) $("profile-save-btn").onclick = function () {
     currentProfile = sanitizeProfile(_profileDraft);
     try { localStorage.setItem("mood_profile", JSON.stringify(currentProfile)); } catch (e) {}
     renderUserInfo();
     saveUserData();
+    if (typeof pushPublicProfile === "function") pushPublicProfile();
     showToast("Профиль сохранён");
     if (m) { m.classList.remove("open"); m.setAttribute("aria-hidden", "true"); }
   };
-
-  // Восстановить сохранённое  
   var saved = localStorage.getItem("mood_profile");
-  if (saved) {
-    try { currentProfile = sanitizeProfile(JSON.parse(saved)); } catch (e) {}
-  }
+  if (saved) { try { currentProfile = sanitizeProfile(JSON.parse(saved)); } catch (e) {} }
 }
-
-// Публичная карточка профиля — пригодится для матчинга тиммейтов  
 function buildProfileCardHtml(profile) {
   var d = sanitizeProfile(profile);
   var src = /^https?:\/\//i.test(d.avatar) ? d.avatar : "https://via.placeholder.com/120x120/1a1d28/8f9bab?text=%3F";
   return '<div class="profile-preview">' +
     '<div class="pp-banner pb-' + d.banner + '"></div>' +
     '<div class="pp-body">' +
-      '<div class="pp-avatar-wrap af-' + d.avatarFrame + '">' +
-        '<img src="' + esc(src) + '" alt="">' +
-      '</div>' +
+      '<div class="pp-avatar-wrap af-' + d.avatarFrame + '"><img src="' + esc(src) + '" alt=""></div>' +
       '<div class="pp-name ns-' + d.nameStyle + '" style="color:' + esc(d.color) + '">' +
         (d.badge ? '<span class="user-badge">' + d.badge + '</span>' : '') +
         esc(d.name || "Без имени") +
@@ -968,9 +935,7 @@ function buildProfileCardHtml(profile) {
   '</div>';
 }
 
-// ============================================================  
-// СИНХРОНИЗАЦИЯ                                                 
-// ============================================================  
+// ===== Синхронизация =====  
 function saveUserData() {
   if (!currentUser || !firebaseReady || !fbDb) return;
   setSyncStatus("busy", "Сохранение...");
@@ -1047,9 +1012,7 @@ function refreshUIAfterLoad() {
   else if (id === "section-movies") renderPlaylists && renderPlaylists();
 }
 
-// ============================================================  
-// ПОЛЬЗОВАТЕЛЬСКИЕ ДАННЫЕ / ПЛЕЙЛИСТЫ                            
-// ============================================================  
+// ===== Пользовательские данные / плейлисты =====  
 function getHidden() {
   try { return JSON.parse(localStorage.getItem("mood_hidden") || "[]"); }
   catch (e) { return []; }
@@ -1191,9 +1154,7 @@ function togglePlaylistWatched(n, t) {
   renderPlaylists();
 }
 
-// ============================================================  
-// РЕНДЕР ФИЛЬМОВ (карточка, модалка, AI, поиск)                  
-// ============================================================  
+// ===== Рендер фильмов =====  
 function buildStars(r) {
   var s = "";
   for (var i = 1; i <= 5; i++) {
@@ -1264,7 +1225,6 @@ function buildMovieCardHtml(m) {
   h += '</div></div>';
   return h;
 }
-
 var RENDER_LIMIT = 20;
 function render(movies, append, firstLimit) {
   var el = $("results");
@@ -1297,7 +1257,6 @@ function render(movies, append, firstLimit) {
   var ts = $("type-switch");
   if (ts) ts.style.display = (currentMood || lastSearchQuery) ? "flex" : "none";
 }
-
 function openMovieModal(title) {
   var m = null;
   for (var i = 0; i < currentMovies.length; i++) {
@@ -1358,9 +1317,7 @@ function dislikeMovieAndClose(title) {
   else render(currentMovies, false);
 }
 
-// ============================================================  
-// AI ФИЛЬМЫ / ПОИСК / MOOD                                      
-// ============================================================  
+// ===== AI фильмы / поиск / mood =====  
 function askAI(text) {
   return fetch(AI_FN, {
     method: "POST",
@@ -1628,9 +1585,14 @@ function loadMoviesByMood(mood) {
       el.innerHTML = '<p class="empty">Ошибка загрузки.</p>';
     });
 }
+
 // ============================================================  
-// PlayFrame — script.js (ЧАСТЬ 2 из 2)                          
-// Продолжение части 1. Вставьте СРАЗУ ПОСЛЕ функции loadMoviesByMood  
+// КОНЕЦ ЧАСТИ 1 — дальше части 2 (игры, волна, избранное, ПК, init)  
+// и 3 (люди, друзья, чат)                                        
+// ============================================================  
+// ============================================================  
+// PlayFrame — script.js (ЧАСТЬ 2 из 3)                          
+// Игры, волна, избранное, панель ПК, init()                      
 // ============================================================  
 
 // ============================================================  
@@ -1693,8 +1655,7 @@ async function gameAiSearch() {
         var gn = normalize(g.name);
         if (!gn) return;
         if (gn === key || gn.indexOf(key) !== -1 || key.indexOf(gn) !== -1) {
-          seen[g.appid] = 1;
-          found.push(g);
+          seen[g.appid] = 1; found.push(g);
         }
       });
     });
@@ -1974,9 +1935,7 @@ function openGameModal(game) {
       (votes ? ' · ' + Math.round(votes).toLocaleString('ru-RU') + ' рекомендаций' : '') + '</p>';
   }
   h += '</div></div>';
-
   h += renderFpsBlock(game);
-
   h += '<button type="button" class="btn-primary" id="game-modal-fav-btn" style="width:100%;margin-top:15px;margin-bottom:10px;background:' +
        (fav ? '#ec4899' : 'var(--accent)') + '" data-appid="' + esc(String(appid || '')) + '">' +
        (fav ? '♥ В избранном' : '♡ В избранное') + '</button>';
@@ -2254,16 +2213,14 @@ function populateDatalists() {
     cpuList.innerHTML = "";
     Object.keys(CPU_SCORES).sort().forEach(function (k) {
       var opt = document.createElement("option");
-      opt.value = k;
-      cpuList.appendChild(opt);
+      opt.value = k; cpuList.appendChild(opt);
     });
   }
   if (gpuList) {
     gpuList.innerHTML = "";
     Object.keys(GPU_SCORES).sort().forEach(function (k) {
       var opt = document.createElement("option");
-      opt.value = k;
-      gpuList.appendChild(opt);
+      opt.value = k; gpuList.appendChild(opt);
     });
   }
 }
@@ -2391,30 +2348,37 @@ function initPcPanel() {
 }
 
 // ============================================================  
-// ПЕРЕКЛЮЧАТЕЛЬ РАЗДЕЛОВ                                         
+// ПЕРЕКЛЮЧАТЕЛЬ РАЗДЕЛОВ (все 6, включая people/friends)        
 // ============================================================  
 function switchMainTab(tab) {
   document.querySelectorAll(".main-section").forEach(function (s) { s.classList.remove("active"); });
   document.querySelectorAll(".main-nav .nav-link").forEach(function (b) { b.classList.remove("active"); });
 
+  var secId, navId;
+  if (tab === "games")          { secId = "section-games";      navId = "nav-games"; }
+  else if (tab === "wave")      { secId = "section-wave";       navId = "nav-wave"; }
+  else if (tab === "favorites") { secId = "section-favorites";  navId = "nav-favorites"; }
+  else if (tab === "people")    { secId = "section-people";     navId = "nav-people"; }
+  else if (tab === "friends")   { secId = "section-friends";    navId = "nav-friends"; }
+  else                          { secId = "section-movies";     navId = "nav-movies"; }
+
+  var secEl = $(secId), navEl = $(navId);
+  if (secEl) secEl.classList.add("active");
+  if (navEl) navEl.classList.add("active");
+
   if (tab === "games") {
-    $("section-games").classList.add("active");
-    $("nav-games").classList.add("active");
     if (!gamesStarted) loadGames();
     updatePerfBtnState();
   } else if (tab === "wave") {
-    $("section-wave").classList.add("active");
-    $("nav-wave").classList.add("active");
     if (!gamesStarted) loadGames();
     setTimeout(renderWave, 100);
   } else if (tab === "favorites") {
-    $("section-favorites").classList.add("active");
-    $("nav-favorites").classList.add("active");
     if (!gamesStarted) loadGames();
     setTimeout(renderFavorites, 100);
-  } else {
-    $("section-movies").classList.add("active");
-    $("nav-movies").classList.add("active");
+  } else if (tab === "people") {
+    if (typeof preparePeopleSection === "function") preparePeopleSection();
+  } else if (tab === "friends") {
+    if (typeof prepareFriendsSection === "function") prepareFriendsSection();
   }
 }
 
@@ -2498,7 +2462,6 @@ function init() {
   var fsb = $("force-sync-btn");
   if (fsb) fsb.onclick = forceSyncNow;
 
-  // Табы фильмов  
   document.querySelectorAll(".tab-btn:not(.game-tab-btn)").forEach(function (btn) {
     btn.onclick = function () {
       document.querySelectorAll(".tab-btn:not(.game-tab-btn)").forEach(function (b) { b.classList.remove("active"); });
@@ -2508,7 +2471,6 @@ function init() {
       if (t) t.classList.add("active");
     };
   });
-  // Табы игр  
   document.querySelectorAll(".game-tab-btn").forEach(function (btn) {
     btn.onclick = function () {
       document.querySelectorAll(".game-tab-btn").forEach(function (b) { b.classList.remove("active"); });
@@ -2523,8 +2485,7 @@ function init() {
     var q = $("search-input").value.trim();
     if (!q) return;
     $("results").innerHTML = '<p class="empty">Поиск...</p>';
-    currentMood = null;
-    lastSearchQuery = q;
+    currentMood = null; lastSearchQuery = q;
     searchByFilmList(q);
   };
   if ($("search-input")) $("search-input").onkeydown = function (e) {
@@ -2580,8 +2541,7 @@ function init() {
       if (rv) rv.textContent = rF.value;
       rF.style.backgroundSize = (rF.value / rF.max * 100) + "% 100%";
     };
-    rF.oninput = upd;
-    upd();
+    rF.oninput = upd; upd();
   }
 
   document.querySelectorAll(".color-dot").forEach(function (d) {
@@ -2634,8 +2594,7 @@ function init() {
   document.addEventListener("keydown", function (e) {
     if (e.key !== "Escape") return;
     if (e.target && e.target.closest && e.target.closest("input, textarea, [contenteditable]")) return;
-    var opened = document.querySelector(".modal.open, .side-panel.open");
-    if (!opened) return;
+    if (!$(".modal.open") && !$(".side-panel.open")) return;
     document.querySelectorAll(".modal.open").forEach(function (m) {
       m.classList.remove("open"); m.setAttribute("aria-hidden", "true");
     });
@@ -2644,11 +2603,14 @@ function init() {
     });
     currentOpenGame = null;
   });
-  ["movie-modal", "game-modal", "profile-modal"].forEach(function (id) {
+  ["movie-modal", "game-modal", "profile-modal", "anketa-modal", "chat-modal"].forEach(function (id) {
     var m = $(id);
     if (!m) return;
     m.addEventListener("click", function (e) {
-      if (e.target === m) { m.classList.remove("open"); m.setAttribute("aria-hidden", "true"); }
+      if (e.target === m) {
+        m.classList.remove("open"); m.setAttribute("aria-hidden", "true");
+        if (id === "chat-modal" && typeof closeChat === "function") closeChat();
+      }
     });
   });
 
@@ -2736,6 +2698,8 @@ function init() {
     if (filteredGames.length <= gamesDisplayCount) this.style.display = "none";
   };
 
+  if (typeof initPeopleModule === "function") initPeopleModule();
+
   setTimeout(function () { if (!gamesStarted) loadGames(); }, 2000);
 }
 
@@ -2746,5 +2710,767 @@ if (document.readyState === "loading") {
 }
 
 // ============================================================  
-// КОНЕЦ ЧАСТИ 2 — файл завершён                                  
+// КОНЕЦ ЧАСТИ 2 — часть 3 добавит: люди, анкеты, матчинг,          
+// заявки в друзья, чаты, pushPublicProfile, initPeopleModule,      
+// preparePeopleSection, prepareFriendsSection.                    
+// ============================================================  
+// ============================================================  
+// PlayFrame — script.js (ЧАСТЬ 3 из 3)                          
+// Люди, анкеты, матчинг, заявки в друзья, чаты                  
+// ============================================================  
+
+// ============================================================  
+// СОСТОЯНИЕ                                                    
+// ============================================================  
+var peopleType = "games";
+var allPublicProfiles = [];
+var allPeopleCandidates = [];
+var inboundRequests = [];
+var outboundRequests = [];
+var myFriendships = [];
+var activeChatUid = null;
+var activeChatId = null;
+var chatUnsub = null;
+var peopleDataLoading = false;
+
+// ============================================================  
+// SKIPS (пропуски)                                             
+// ============================================================  
+function getSkips() {
+  try { return JSON.parse(localStorage.getItem("mood_skips") || "[]"); }
+  catch (e) { return []; }
+}
+function addSkip(uid) {
+  var s = getSkips();
+  if (s.indexOf(uid) === -1) s.push(uid);
+  try { localStorage.setItem("mood_skips", JSON.stringify(s)); } catch (e) {}
+}
+function resetSkips() {
+  try { localStorage.removeItem("mood_skips"); } catch (e) {}
+}
+
+// ============================================================  
+// МЕТКИ                                                         
+// ============================================================  
+function peopleLabel(url) {
+  return /^https?:\/\//i.test(url || "") ? url  
+    : "https://via.placeholder.com/80x80/1a1d28/8f9bab?text=%3F";
+}
+function goalLabel(v) {
+  return { ranked: "Ранкед", casual: "Казуал", coop: "Кооп", tournament: "Турниры" }[v] || v || "";
+}
+function voiceLabel(v) { return v === "yes" ? "Голос: да" : "Без голоса"; }
+function formatLabel(v) {
+  return {
+    "watch-together": "Смотрим вместе",
+    "separate": "Смотрим отдельно",
+    "chat": "Болтаем о кино"
+  }[v] || v || "";
+}
+function dubbingLabel(v) { return v === "subs" ? "Субтитры" : "Дубляж"; }
+
+// ============================================================  
+// ПУБЛИЧНЫЙ ПРОФИЛЬ → Firestore                                  
+// ============================================================  
+async function pushPublicProfile(uid) {
+  uid = uid || (currentUser && currentUser.id);
+  if (!uid || !firebaseReady || !fbDb) return;
+  var d = sanitizeProfile(currentProfile);
+  var payload = {
+    name: d.name || (currentUser ? currentUser.name : ""),
+    avatar: d.avatar || (currentUser ? currentUser.picture : ""),
+    bio: d.bio || "",
+    color: d.color || "#e8eaed",
+    avatarFrame: d.avatarFrame || "none",
+    banner: d.banner || "none",
+    nameStyle: d.nameStyle || "normal",
+    badge: d.badge || "",
+    anketa_games: currentProfile.anketa_games || null,
+    anketa_movies: currentProfile.anketa_movies || null,
+    updatedAt: window.firebaseServerTimestamp ? window.firebaseServerTimestamp() : new Date()
+  };
+  try {
+    await window.firebaseSetDoc(window.firebaseDoc(fbDb, "profiles", uid), payload, { merge: true });
+  } catch (e) {
+    console.error("[profiles/save]", e);
+  }
+}
+
+// ============================================================  
+// АНКЕТА                                                         
+// ============================================================  
+function openAnketaModal() {
+  var m = $("anketa-modal");
+  var g = currentProfile.anketa_games || {};
+  var mv = currentProfile.anketa_movies || {};
+
+  if ($("ak-games-taste"))     $("ak-games-taste").value = (g.taste || []).join(", ");
+  if ($("ak-games-top"))       $("ak-games-top").value = (g.topGames || []).join(", ");
+  if ($("ak-games-platform"))  $("ak-games-platform").value = g.platform || "pc";
+  if ($("ak-games-goal"))      $("ak-games-goal").value = g.goal || "casual";
+  if ($("ak-games-voice"))     $("ak-games-voice").value = g.voice || "no";
+  if ($("ak-games-schedule"))  $("ak-games-schedule").value = (g.schedule || []).join(", ");
+  if ($("ak-games-about"))     $("ak-games-about").value = g.about || "";
+
+  if ($("ak-movies-taste"))    $("ak-movies-taste").value = (mv.taste || []).join(", ");
+  if ($("ak-movies-top"))      $("ak-movies-top").value = (mv.topMovies || []).join(", ");
+  if ($("ak-movies-format"))   $("ak-movies-format").value = mv.format || "watch-together";
+  if ($("ak-movies-spoiler"))  $("ak-movies-spoiler").value = mv.spoiler || "no";
+  if ($("ak-movies-dubbing"))  $("ak-movies-dubbing").value = mv.dubbing || "dub";
+  if ($("ak-movies-schedule")) $("ak-movies-schedule").value = (mv.schedule || []).join(", ");
+  if ($("ak-movies-about"))    $("ak-movies-about").value = mv.about || "";
+
+  // Открыть вкладку, где у пользователя уже есть данные, иначе Игры  
+  var hasG = !!g.taste || !!g.topGames;
+  var hasM = !!mv.taste || !!mv.topMovies;
+  if (hasM && !hasG) {
+    document.querySelectorAll(".anketa-tab").forEach(function (b) {
+      b.classList.toggle("active", b.dataset.anketa === "movies");
+    });
+    document.querySelectorAll(".anketa-section").forEach(function (s) {
+      s.classList.toggle("active", s.id === "anketa-movies");
+    });
+  }
+
+  if (m) { m.classList.add("open"); m.setAttribute("aria-hidden", "false"); }
+}
+
+async function saveAnketa() {
+  function readList(v) {
+    return String(v || "").split(",").map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 10);
+  }
+
+  currentProfile.anketa_games = {
+    taste: readList($("ak-games-taste").value),
+    topGames: readList($("ak-games-top").value),
+    platform: $("ak-games-platform").value,
+    goal: $("ak-games-goal").value,
+    voice: $("ak-games-voice").value,
+    schedule: readList($("ak-games-schedule").value),
+    about: ($("ak-games-about").value || "").slice(0, 200)
+  };
+  currentProfile.anketa_movies = {
+    taste: readList($("ak-movies-taste").value),
+    topMovies: readList($("ak-movies-top").value),
+    format: $("ak-movies-format").value,
+    spoiler: $("ak-movies-spoiler").value,
+    dubbing: $("ak-movies-dubbing").value,
+    schedule: readList($("ak-movies-schedule").value),
+    about: ($("ak-movies-about").value || "").slice(0, 200)
+  };
+
+  try { localStorage.setItem("mood_profile", JSON.stringify(currentProfile)); } catch (e) {}
+  await pushPublicProfile();
+  saveUserData();
+
+  showToast("Анкета сохранена");
+  var m = $("anketa-modal");
+  if (m) { m.classList.remove("open"); m.setAttribute("aria-hidden", "true"); }
+  updateAnketaButtonState();
+  renderPeopleCandidates();
+}
+
+function updateAnketaButtonState() {
+  var btn = $("anketa-btn");
+  if (!btn) return;
+  var hasAny = !!currentProfile.anketa_movies || !!currentProfile.anketa_games;
+  var lbl = btn.querySelector(".bp-lbl");
+  if (lbl) lbl.textContent = hasAny ? "Изменить анкету" : "Заполнить анкету";
+}
+
+// ============================================================  
+// МАТЧИНГ                                                      
+// ============================================================  
+function jaccard(a, b) {
+  a = (a || []).map(function (x) { return String(x).toLowerCase().trim(); }).filter(Boolean);
+  b = (b || []).map(function (x) { return String(x).toLowerCase().trim(); }).filter(Boolean);
+  if (!a.length && !b.length) return 0;
+  var setA = {}, setB = {}, uni = {}, inter = 0;
+  a.forEach(function (x) { setA[x] = 1; uni[x] = 1; });
+  b.forEach(function (x) { setB[x] = 1; uni[x] = 1; });
+  for (var k in setA) if (setB[k]) inter++;
+  var tot = Object.keys(uni).length;
+  return tot ? inter / tot : 0;
+}
+
+function computeMatchScore(profile) {
+  if (!currentUser) return 0;
+  var mine = currentProfile["anketa_" + peopleType];
+  var theirs = profile["anketa_" + peopleType];
+  if (!mine || !theirs) return 0;
+
+  if (peopleType === "games") {
+    if (mine.platform && theirs.platform && mine.platform !== theirs.platform) return 0;
+    if (mine.goal && theirs.goal && mine.goal !== theirs.goal) return 0;
+    if (mine.voice === "yes" && theirs.voice !== "yes") return 0;
+    if (theirs.voice === "yes" && mine.voice !== "yes") return 0;
+  } else {
+    if (mine.format && theirs.format && mine.format !== theirs.format) return 0;
+    if (mine.spoiler && theirs.spoiler && mine.spoiler !== theirs.spoiler) return 0;
+  }
+
+  var score = 0;
+  if (peopleType === "games") {
+    score += 0.35 * jaccard(mine.taste, theirs.taste);
+    score += 0.25 * jaccard(mine.topGames, theirs.topGames);
+    score += 0.15 * jaccard(mine.schedule, theirs.schedule);
+    score += 0.10 * (mine.voice === theirs.voice ? 1 : 0);
+    score += 0.10 * (mine.goal === theirs.goal ? 1 : 0);
+  } else {
+    score += 0.35 * jaccard(mine.taste, theirs.taste);
+    score += 0.30 * jaccard(mine.topMovies, theirs.topMovies);
+    score += 0.15 * jaccard(mine.schedule, theirs.schedule);
+    score += 0.10 * (mine.dubbing === theirs.dubbing ? 1 : 0);
+    score += 0.10 * (mine.format === theirs.format ? 1 : 0);
+  }
+  return score;
+}
+
+// ============================================================  
+// КАНДИДАТЫ                                                    
+// ============================================================  
+async function loadPeopleCandidates() {
+  var el = $("people-results");
+  if (!el) return;
+  if (!currentUser) {
+    el.innerHTML = '<p class="empty">Войдите через Google, чтобы видеть анкеты.</p>';
+    if ($("people-info")) $("people-info").textContent = "Требуется вход";
+    return;
+  }
+  if (!firebaseReady || !fbDb) {
+    el.innerHTML = '<p class="empty">Подключаемся к Firebase...</p>';
+    return;
+  }
+  if (peopleDataLoading) return;
+  peopleDataLoading = true;
+  el.innerHTML = '<p class="empty">Загружаем анкеты...</p>';
+
+  try {
+    await pushPublicProfile();
+
+    var q = window.firebaseQuery(
+      window.firebaseCollection(fbDb, "profiles"),
+      window.firebaseLimit(100)
+    );
+    var snap = await window.firebaseGetDocs(q);
+    allPublicProfiles = [];
+    snap.forEach(function (d) {
+      allPublicProfiles.push(Object.assign({ uid: d.id }, d.data()));
+    });
+    renderPeopleCandidates();
+  } catch (e) {
+    console.error("[people/load]", e);
+    el.innerHTML = '<p class="empty">Ошибка загрузки: ' + esc(e.message || "") + '</p>';
+  } finally {
+    peopleDataLoading = false;
+  }
+}
+
+function renderPeopleCandidates() {
+  var el = $("people-results");
+  if (!el || !currentUser) return;
+
+  var myUid = currentUser.id;
+  var friendUids = myFriendships.map(function (f) {
+    return (f.members || []).find(function (m) { return m !== myUid; });
+  }).filter(Boolean);
+  var outUids = outboundRequests.map(function (r) { return r.to; });
+  var inUids  = inboundRequests.map(function (r) { return r.from; });
+  var skips   = getSkips();
+
+  var filtered = allPublicProfiles.filter(function (p) {
+    if (p.uid === myUid) return false;
+    if (friendUids.indexOf(p.uid) !== -1) return false;
+    if (outUids.indexOf(p.uid) !== -1) return false;
+    if (inUids.indexOf(p.uid) !== -1) return false;
+    if (skips.indexOf(p.uid) !== -1) return false;
+    if (!p["anketa_" + peopleType]) return false;
+    return true;
+  }).map(function (p) {
+    return { p: p, s: computeMatchScore(p) };
+  }).filter(function (x) { return x.s >= 0.3; })
+    .sort(function (a, b) { return b.s - a.s; });
+
+  allPeopleCandidates = filtered;
+
+  if (!filtered.length) {
+    el.innerHTML = '<p class="empty">Пока нет подходящих анкет. Попробуйте другой раздел или зайдите позже.</p>';
+    if ($("people-info")) $("people-info").textContent = "Кандидатов: 0";
+    return;
+  }
+  if ($("people-info")) $("people-info").textContent = "Найдено: " + filtered.length;
+
+  var h = "";
+  filtered.forEach(function (x) { h += buildPersonCard(x.p, x.s); });
+  el.innerHTML = h;
+
+  el.querySelectorAll(".person-card .pc-action").forEach(function (btn) {
+    btn.onclick = function (e) {
+      e.stopPropagation();
+      var uid = this.dataset.uid;
+      if (this.dataset.action === "skip") {
+        addSkip(uid);
+        renderPeopleCandidates();
+      } else if (this.dataset.action === "request") {
+        sendFriendRequest(uid);
+      }
+    };
+  });
+}
+
+function buildPersonCard(p, score) {
+  var ank = p["anketa_" + peopleType] || {};
+  var avatar = peopleLabel(p.avatar);
+  var pct = Math.round(score * 100);
+  var tags = [];
+
+  if (peopleType === "games") {
+    (ank.topGames || []).slice(0, 2).forEach(function (g) { tags.push(g); });
+    if (ank.goal) tags.push(goalLabel(ank.goal));
+    if (ank.voice) tags.push(voiceLabel(ank.voice));
+  } else {
+    (ank.topMovies || []).slice(0, 2).forEach(function (m) { tags.push(m); });
+    if (ank.format) tags.push(formatLabel(ank.format));
+    if (ank.dubbing) tags.push(dubbingLabel(ank.dubbing));
+  }
+
+  return '<div class="person-card">' +
+    '<div class="pc-head">' +
+      '<div class="pc-avatar af-' + esc(p.avatarFrame || "none") + '">' +
+        '<img src="' + esc(avatar) + '" alt="">' +
+      '</div>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div class="pc-name ' + (p.nameStyle ? "ns-" + esc(p.nameStyle) : "") + '" style="color:' + esc(p.color || "#e8eaed") + '">' +
+          (p.badge ? '<span class="user-badge">' + esc(p.badge) + '</span>' : '') +
+          esc(p.name || "Без имени") +
+        '</div>' +
+        '<div class="pc-bio">' + esc((p.bio || "").slice(0, 80)) + '</div>' +
+      '</div>' +
+      '<span class="pc-score">' + pct + '%</span>' +
+    '</div>' +
+    '<div class="anketa-preview">' +
+      tags.map(function (t) { return '<span class="anketa-tag">' + esc(t) + '</span>'; }).join("") +
+      (ank.about ? '<p style="margin-top:8px;">' + esc(ank.about.slice(0, 140)) + '</p>' : '') +
+    '</div>' +
+    '<div class="pc-actions">' +
+      '<button type="button" class="pc-action pc-btn-skip" data-action="skip" data-uid="' + esc(p.uid) + '">Пропустить</button>' +
+      '<button type="button" class="pc-action pc-btn-request" data-action="request" data-uid="' + esc(p.uid) + '">В друзья</button>' +
+    '</div>' +
+  '</div>';
+}
+
+// ============================================================  
+// ЗАЯВКИ В ДРУЗЬЯ                                              
+// ============================================================  
+async function sendFriendRequest(toUid) {
+  if (!currentUser || !firebaseReady || !fbDb) {
+    showToast("Войдите через Google", true);
+    return;
+  }
+  try {
+    await window.firebaseAddDoc(window.firebaseCollection(fbDb, "friendRequests"), {
+      from: currentUser.id,
+      to: toUid,
+      type: peopleType,
+      status: "pending",
+      fromProfile: {
+        name: currentProfile.name || currentUser.name,
+        avatar: currentProfile.avatar || currentUser.picture,
+        avatarFrame: currentProfile.avatarFrame,
+        nameStyle: currentProfile.nameStyle,
+        badge: currentProfile.badge,
+        color: currentProfile.color  
+      },
+      createdAt: window.firebaseServerTimestamp ? window.firebaseServerTimestamp() : new Date()
+    });
+    showToast("Заявка отправлена");
+    await loadMyRequests();
+    renderPeopleCandidates();
+  } catch (e) {
+    console.error("[people/req]", e);
+    showToast("Не удалось отправить: " + (e.message || ""), true);
+  }
+}
+
+async function loadMyRequests() {
+  if (!currentUser || !firebaseReady || !fbDb) return;
+  try {
+    var qin = window.firebaseQuery(
+      window.firebaseCollection(fbDb, "friendRequests"),
+      window.firebaseWhere("to", "==", currentUser.id),
+      window.firebaseWhere("status", "==", "pending")
+    );
+    var snapIn = await window.firebaseGetDocs(qin);
+    inboundRequests = [];
+    snapIn.forEach(function (d) { inboundRequests.push(Object.assign({ id: d.id }, d.data())); });
+
+    var qout = window.firebaseQuery(
+      window.firebaseCollection(fbDb, "friendRequests"),
+      window.firebaseWhere("from", "==", currentUser.id),
+      window.firebaseWhere("status", "==", "pending")
+    );
+    var snapOut = await window.firebaseGetDocs(qout);
+    outboundRequests = [];
+    snapOut.forEach(function (d) { outboundRequests.push(Object.assign({ id: d.id }, d.data())); });
+
+    renderRequests();
+    updateFriendsBadge();
+  } catch (e) {
+    console.error("[people/requests]", e);
+  }
+}
+
+async function acceptRequest(reqId) {
+  var req = inboundRequests.find(function (r) { return r.id === reqId; });
+  if (!req || !currentUser) return;
+  try {
+    await window.firebaseUpdateDoc(
+      window.firebaseDoc(fbDb, "friendRequests", reqId),
+      { status: "accepted", acceptedAt: window.firebaseServerTimestamp ? window.firebaseServerTimestamp() : new Date() }
+    );
+    var fid = [currentUser.id, req.from].sort().join("_");
+    await window.firebaseSetDoc(
+      window.firebaseDoc(fbDb, "friendships", fid),
+      {
+        members: [currentUser.id, req.from],
+        createdAt: window.firebaseServerTimestamp ? window.firebaseServerTimestamp() : new Date()
+      },
+      { merge: true }
+    );
+    showToast("Заявка принята");
+    await loadMyRequests();
+    await loadMyFriendships();
+  } catch (e) {
+    console.error("[people/accept]", e);
+    showToast("Ошибка: " + (e.message || ""), true);
+  }
+}
+
+async function declineRequest(reqId) {
+  try {
+    await window.firebaseUpdateDoc(
+      window.firebaseDoc(fbDb, "friendRequests", reqId),
+      { status: "declined" }
+    );
+    showToast("Отклонено");
+    await loadMyRequests();
+  } catch (e) { console.error(e); }
+}
+
+function renderRequests() {
+  var inEl = $("inbound-list");
+  var outEl = $("outbound-list");
+
+  if (inEl) {
+    if (!inboundRequests.length) inEl.innerHTML = '<p class="hint">Нет входящих заявок</p>';
+    else {
+      var h = "";
+      inboundRequests.forEach(function (r) {
+        var p = r.fromProfile || {};
+        var av = peopleLabel(p.avatar);
+        h += '<div class="request-item">' +
+          '<img src="' + esc(av) + '" alt="">' +
+          '<div class="req-name">' + esc(p.name || "Пользователь") + '</div>' +
+          '<div class="req-actions">' +
+            '<button type="button" class="req-btn req-accept" data-uid="' + esc(r.id) + '" data-act="accept" aria-label="Принять">✓</button>' +
+            '<button type="button" class="req-btn req-decline" data-uid="' + esc(r.id) + '" data-act="decline" aria-label="Отклонить">✕</button>' +
+          '</div></div>';
+      });
+      inEl.innerHTML = h;
+      inEl.querySelectorAll(".req-btn").forEach(function (b) {
+        b.onclick = function () {
+          if (this.dataset.act === "accept") acceptRequest(this.dataset.uid);
+          else declineRequest(this.dataset.uid);
+        };
+      });
+    }
+  }
+
+  if (outEl) {
+    if (!outboundRequests.length) outEl.innerHTML = '<p class="hint">Пока нет отправленных заявок</p>';
+    else {
+      var hh = "";
+      outboundRequests.forEach(function () {
+        hh += '<div class="request-item">' +
+          '<img src="https://via.placeholder.com/44x44/1a1d28/8f9bab?text=%3F" alt="">' +
+          '<div class="req-name">Ожидает ответа</div></div>';
+      });
+      outEl.innerHTML = hh;
+    }
+  }
+}
+
+// ============================================================  
+// ДРУЗЬЯ                                                         
+// ============================================================  
+async function loadMyFriendships() {
+  if (!currentUser || !firebaseReady || !fbDb) return;
+  try {
+    var q = window.firebaseQuery(
+      window.firebaseCollection(fbDb, "friendships"),
+      window.firebaseWhere("members", "array-contains", currentUser.id)
+    );
+    var snap = await window.firebaseGetDocs(q);
+    myFriendships = [];
+    snap.forEach(function (d) { myFriendships.push(Object.assign({ id: d.id }, d.data())); });
+    await renderFriends();
+    updateFriendsBadge();
+    renderPeopleCandidates();
+  } catch (e) { console.error("[people/friendships]", e); }
+}
+
+async function renderFriends() {
+  var el = $("friends-list");
+  if (!el) return;
+  if (!myFriendships.length) {
+    el.innerHTML = '<p class="hint">Пока нет друзей — отправляйте заявки в разделе «Люди»</p>';
+    return;
+  }
+  var profileCache = {};
+  allPublicProfiles.forEach(function (p) { profileCache[p.uid] = p; });
+
+  var h = "";
+  for (var i = 0; i < myFriendships.length; i++) {
+    var f = myFriendships[i];
+    var otherUid = (f.members || []).find(function (m) { return m !== currentUser.id; });
+    if (!otherUid) continue;
+    var p = profileCache[otherUid];
+    if (!p) {
+      try {
+        var snap = await window.firebaseGetDoc(window.firebaseDoc(fbDb, "profiles", otherUid));
+        if (snap.exists()) {
+          p = Object.assign({ uid: otherUid }, snap.data());
+          profileCache[otherUid] = p;
+        }
+      } catch (e) {}
+    }
+    var name = (p && p.name) || "Друг";
+    var av = (p && p.avatar) ? peopleLabel(p.avatar) : peopleLabel("");
+    h += '<div class="friend-item">' +
+      '<img src="' + esc(av) + '" alt="">' +
+      '<div class="req-name">' + esc(name) + '</div>' +
+      '<button type="button" class="req-btn req-chat" data-uid="' + esc(otherUid) + '" data-act="chat">Написать</button>' +
+      '</div>';
+  }
+  el.innerHTML = h;
+  el.querySelectorAll("[data-act='chat']").forEach(function (b) {
+    b.onclick = function () { openChat(this.dataset.uid); };
+  });
+}
+
+function updateFriendsBadge() {
+  var b = $("friends-badge");
+  if (!b) return;
+  var n = inboundRequests.length;
+  b.textContent = n;
+  b.style.display = n > 0 ? "inline-flex" : "none";
+}
+
+// ============================================================  
+// ЧАТ                                                          
+// ============================================================  
+async function openChat(otherUid) {
+  if (!currentUser || !otherUid) return;
+  activeChatUid = otherUid;
+  activeChatId = [currentUser.id, otherUid].sort().join("_");
+
+  var p = allPublicProfiles.find(function (x) { return x.uid === otherUid; });
+  if (!p) {
+    try {
+      var snap = await window.firebaseGetDoc(window.firebaseDoc(fbDb, "profiles", otherUid));
+      if (snap.exists()) p = Object.assign({ uid: otherUid }, snap.data());
+    } catch (e) {}
+  }
+
+  var m = $("chat-modal");
+  if ($("chat-avatar")) $("chat-avatar").src = p && p.avatar ? peopleLabel(p.avatar) : peopleLabel("");
+  if ($("chat-name")) $("chat-name").textContent = (p && p.name) || "Друг";
+  if ($("chat-messages")) $("chat-messages").innerHTML = '<p class="hint" style="text-align:center;">Загрузка...</p>';
+
+  if (m) { m.classList.add("open"); m.setAttribute("aria-hidden", "false"); }
+  subscribeChat();
+  setTimeout(function () { if ($("chat-input")) $("chat-input").focus(); }, 200);
+}
+
+function subscribeChat() {
+  if (chatUnsub) { chatUnsub(); chatUnsub = null; }
+  if (!activeChatId || !fbDb || !window.firebaseOnSnapshot) return;
+
+  try {
+    var q = window.firebaseQuery(
+      window.firebaseCollection(fbDb, "chats", activeChatId, "messages"),
+      window.firebaseOrderBy("createdAt", "asc"),
+      window.firebaseLimit(200)
+    );
+    chatUnsub = window.firebaseOnSnapshot(q,
+      function (snap) {
+        var el = $("chat-messages");
+        if (!el) return;
+        var msgs = [];
+        snap.forEach(function (d) { msgs.push(d.data()); });
+        if (!msgs.length) {
+          el.innerHTML = '<p class="hint" style="text-align:center;">Нет сообщений. Напишите первым!</p>';
+          return;
+        }
+        var h = "";
+        msgs.forEach(function (msg) {
+          var mine = msg.from === currentUser.id;
+          var time = msg.createdAt && msg.createdAt.seconds  
+            ? new Date(msg.createdAt.seconds * 1000)
+            : new Date();
+          var hm = time.getHours() + ":" + String(time.getMinutes()).padStart(2, "0");
+          h += '<div class="chat-msg ' + (mine ? "from-me" : "from-them") + '">' +
+            esc(msg.text || "") +
+            '<div class="chat-msg-time">' + hm + '</div>' +
+          '</div>';
+        });
+        el.innerHTML = h;
+        el.scrollTop = el.scrollHeight;
+      },
+      function (err) { console.error("[chat]", err); }
+    );
+  } catch (e) { console.error(e); }
+}
+
+async function sendMessage() {
+  if (!activeChatId || !activeChatUid || !currentUser || !fbDb) return;
+  var inp = $("chat-input");
+  if (!inp) return;
+  var text = inp.value.trim();
+  if (!text) return;
+  inp.value = "";
+  try {
+    await window.firebaseSetDoc(
+      window.firebaseDoc(fbDb, "chats", activeChatId),
+      {
+        members: [currentUser.id, activeChatUid].sort(),
+        updatedAt: window.firebaseServerTimestamp ? window.firebaseServerTimestamp() : new Date()
+      },
+      { merge: true }
+    );
+    await window.firebaseAddDoc(
+      window.firebaseCollection(fbDb, "chats", activeChatId, "messages"),
+      {
+        from: currentUser.id,
+        text: text.slice(0, 2000),
+        createdAt: window.firebaseServerTimestamp ? window.firebaseServerTimestamp() : new Date()
+      }
+    );
+  } catch (e) {
+    console.error("[chat/send]", e);
+    showToast("Не удалось отправить: " + (e.message || ""), true);
+  }
+}
+
+function closeChat() {
+  if (chatUnsub) { chatUnsub(); chatUnsub = null; }
+  activeChatUid = null;
+  activeChatId = null;
+  var m = $("chat-modal");
+  if (m) { m.classList.remove("open"); m.setAttribute("aria-hidden", "true"); }
+}
+
+// ============================================================  
+// ПЕРЕКЛЮЧЕНИЕ РАЗДЕЛОВ «ЛЮДИ»                                 
+// ============================================================  
+function switchPeopleType(type) {
+  peopleType = type;
+  document.querySelectorAll("#people-switch button").forEach(function (b) {
+    b.classList.toggle("active", b.dataset.people === type);
+  });
+  renderPeopleCandidates();
+}
+
+function preparePeopleSection() {
+  updateAnketaButtonState();
+  if (!currentUser) {
+    var el = $("people-results");
+    if (el) el.innerHTML = '<p class="empty">Войдите через Google, чтобы видеть анкеты.</p>';
+    if ($("people-info")) $("people-info").textContent = "Требуется вход";
+    return;
+  }
+  loadPeopleCandidates();
+}
+
+function prepareFriendsSection() {
+  if (!currentUser) {
+    if ($("inbound-list")) $("inbound-list").innerHTML = '<p class="hint">Войдите через Google</p>';
+    if ($("outbound-list")) $("outbound-list").innerHTML = "";
+    if ($("friends-list")) $("friends-list").innerHTML = "";
+    return;
+  }
+  loadMyRequests();
+  loadMyFriendships();
+}
+
+// ============================================================  
+// ИНИЦИАЛИЗАЦИЯ МОДУЛЯ                                         
+// ============================================================  
+function initPeopleModule() {
+  // Кнопка анкеты  
+  if ($("anketa-btn")) $("anketa-btn").onclick = openAnketaModal;
+  if ($("anketa-save-btn")) $("anketa-save-btn").onclick = saveAnketa;
+  if ($("anketa-modal-close")) $("anketa-modal-close").onclick = function () {
+    var m = $("anketa-modal");
+    if (m) { m.classList.remove("open"); m.setAttribute("aria-hidden", "true"); }
+  };
+
+  // Чат  
+  if ($("chat-modal-close")) $("chat-modal-close").onclick = closeChat;
+  if ($("chat-send")) $("chat-send").onclick = sendMessage;
+  if ($("chat-input")) {
+    $("chat-input").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); sendMessage(); }
+    });
+  }
+
+  // Табы анкеты  
+  document.querySelectorAll(".anketa-tab").forEach(function (b) {
+    b.onclick = function () {
+      document.querySelectorAll(".anketa-tab").forEach(function (x) { x.classList.remove("active"); });
+      document.querySelectorAll(".anketa-section").forEach(function (x) { x.classList.remove("active"); });
+      this.classList.add("active");
+      var sec = $("anketa-" + this.dataset.anketa);
+      if (sec) sec.classList.add("active");
+    };
+  });
+
+  // Переключатель «Игры / Фильмы» в разделе «Люди»  
+  document.querySelectorAll("#people-switch button").forEach(function (b) {
+    b.onclick = function () { switchPeopleType(this.dataset.people); };
+  });
+
+  // Подписываемся на auth и грузим данные пользователя  
+  function attach() {
+    if (!window.firebaseAuth) { setTimeout(attach, 250); return; }
+    window.firebaseOnAuth(window.firebaseAuth, function (user) {
+      if (user) {
+        setTimeout(async function () {
+          if (!currentUser || !currentUser.id) {
+            currentUser = { id: user.uid, name: user.displayName || user.email, picture: user.photoURL };
+          }
+          await pushPublicProfile(user.uid);
+          await loadMyRequests();
+          await loadMyFriendships();
+        }, 400);
+      } else {
+        inboundRequests = [];
+        outboundRequests = [];
+        myFriendships = [];
+        if ($("inbound-list")) $("inbound-list").innerHTML = "";
+        if ($("outbound-list")) $("outbound-list").innerHTML = "";
+        if ($("friends-list")) $("friends-list").innerHTML = "";
+        if ($("people-results")) $("people-results").innerHTML = '<p class="empty">Войдите через Google, чтобы видеть анкеты.</p>';
+        updateFriendsBadge();
+      }
+    });
+  }
+  attach();
+
+  // Обновляем кнопку «Заполнить / Изменить анкету» при старте  
+  updateAnketaButtonState();
+}
+
+// ============================================================  
+// КОНЕЦ ЧАСТИ 3 — файл завершён                                  
 // ============================================================  
