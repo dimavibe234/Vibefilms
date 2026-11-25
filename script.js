@@ -749,6 +749,52 @@ function applyRemoteData(d) {
   setIf("mood_disliked_movies", d.dislikedMovies);
   setIf("mood_disliked_games", d.dislikedGames);
   setIf("mood_pc", d.userPC);
+
+  if (d.profile) {
+    var merged = sanitizeProfile(Object.assign({}, DEFAULT_PROFILE, d.profile));
+    // ФИКС: не терять локальную анкету, если из облака пришло пусто  
+    if (!merged.anketa_games && currentProfile.anketa_games) {
+      merged.anketa_games = currentProfile.anketa_games;
+    }
+    if (!merged.anketa_movies && currentProfile.anketa_movies) {
+      merged.anketa_movies = currentProfile.anketa_movies;
+    }
+    if (JSON.stringify(merged) !== JSON.stringify(currentProfile)) {
+      currentProfile = merged;
+      try { localStorage.setItem("mood_profile", JSON.stringify(currentProfile)); } catch (e) {}
+      renderUserInfo();
+      changed = true;
+    }
+  }
+
+  if (d.accent && localStorage.getItem("mood_accent") !== d.accent) {
+    try { localStorage.setItem("mood_accent", d.accent); } catch (e) {}
+    document.body.setAttribute("data-accent", d.accent);
+    changed = true;
+  }
+  if (d.theme && localStorage.getItem("mood_theme") !== d.theme) {
+    try { localStorage.setItem("mood_theme", d.theme); } catch (e) {}
+    document.body.classList.toggle("light", d.theme === "light");
+    changed = true;
+  }
+  if (changed) {
+    setSyncStatus("ok", "Данные обновлены из облака");
+    renderPlaylists();
+    refreshUIAfterLoad();
+    showToast("Обновлено из облака");
+  } else {
+    setSyncStatus("ok", "Синхронизировано");
+  }
+}
+  setIf("mood_movies_playlists", d.playlists);
+  setIf("mood_watched", d.watched);
+  setIf("mood_hidden", d.hidden);
+  setIf("mood_game_favorites", d.gameFavorites);
+  setIf("mood_category_stats", d.categoryStats);
+  setIf("mood_game_searches", d.gameSearches);
+  setIf("mood_disliked_movies", d.dislikedMovies);
+  setIf("mood_disliked_games", d.dislikedGames);
+  setIf("mood_pc", d.userPC);
   if (d.profile) {
     var merged = sanitizeProfile(Object.assign({}, DEFAULT_PROFILE, d.profile));
     if (JSON.stringify(merged) !== JSON.stringify(currentProfile)) {
