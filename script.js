@@ -1691,113 +1691,119 @@ async function gameAiSearch() {
   }
 }
 
-// ============================================================
-// ИГРЫ — ЗАГРУЗКА ИЗ YANDEX CLOUD BUCKET  
-// ============================================================
-var GAMES_BUCKET = "https://storage.yandexcloud.net/playframe-data";
-
-function fetchJson(url) {
-  return fetch(url, { cache: "no-store" }).then(function (r) {
-    if (!r.ok) throw new Error("HTTP " + r.status + " — " + url);
-    return r.json();
-  });
-}
-
-// Адаптер: имена полей бакета → имена, которые ждёт остальной код  
-function normalizeGameFromBucket(g) {
-  var genresArr = Array.isArray(g.genres) ? g.genres : [];
-  var techArr   = Array.isArray(g.categories) ? g.categories : [];
-  var devArr    = Array.isArray(g.developers) ? g.developers : [];
-  var pubArr    = Array.isArray(g.publishers) ? g.publishers : [];
-  var poster    = g.poster_url ? (GAMES_BUCKET + "/" + g.poster_url) : (g.header_image || "");
-  var priceUsd  = Number(g.price_usd) || 0;
-  return {
-    appid: String(g.appid || ""),
-    name: g.name || "",
-    short_description: g.short_description || "",
-    detailed_description: g.detailed_description || g.short_description || "",
-    header_image: poster,
-    genres: genresArr.join(", "),
-    categories: techArr.join(", "),
-    release_date: g.release_date || (g.release_year ? String(g.release_year) : ""),
-    is_free: g.is_free ? "True" : "False",
-    mat_final_price: g.is_free ? 0 : Math.round(priceUsd * 100),
-    metacritic_score: Number(g.metacritic) || 0,
-    recommendations_total: Number(g.recommendations) || 0,
-    developers: devArr.join(", "),
-    publishers: pubArr.join(", "),
-    type: "game"
-  };
-}
-
 function loadGames() {
   if (gamesStarted) return;
   gamesStarted = true;
 
-  var loader = document.getElementById("game-loader");
+  var loader = $("game-loader");
   if (loader) { loader.style.display = "block"; loader.textContent = "Загрузка базы игр…"; }
 
-  var shardUrls = [];
+  var BUCKET = "https://storage.yandexcloud.net/playframe-data";
 
-  fetchJson(GAMES_BUCKET + "/games-index.json")
+  function getJson(url) {
+    return fetch(url, { cache: "no-store" }).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status + " — " + url);
+      return r.json();
+    });
+  }
+
+  function adapt(g) {
+    var genres = Array.isArray(g.genres) ? g.genres.join(", ") : (g.genres || "");
+    var tech   = Array.isArray(g.categories) ? g.categories.join(", ") : (g.categories || "");
+    var devs   = Array.isArray(g.developers) ? g.developers.join(", ") : (g.developers || "");
+    var pubs   = Array.isArray(g.publishers) ? g.publishers.join(", ") : (g.publishers || "");
+    var price  = Number(g.price_usd) || 0;
+    var poster = g.poster_url ? (BUCKET + "/" + g.poster_url) : (g.header_image || "");
+    return {
+      appid: String(g.appid || ""),
+      name: g.name || "",
+      short_description: g.short_description || "",
+      detailed_description: g.detailed_description || g.short_description || "",
+      header_image: poster,
+      genres: genres,
+      categories: tech,
+      release_date: g.release_date || (g.release_year ? String(g.release_year) : ""),
+      is_free: g.is_free ? "True" : "False",
+      mat_final_price: g.is_free ? 0 : Math.round(price * 100),
+      metacritic_score: Number(g.metacritic) || 0,
+      recommendations_total: Number(g.recommendations) || 0,
+      developers: devs,
+      publishers: pubs,
+      type: "game"
+    };
+  }
+
+  function filterValid(list) {
+    return list.filter(function (g) {
+      if (!g.name || !g.short_description) return false;
+      if (g.type !== "game") return false;
+      var hasMeta = parseInt(g.metacritic_score) > 50;
+      var hasReviews = parseInt(g.recommendations_total) > 100;
+      var text = (g.short_description + " " + g.name).toLowerCase();
+      var bad = ['hentai', 'erotic', 'nsfw', 'adult', 'bdsm'];
+      if (bad.some(function (w) { return text.indexOf(w) !== -1; })) return false;
+      return hasMeta || hasReviews;
+    });
+  }
+
+  getJson(BUCKET + "/games-index.json")
     .then(function (idx) {
-      var list = (idx && idx.shards) || [];
-      shardUrls = list.map(function (sh) { return GAMES_BUCKET + "/" + sh.file; });
-      if (!shardUrls.length) throw new Error("нет shards");
-    })
-    .catch(function () {
-      // Фолбэк: если games-index.json не залит — берём имена шардов из catalog.json  
-      return fetchJson(GAMES_BUCKET + "/catalog.json").then(function (cat) {
-        var nums = {};
-        Object.keys(cat.shard || {}).forEach(function (id) { nums[cat.shard[id]] = 1; });
-        shardUrls = Object.keys(nums).map(function (n) {
-          return GAMES_BUCKET + "/games/games-part-" + String(n).padStart(3, "0") + ".json";
-        });
-      });
-    })
-    .then(function () {
-      if (!shardUrls.length) throw new Error("не найдено ни одного шарда");
-      if (loader) loader.textContent = "Загрузка " + shardUrls.length + " файл(ов)…";
-      return Promise.all(shardUrls.map(fetchJson));
+      var shards = (idx && idx.shards) || [];
+      if (!shards.length) throw new Error("пустой games-index.json");
+      if (loader) loader.textContent = "Загрузка " + shards.length + " файл(ов)…";
+      return Promise.all(shards.map(function (sh) {
+        return getJson(BUCKET + "/" + sh.file);
+      }));
     })
     .then(function (arrays) {
       var flat = [];
       arrays.forEach(function (arr) {
-        (arr || []).forEach(function (g) { flat.push(normalizeGameFromBucket(g)); });
+        (arr || []).forEach(function (g) { flat.push(adapt(g)); });
       });
-
-      allGames = flat.filter(function (g) {
-        if (!g.name || !g.short_description) return false;
-        var hasMeta    = parseInt(g.metacritic_score, 10) > 50;
-        var hasReviews = parseInt(g.recommendations_total, 10) > 100;
-        var text = (g.short_description + " " + g.name).toLowerCase();
-        var bad = ["hentai", "erotic", "nsfw", "adult", "bdsm"];
-        if (bad.some(function (w) { return text.indexOf(w) !== -1; })) return false;
-        return hasMeta || hasReviews;
-      });
-
+      allGames = filterValid(flat);
       allGames.sort(function (a, b) {
         return (parseFloat(b.recommendations_total) || 0) - (parseFloat(a.recommendations_total) || 0);
       });
-
       gamesLoaded = true;
       if (loader) loader.style.display = "none";
-
       applyGameFilters();
-      if (typeof updatePerfBtnState === "function") updatePerfBtnState();
-
+      updatePerfBtnState();
       console.log("[games] загружено:", allGames.length);
-      console.log("[games] пример:", allGames[0]);
     })
     .catch(function (err) {
       console.error("[games] ошибка:", err);
       if (loader) {
         loader.style.display = "block";
-        loader.innerHTML = '<span style="color:#ef4444;">Ошибка: ' + esc(err.message || "") + "</span>";
+        loader.innerHTML = '<span style="color:#ef4444;">Ошибка: ' + (err.message || "") + '</span>';
       }
     });
+}
 
 
+function applyGameFilters() {
+  var result = allGames.slice();
+  var disliked = getDislikedGames();
+  if (disliked.length) result = result.filter(function (g) { return disliked.indexOf(String(g.appid)) === -1; });
+  if (gameFilters.query && gameFilters.query.length >= 2) {
+    var q = gameFilters.query;
+    result = result.filter(function (g) {
+      return (g.name && g.name.toLowerCase().indexOf(q) !== -1) ||
+             (g.short_description && g.short_description.toLowerCase().indexOf(q) !== -1);
+    });
+  }
+  if (gameFilters.mood !== 'all') {
+    var rule = MOOD_RULES[gameFilters.mood];
+    if (rule) {
+      result = result.map(function (g) { return { game: g, score: computeMoodScore(g, rule) }; })
+        .filter(function (x) { return x.score > 0; })
+        .sort(function (a, b) {
+          return Math.abs(b.score - a.score) > 0.5  
+            ? b.score - a.score  
+            : (parseFloat(b.game.recommendations_total) || 0) - (parseFloat(a.game.recommendations_total) || 0);
+        })
+        .map(function (x) { return x.game; });
+    }
+  }
   if (gameFilters.price !== 'all') {
     result = result.filter(function (g) {
       var isFree = g.is_free === 'True' || (parseFloat(g.mat_final_price) || 0) === 0;
