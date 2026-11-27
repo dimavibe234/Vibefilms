@@ -1779,6 +1779,7 @@ function loadGames() {
     });
 }
 
+ 
 
 function applyGameFilters() {
   var result = allGames.slice();
