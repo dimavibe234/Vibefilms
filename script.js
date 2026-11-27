@@ -349,31 +349,32 @@ var _profileDraft = Object.assign({}, DEFAULT_PROFILE);
 
 var MOOD_RULES = {
   relax: {
-    include: /relax|casual|chill|cozy|calm|peaceful|wholesome|friendly|heartwarm|comfort|mindful|meditative|puzzle|jigsaw|hidden.?object|point.?and.?click|visual.?novel|walking.?sim|city.?builder|farm|farming|garden|nature|kawaii|painting|music|rhythm|cooking|gardening|aquarium|pet|cat|dog|pixel.?art|short|atmospheric|exploration|cute|family/i,
-    exclude: /horror|zombie|undead|vampire|scary|terror|creepy|nightmare|monster|ghost|demon|paranormal|slender|fnaf|blood|bloody|gore|brutal|violen|kill|murder|combat|shooter|fight|war|battle|weapon|gun|rifle|apocalyp|dystop|grim|dark.?souls|darkest|doom|dead space|dark.?fantasy|survival.?horror|dark|sad|tragic|death|dying|suicid|psycho|cult|exorcis|satan|hell/i,
+    include: /\b(?:relax(?:ing|ation)?|casual|chill|cozy|calm|peaceful|wholesome|friendly|heartwarm(?:ing)?|comfort(?:ing)?|mindful|meditative|puzzle|jigsaw|hidden.?object|point.?and.?click|visual.?novel|walking.?sim(?:ulator)?|city.?builder|farm(?:ing|s)?|garden(?:ing)?|nature|kawaii|paint(?:ing)?|music(?:al)?|rhythm|cooking|aquarium|pets?|cats?|dogs?|pixel.?art|short|atmospheric|exploration|cute|family)\b/i,
+    exclude: /\b(?:horror|zombie|undead|vampire|scary|terror|creepy|nightmare|monster|ghost|demon|paranormal|slender|fnaf|blood(?:y)?|gore|brutal|violen(?:t|ce)|kill(?:ing|s)?|murder|combat|shooter|fight(?:ing|s)?|wars?|battle|weapons?|guns?|rifles?|apocalyp(?:se|tic)|dystop(?:ia|ian)|grim|dark.?souls|darkest|doom|dead.?space|dark.?fantasy|survival.?horror|sad|tragic|death|dying|suicid|psycho|cult|exorcis|satan|hell)\b/i,
     minMeta: 60, minVotes: 100  
   },
   action: {
-    include: /action|shooter|fight|combat|fast.?paced|intense|war|battle|arena|beat.?em.?up|hack.?and.?slash|twin.?stick|shoot.?em.?up|run.?and.?gun|sidescroll|fps|tps/i,
-    exclude: /horror|zombie|scary|terror|creepy|nightmare|casual|relax|chill|cozy|puzzle|wholesome|jigsaw|hidden.?object|match.?3|cooking|visual.?novel|point.?and.?click|diary|dating.?sim/i,
+    include: /\b(?:action|shoot(?:er|ing)|fight(?:ing|s)?|combat|fast.?paced|intense|wars?|battle|arena|beat.?em.?up|hack.?and.?slash|twin.?stick|shoot.?em.?up|run.?and.?gun|sidescroll|fps|tps)\b/i,
+    exclude: /\b(?:horror|zombie|scary|terror|creepy|nightmare|casual|relax|chill|cozy|puzzle|wholesome|jigsaw|hidden.?object|match.?3|cooking|visual.?novel|point.?and.?click|dating.?sim)\b/i,
     minMeta: 65, minVotes: 200  
   },
   story: {
-    include: /story|narrative|adventure|rpg|dialogue|choice|plot|character|cinematic|walking.?sim|quest|saga|lore|companion|decision|tell.?tale|life.?is.?strange|heavy.?rain/i,
-    exclude: /horror|zombie|scary|terror|creepy|casual|relax|arcade|rogue.?like|bullet.?hell|survival.?horror/i,
+    include: /\b(?:story|narrative|adventure|rpg|dialogue|choice|plot|character|cinematic|walking.?sim(?:ulator)?|quest|saga|lore|companion|decision|tell.?tale|life.?is.?strange|heavy.?rain)\b/i,
+    exclude: /\b(?:horror|zombie|scary|terror|creepy|casual|relax|arcade|rogue.?like|bullet.?hell|survival.?horror)\b/i,
     minMeta: 65, minVotes: 150  
   },
   hardcore: {
-    include: /souls.?like|hardcore|difficult|challenge|rogue.?like|rogue.?lite|permadeath|punishing|brutal|boss.?rush|competitive|esport|leaderboard|dead cells|nuclear throne|hades|dark souls|hollow knight|celeste|sekiro|bloodborne|cuphead|sifu|nioh|darkest dungeon|slay the spire|risk of rain|noita|binding of isaac|enter the gungeon/i,
-    exclude: /casual|relax|chill|cozy|walking.?sim|visual.?novel|point.?and.?click|hidden.?object|match.?3|farm|cooking|dating.?sim/i,
+    include: /\b(?:souls.?like|hardcore|difficult|challenge|rogue.?like|rogue.?lite|permadeath|punishing|brutal|boss.?rush|competitive|esport|leaderboard|dead.?cells|nuclear.?throne|hades|dark.?souls|hollow.?knight|celeste|sekiro|bloodborne|cuphead|sifu|nioh|darkest.?dungeon|slay.?the.?spire|risk.?of.?rain|noita|binding.?of.?isaac|enter.?the.?gungeon)\b/i,
+    exclude: /\b(?:casual|relax|chill|cozy|walking.?sim(?:ulator)?|visual.?novel|point.?and.?click|hidden.?object|match.?3|farm|cooking|dating.?sim)\b/i,
     minMeta: 68, minVotes: 200  
   },
   horror: {
-    include: /horror|zombie|undead|vampire|scary|terror|creepy|nightmare|monster|ghost|demon|paranormal|survival.?horror|fnaf|amnesia|outlast|silent hill|resident evil|dead space|phasmophobia|layers of fear|until dawn|the evil within|visage|blair witch|penumbra|soma|cult|exorcist|haunted/i,
+    include: /\b(?:horror|zombie|undead|vampire|scary|terror|creepy|nightmare|monster|ghost|demon|paranormal|survival.?horror|fnaf|amnesia|outlast|silent.?hill|resident.?evil|dead.?space|phasmophobia|layers.?of.?fear|until.?dawn|evil.?within|visage|blair.?witch|penumbra|soma|cult|exorcist|haunted)\b/i,
     exclude: null,
     minMeta: 55, minVotes: 100  
   }
 };
+
 
 var kinopoiskCache = {};
 try { kinopoiskCache = JSON.parse(localStorage.getItem("kinopoisk_cache") || "{}"); } catch (e) {}
