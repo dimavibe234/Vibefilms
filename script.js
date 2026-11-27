@@ -369,12 +369,12 @@ var MOOD_RULES = {
     minMeta: 68, minVotes: 200  
   },
   horror: {
-    include: /\b(?:horror|zombie|undead|vampire|scary|terror|creepy|nightmare|monster|ghost|demon|paranormal|survival.?horror|fnaf|amnesia|outlast|silent.?hill|resident.?evil|dead.?space|phasmophobia|layers.?of.?fear|until.?dawn|evil.?within|visage|blair.?witch|penumbra|soma|cult|exorcist|haunted)\b/i,
+    genresOnly: /horror/i,
+    include: /\b(?:survival.?horror|zombie|undead|vampire|fnaf|five.?nights.?at.?freddy|amnesia|outlast|silent.?hill|resident.?evil|dead.?space|phasmophobia|layers.?of.?fear|until.?dawn|the.?evil.?within|visage|blair.?witch|penumbra|exorcist)\b/i,
     exclude: null,
     minMeta: 55, minVotes: 100  
-  }
+  },
 };
-
 
 var kinopoiskCache = {};
 try { kinopoiskCache = JSON.parse(localStorage.getItem("kinopoisk_cache") || "{}"); } catch (e) {}
@@ -1796,14 +1796,23 @@ function applyGameFilters() {
   if (gameFilters.mood !== 'all') {
     var rule = MOOD_RULES[gameFilters.mood];
     if (rule) {
-      result = result.map(function (g) { return { game: g, score: computeMoodScore(g, rule) }; })
-        .filter(function (x) { return x.score > 0; })
-        .sort(function (a, b) {
-          return Math.abs(b.score - a.score) > 0.5  
-            ? b.score - a.score  
-            : (parseFloat(b.game.recommendations_total) || 0) - (parseFloat(a.game.recommendations_total) || 0);
-        })
-        .map(function (x) { return x.game; });
+      result = result.filter(function (g) {
+        var meta = parseFloat(g.metacritic_score) || 0;
+        var votes = parseFloat(g.recommendations_total) || 0;
+        if (votes < (rule.minVotes || 0)) return false;
+        if (meta > 0 && meta < (rule.minMeta || 0)) return false;
+
+        var genreText = String(g.genres || "").toLowerCase();
+        if (rule.genresOnly && rule.genresOnly.test(genreText)) return true;
+
+        var text = (g.name + " " + g.short_description + " " + (g.genres || "") + " " + (g.categories || "")).toLowerCase();
+        if (rule.exclude && rule.exclude.test(text)) return false;
+        if (rule.include && !rule.include.test(text)) return false;
+        return true;
+      });
+      result.sort(function (a, b) {
+        return (parseFloat(b.recommendations_total) || 0) - (parseFloat(a.recommendations_total) || 0);
+      });
     }
   }
   if (gameFilters.price !== 'all') {
